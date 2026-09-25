@@ -102,20 +102,34 @@
     },
     2() {
       night();
-      B.moon(ctx, 1240, 430, 330, { halo: 0.7, maria: 0 });
-      title('sheet 2 · night · back views & silhouettes', true);
-      CAST.kaguya(ctx, 1240, 900, 1.9, { pose: 'back', t: T });
-      if (CAST.POSES.rabbit) {
-        CAST.rabbit(ctx, 1150, 520, 0.5, { pose: 'pound', silhouette: U.rgba(C.kitsune, 1), alpha: 0.35, t: T, phase: (T * 0.8) % 1 });
-      }
-      CAST.kaguya(ctx, 260, 980, 0.6, { pose: 'stand', t: T });
-      CAST.kaguya(ctx, 420, 980, 0.6, { pose: 'back', t: T });
-      CAST.kaguya(ctx, 560, 980, 0.3, { pose: 'back', t: T, silhouette: C.sumi });
-      CAST.kaguya(ctx, 660, 980, 0.3, { pose: 'stand', t: T, alpha: 0.5 });
-      if (CAST.POSES.kaguya.indexOf('rise') >= 0) {
-        CAST.kaguya(ctx, 400, 420, 0.8, { pose: 'rise', t: T, wind: 0.6 });
-        CAST.kaguya(ctx, 680, 360, 0.7, { pose: 'rise', robe: 'hagoromo', t: T, wind: 0.6 });
-      }
+      B.moon(ctx, 1300, 420, 330, { halo: 0.7, maria: 0 });
+      title('sheet 2 · night · back views, ascent & silhouettes', true);
+      // moon rabbits printed on the disc
+      const mr = U.mix(C.kin, C.kitsune, 0.35);
+      CAST.rabbit(ctx, 1440, 330, 2.1, { pose: 'pound', silhouette: mr, alpha: 0.55, t: T, phase: (T * 0.6) % 1 });
+      CAST.rabbit(ctx, 1560, 350, 1.6, { pose: 'gaze', silhouette: mr, alpha: 0.45, t: T, facing: -1 });
+      // the hero: back view gazing up
+      CAST.kaguya(ctx, 1100, 1010, 1.85, { pose: 'back', t: T, wind: 0.3 });
+      // ascent
+      CAST.kaguya(ctx, 330, 360, 0.95, { pose: 'rise', t: T, wind: 0.6 });
+      CAST.kaguya(ctx, 640, 330, 0.8, { pose: 'rise', robe: 'hagoromo', look: 'up', t: T, wind: 0.6 });
+      // celestial envoy: a flyer and a small procession on clouds
+      CAST.tennyo(ctx, 760, 150, 0.55, { pose: 'fly', instrument: 'flute', t: T, facing: -1 });
+      ['sho', 'lute', 'none'].forEach((ins, i) => CAST.tennyo(ctx, 150 + i * 110, 610 - i * 20, 0.34, { pose: 'stand', instrument: ins, t: T + i }));
+      // silhouettes against the night (sumi)
+      const sil = U.mix(C.tetsukon, C.sumi, 0.5);
+      CAST.okina(ctx, 110, 1030, 0.55, { pose: 'reach', silhouette: sil, t: T });
+      CAST.ouna(ctx, 190, 1030, 0.55, { pose: 'weep', silhouette: sil, t: T });
+      CAST.mikado(ctx, 430, 1030, 0.5, { pose: 'gaze', silhouette: sil, t: T });
+      CAST.guard(ctx, 520, 1030, 0.4, { pose: 'aim', silhouette: sil, t: T });
+      CAST.guard(ctx, 580, 1030, 0.4, { pose: 'aim', silhouette: sil, t: T });
+      CAST.child(ctx, 650, 1030, 0.55, { pose: 'reach', silhouette: sil, t: T });
+      CAST.elder(ctx, 720, 1030, 0.55, { pose: 'point', silhouette: sil, t: T });
+      CAST.deer(ctx, 840, 1030, 0.45, { pose: 'call', silhouette: sil, t: T });
+      CAST.kaguya(ctx, 330, 1030, 0.42, { pose: 'back', silhouette: sil, t: T });
+      // alpha fades (buffered, no overlap seams)
+      CAST.kaguya(ctx, 330, 860, 0.5, { pose: 'stand', t: T, alpha: 0.45 });
+      CAST.okina(ctx, 470, 860, 0.5, { pose: 'kneel', t: T, alpha: 0.6 });
     },
     3() {
       washi(); title('sheet 3 · small scales (0.14 · 0.22 · 0.3)');
@@ -157,6 +171,54 @@
         if (y > 1000) break;
       }
     },
+    7() {
+      washi(); title('sheet 7 · variants: facing, palette overrides, options');
+      const OMINAESHI = { kasane: [U.mix(C.yamabuki, C.koke, 0.35), U.mix(C.yamabuki, C.wakatake, 0.3), C.susuki, U.mix(C.susuki, C.gofun, 0.5), C.gofun, C.aotake], karaginu: C.aotake, karaginuFg: C.matsuba };
+      const KURENAI = { kasane: [C.enji, C.akane, C.beni, C.toki, U.mix(C.toki, C.gofun, 0.5), C.gofun], karaginu: C.murasaki, karaginuFg: U.mix(C.murasaki, C.fuji, 0.4), hakama: C.enji };
+      flow([
+        { name: 'kaguya', pose: 'stand', scale: 0.62, opts: { facing: -1, palette: OMINAESHI }, lab: 'stand facing:-1 女郎花' },
+        { name: 'kaguya', pose: 'weep', scale: 0.62, opts: { stand: true }, lab: 'weep stand:true' },
+        { name: 'kaguya', pose: 'seated', scale: 0.62, opts: { palette: KURENAI, train: 0.6 }, lab: 'seated 紅の匂 train:.6' },
+        { name: 'kaguya', pose: 'back', scale: 0.62, opts: { look: 0 }, lab: 'back look:0' },
+        { name: 'kaguya', pose: 'back', scale: 0.62, opts: { look: 1, train: 0.3, palette: KURENAI }, lab: 'back look:1 train:.3' },
+        { name: 'kaguya', pose: 'stand', scale: 0.62, opts: { outline: 0 }, lab: 'outline:0 (flat)' },
+        { name: 'kaguya', pose: 'rise', scale: 0.5, opts: { robe: 'hagoromo', look: 'up', lean: -0.05 }, lab: 'rise hagoromo look:up' },
+        { name: 'kaguya', pose: 'baby', scale: 0.8, opts: { glow: 0.3 }, lab: 'baby glow:.3' },
+        { name: 'okina', pose: 'kneel', scale: 0.62, opts: { holding: 'none', facing: -1 }, lab: 'okina kneel holding:none' },
+        { name: 'child', pose: 'reach', scale: 0.8, opts: { girl: true }, lab: 'child girl:true' },
+        { name: 'child', pose: 'stand', scale: 0.8, opts: { girl: true, palette: { kimono: C.toki, kimonoFg: C.beni, obi: C.kikyo } }, lab: 'child girl palette' },
+        { name: 'guard', pose: 'aim', scale: 0.62, opts: { facing: -1, palette: { robe: C.akane, robeFg: C.enji, lining: C.kin } }, lab: 'guard 緋袍 facing:-1' },
+        { name: 'fox', pose: 'sit', scale: 1.6, opts: { color: 'gold' }, lab: 'fox color:gold' },
+        { name: 'fox', pose: 'walk', scale: 1.6, opts: { color: 'gold', facing: -1 }, lab: 'fox gold walk' },
+        { name: 'deer', pose: 'stand', scale: 0.62, opts: { antlers: false }, lab: 'deer antlers:false' },
+        { name: 'tennyo', pose: 'fly', scale: 0.55, opts: { instrument: 'lute', dir: -0.3 }, lab: 'tennyo lute dir:-.3' },
+        { name: 'tennyo', pose: 'fly', scale: 0.55, opts: { instrument: 'sho', facing: -1 }, lab: 'tennyo sho facing:-1' },
+        { name: 'tennyo', pose: 'stand', scale: 0.55, opts: { instrument: 'flute' }, lab: 'tennyo stand flute' },
+        { name: 'rabbit', pose: 'pound', scale: 1.8, opts: { silhouette: C.sumi }, lab: 'rabbit silhouette' },
+        { name: 'mikado', pose: 'gaze', scale: 0.55, opts: { train: 0.4, facing: -1 }, lab: 'mikado gaze train:.4' },
+      ], 30, 60, 1890, 26);
+    },
+    8() {
+      washi(); title('sheet 8 · close-ups (faces at hero scale)');
+      // [name, pose, scale, x of the head (local), distance of the head below the bounds top]
+      const cells = [
+        ['kaguya', 'stand', 5, 7, 32], ['kaguya', 'back', 5, 4, 38], ['kaguya', 'weep', 4.2, 24, 34], ['kaguya', 'rise', 4.2, 0, 45],
+        ['okina', 'stand', 4.5, 42, 64], ['ouna', 'stand', 4.5, 30, 66], ['mikado', 'stand', 4, 8, 82], ['child', 'reach', 4.5, 0, 50],
+        ['tennyo', 'stand', 4.5, 6, 42], ['guard', 'stand', 4.5, 2, 90], ['rabbit', 'sit', 9, 45, 40], ['fox', 'sit', 7, 45, 45],
+      ];
+      const cw = W / 4, chh = (H - 50) / 3;
+      cells.forEach(([n, p, sc, cx, cy], i) => {
+        const x0 = (i % 4) * cw, y0 = 50 + Math.floor(i / 4) * chh;
+        ctx.save();
+        ctx.beginPath(); ctx.rect(x0 + 4, y0 + 4, cw - 8, chh - 8); ctx.clip();
+        const u = n === 'rabbit' || n === 'fox' ? 0.55 : 1;
+        const bb = CAST.bounds(n, p);
+        const hy = bb[1] + cy * u; // head height (local, logical px at scale 1)
+        CAST[n](ctx, x0 + cw / 2 - cx * u * sc, y0 + chh / 2 - hy * sc, sc, { pose: p, t: T });
+        ctx.restore();
+        label(x0 + cw / 2, y0 + chh - 10, `${n}.${p} ×${sc}`, undefined, 11);
+      });
+    },
     focus() {
       const name = q.get('focus');
       const sc = parseFloat(q.get('scale') || '1');
@@ -176,37 +238,46 @@
       const poses = (q.get('pose') || CAST.POSES[name][0]).split(',');
       q.has('dark') ? night() : washi();
       const cw = W / poses.length;
-      poses.forEach((p, i) => {
+      poses.forEach((p0, i) => {
+        // "pose~key:value~key:value" adds options, e.g. rise~robe:hagoromo
+        const [p, ...kv] = p0.split('~');
+        const extra = {};
+        for (const s of kv) { const [k, v] = s.split(':'); extra[k] = isNaN(+v) ? v : +v; }
         ctx.save();
         ctx.beginPath(); ctx.rect(i * cw, 0, cw, H); ctx.clip();
-        CAST[name](ctx, i * cw + cw / 2 - cx * sc, H / 2 - cy * sc, sc, { pose: p, t: T });
+        CAST[name](ctx, i * cw + cw / 2 - cx * sc, H / 2 - cy * sc, sc, Object.assign({ pose: p, t: T }, extra));
         ctx.restore();
-        label(i * cw + cw / 2, H - 20, `${name}.${p} ×${sc}`);
+        label(i * cw + cw / 2, H - 20, `${name}.${p0} ×${sc}`);
       });
     },
     perf() {
       washi(); title('perf · ms per draw at scale 1 (100 draws, flushed)');
       const off = document.createElement('canvas');
       off.width = 1920; off.height = 1080;
-      const o2 = off.getContext('2d');
+      const o2 = off.getContext('2d', { willReadFrequently: true });
       const lines = [];
       let worst = 0;
       for (const name of Object.keys(CAST.POSES)) {
         for (const pose of CAST.POSES[name]) {
           for (const variant of [{}, { alpha: 0.6 }]) {
-            // warm up
+            // warm up, then 100 draws in 5 flushed batches of 20: mean over all 100 and the median batch
             for (let i = 0; i < 5; i++) CAST[name](o2, 960, 700, 1, Object.assign({ pose, t: i * 0.1 }, variant));
             o2.getImageData(0, 0, 1, 1);
-            const t0 = performance.now();
-            for (let i = 0; i < 100; i++) CAST[name](o2, 960, 700, 1, Object.assign({ pose, t: i * 0.05, phase: (i * 0.03) % 1 }, variant));
-            o2.getImageData(0, 0, 1, 1);
-            const ms = (performance.now() - t0) / 100;
+            const batches = [];
+            for (let b = 0; b < 5; b++) {
+              const t0 = performance.now();
+              for (let i = 0; i < 20; i++) CAST[name](o2, 960, 700, 1, Object.assign({ pose, t: (b * 20 + i) * 0.05, phase: ((b * 20 + i) * 0.03) % 1 }, variant));
+              o2.getImageData(0, 0, 1, 1);
+              batches.push((performance.now() - t0) / 20);
+            }
+            const mean = batches.reduce((a, v) => a + v, 0) / 5;
+            const ms = batches.slice().sort((a, b) => a - b)[2];
             if (!variant.alpha) worst = Math.max(worst, ms);
-            lines.push(`${(name + '.' + pose).padEnd(22)} ${variant.alpha ? 'alpha 0.6' : 'opaque   '}  ${ms.toFixed(3)} ms`);
+            lines.push(`${(name + '.' + pose).padEnd(22)} ${variant.alpha ? 'alpha 0.6' : 'opaque   '}  median ${ms.toFixed(3)} ms  mean ${mean.toFixed(3)} ms`);
           }
         }
       }
-      lines.push(`worst opaque: ${worst.toFixed(3)} ms`);
+      lines.push(`worst opaque (median batch): ${worst.toFixed(3)} ms`);
       console.log(lines.join('\n'));
       ctx.font = '14px ui-monospace, monospace';
       ctx.fillStyle = C.sumi;

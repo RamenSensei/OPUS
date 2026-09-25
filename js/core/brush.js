@@ -308,6 +308,9 @@
     c.restore();
   };
 
+  /** The rabbit maria path (unit radius r) filled with ctx's current fillStyle. */
+  B.rabbitMaria = (ctx, r) => { rabbitMaria(ctx, r); };
+
   /**
    * 名月. opts:
    *   color   — disc ink (default 月色)

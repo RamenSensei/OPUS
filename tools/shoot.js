@@ -41,7 +41,7 @@ const opt = (name, def) => {
   page.on('pageerror', (e) => logs.push(`pageerror: ${e.message}`));
   const q = ['still', 'nosound', `w=${width}`];
   if (opt('nopaper')) q.push('nopaper');
-  await page.goto('file://' + path.join(ROOT, 'index.html') + '?' + q.join('&'));
+  await page.goto('file://' + path.join(ROOT, process.env.PAGE||'index.html') + '?' + q.join('&'));
   await page.waitForFunction(() => window.__film && window.__film.ready);
   await page.evaluate(() => window.__film.ready);
   // the stage fills the viewport in still mode

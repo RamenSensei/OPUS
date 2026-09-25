@@ -215,6 +215,7 @@ body.started #curtain { opacity: 0; visibility: hidden; }
 }
 #btn-start:hover, #btn-start:focus-visible { background: rgba(201, 164, 92, 0.18); border-color: #e8cf94; outline: none; }
 #btn-start .seal { width: 1.6em; height: 1.6em; font-size: 1em; letter-spacing: 0; }
+body.loading #btn-start { opacity: 0.45; pointer-events: none; }
 .curtain-hint { font-family: var(--f-zh); font-size: clamp(11px, 1.5vmin, 14px); letter-spacing: 0.2em; color: var(--muted); }
 
 /* -------------------------------------------------------------- the end */

@@ -81,6 +81,7 @@
     const bh = Math.round((bw * H) / W);
     for (const c of [canvas, bufA, bufB, bufM]) { c.width = bw; c.height = bh; }
     k = bw / W;
+    if (TSUKI.PRINT) TSUKI.PRINT.setQuality(k);
     for (const c of [ctx, ctxA, ctxB, ctxM]) {
       c.setTransform(k, 0, 0, k, 0, 0);
       c.imageSmoothingQuality = 'high';
@@ -539,7 +540,27 @@
     document.body.classList.add('paused');
     requestAnimationFrame(frame);
     const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-    ENGINE.ready = fontsReady.then(() => { render(T); return true; });
+    // warm-up: carve every shot's blocks and run every scene's init() now,
+    // so nothing stalls mid-film.
+    const warm = () => new Promise((res) => {
+      setTimeout(() => {
+        for (const seg of segs) {
+          const sc = scenes[seg.id];
+          if (sc && !sc._inited && sc.init) {
+            try { sc.init(sceneCtx(seg)); } catch (e) { errors[seg.id] = String(e && e.stack || e); console.error(`[scene ${seg.id} init]`, e); }
+          }
+          if (sc) sc._inited = true;
+        }
+        try { if (TSUKI.PRINT) TSUKI.PRINT.buildAll(); } catch (e) { errors.print = String(e && e.stack || e); console.error('[print]', e); }
+        res();
+      }, 0);
+    });
+    document.body.classList.add('loading');
+    ENGINE.ready = fontsReady.then(warm).then(() => {
+      document.body.classList.remove('loading');
+      render(T);
+      return true;
+    });
     // capture / automation hooks
     window.__film = {
       ready: ENGINE.ready,
