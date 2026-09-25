@@ -12,6 +12,7 @@
      P2 紅 萩 山吹 朱 warm      P3 松葉 尾花 greens, susuki
      P4 鼠 銀鼠 藍鼠 greys      P5 藍 water, the haori
      P6 ベロ藍 紺 桔梗 sky      P6i the ichimonji band (wiped on in 序)
+   Plate landings in 序 follow TSUKI.CUES.kento (the score's clicks).
      P7 胡粉 月白 highlights    P8 雲母 kira (composited 'lighter')
      D  鴇 dawn (結 only)       R  the rabbit — drawn by TSUKI.MOON
    ========================================================================== */
@@ -38,7 +39,7 @@
     { ids: ['P1', 'P3', 'P4'], a: 225.0, b: 226.5 },
     { ids: ['K'], a: 226.5, b: 228.0 },
   ];
-  PRINT.TIMES = { printStart: 2, keyDone: 6, landStart: 6, landStep: 0.55, tears: 140, click: 147.8, jolt: 160, joltDur: 0.6, unprint: 222, blank: 228 };
+  PRINT.TIMES = { printStart: 2, keyDone: 6, landStart: 6, landStep: 0.6, tears: 140, click: 147.8, jolt: 160, joltDur: 0.6, unprint: 222, blank: 228 };
 
   const seedDir = (id, salt) => {
     const h = U.hash(id.charCodeAt(0) * 131 + (id.charCodeAt(1) || 0) * 17 + (id.charCodeAt(2) || 0) + salt * 977);
@@ -65,8 +66,11 @@
       if (T < X.keyDone) {
         keyReveal = { cx: 1180, cy: 560, width: 160, reach: 1300 * U.ease.inOutSine(U.clamp((T - X.printStart) / (X.keyDone - X.printStart))) };
       }
+      // plates land on the score's kentō clicks (TSUKI.CUES.kento) so every
+      // block touches register exactly as its click sounds
+      const kento = TSUKI.CUES && TSUKI.CUES.kento;
       PRINT.LAND.forEach((id, i) => {
-        const tl = X.landStart + X.landStep * i;
+        const tl = kento && kento[i] != null ? kento[i] : X.landStart + X.landStep * i;
         const a = U.clamp((T - tl) / 0.12);
         const settle = 1 - U.ease.outCubic(U.clamp((T - tl) / 0.45));
         const d = seedDir(id, 1), mag = U.lerp(4, 6, U.hash(i + 11));
