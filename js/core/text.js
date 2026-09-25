@@ -42,6 +42,8 @@
   const DEFAULTS = {
     haiku:     { reveal: 2.6, out: 1.6, stagger: 0.11, cls: 'poem haiku' },
     waka:      { reveal: 4.2, out: 1.8, stagger: 0.085, cls: 'poem waka' },
+    kanshi:    { reveal: 3.6, out: 1.8, stagger: 0.12, cls: 'poem waka kanshi' },
+    letter:    { reveal: 4.0, out: 1.8, stagger: 0.07, cls: 'poem narration letter' },
     narration: { reveal: 1.8, out: 1.2, stagger: 0.05, cls: 'poem narration' },
     title:     { reveal: 3.2, out: 2.0, stagger: 0.22, cls: 'title-card' },
     caption:   { reveal: 1.2, out: 1.0, stagger: 0.03, cls: 'caption' },
@@ -50,10 +52,14 @@
 
   function build(cue) {
     const d = DEFAULTS[cue.kind] || DEFAULTS.narration;
-    const root = el('div', `${d.cls} pos-${cue.position || 'right'} ink-${cue.ink || 'light'}`, overlay);
+    const root = el('div', `${d.cls} pos-${cue.position || 'right'} ink-${cue.ink || 'light'}${cue.font ? ' font-' + cue.font : ''}${cue.layout ? ' laid' : ''}`, overlay);
     root.style.display = 'none';
-    if (cue.x != null) { root.style.left = cue.x + 'px'; root.style.right = 'auto'; }
-    if (cue.y != null) { root.style.top = cue.y + 'px'; root.style.bottom = 'auto'; }
+    if (cue.layout) {
+      root.style.left = '0px'; root.style.top = '0px'; root.style.right = 'auto'; root.style.bottom = 'auto';
+    } else {
+      if (cue.x != null) { root.style.left = cue.x + 'px'; root.style.right = 'auto'; }
+      if (cue.y != null) { root.style.top = cue.y + 'px'; root.style.bottom = 'auto'; }
+    }
     if (cue.size) root.style.setProperty('--fs', cue.size + 'px');
     const spans = [];
     if (cue.kind === 'caption') {
@@ -63,19 +69,37 @@
       const body = el('div', 'cols', root);
       (cue.ja || []).forEach((col, i) => {
         const c = el('div', 'col', body);
-        const off = cue.chirashi ? cue.chirashi[i] || 0 : defaultChirashi(cue, i);
-        if (off) c.style.marginTop = off + 'px';
+        const L = cue.layout && cue.layout[i];
+        if (L) {
+          // absolute placement per column (e.g. title on a painted tanzaku)
+          c.style.position = 'absolute';
+          c.style.left = L.x + 'px';
+          c.style.top = L.y + 'px';
+          if (L.size) c.style.fontSize = L.size + 'px';
+          if (L.font) c.style.fontFamily = L.font === 'brush' ? 'var(--f-brush)' : 'var(--f-mincho)';
+          if (L.spacing != null) c.style.letterSpacing = L.spacing + 'em';
+        } else {
+          const off = cue.chirashi ? cue.chirashi[i] || 0 : defaultChirashi(cue, i);
+          if (off) c.style.marginTop = off + 'px';
+        }
         spans.push(...charSpans(c, col));
       });
       if (cue.author || cue.seal) {
         const sig = el('div', 'sig', body);
+        if (cue.sigAt) {
+          sig.style.position = 'absolute';
+          sig.style.left = cue.sigAt.x + 'px';
+          sig.style.top = cue.sigAt.y + 'px';
+        }
         if (cue.author) {
           const a = el('div', 'author', sig);
           a.textContent = cue.author;
         }
         if (cue.seal !== false) {
-          const s = el('div', 'seal', sig);
-          s.textContent = cue.seal || '月';
+          const s = el('div', 'seal' + (cue.seal_style === '朱文' ? ' shubun' : ''), sig);
+          const txt = cue.seal || '月';
+          s.textContent = txt;
+          if ([...txt].length > 1) s.classList.add('multi');
         }
       }
       if (cue.kind === 'title' && (cue.zh || cue.en)) {

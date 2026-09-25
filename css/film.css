@@ -65,7 +65,8 @@ body {
 .poem .col {
   writing-mode: vertical-rl;
   text-orientation: upright;
-  font-family: var(--f-brush);
+  font-family: var(--f-mincho);
+  font-weight: 600;
   font-size: var(--fs, 60px);
   line-height: 1;
   letter-spacing: 0.14em;
@@ -74,6 +75,10 @@ body {
 .poem.waka .col { font-size: var(--fs, 50px); letter-spacing: 0.1em; }
 .poem.narration .col { font-family: var(--f-mincho); font-weight: 600; font-size: var(--fs, 40px); letter-spacing: 0.18em; }
 .poem .ch { display: inline-block; opacity: 0; will-change: opacity, filter; }
+.font-brush .col, .poem.letter .col { font-family: var(--f-brush); font-weight: 400; }
+.laid .cols { display: block; }
+.seal.shubun { background: rgba(243, 237, 224, 0.92); color: var(--shu); box-shadow: inset 0 0 0 2.5px var(--shu); }
+.seal.multi { writing-mode: vertical-rl; font-size: 15px; letter-spacing: 0; width: 34px; height: 44px; line-height: 1.05; }
 .poem .ch.sp { width: 0.5em; }
 
 .ink-light { color: var(--gofun); text-shadow: 0 0 18px rgba(10, 16, 36, 0.55), 0 0 3px rgba(10, 16, 36, 0.5); }
