@@ -967,7 +967,7 @@
       S2.globalCompositeOperation = 'destination-out';
       for (const p of seatFg.parts) S2.fill(p);
       S2.restore();
-      SB.softPrint(c, T, 'silk', { mode: 'source-over', plate: 'P7', alpha: 0.38 * silk });
+      SB.softPrint(c, T, 'silk', { mode: 'source-over', plate: 'P7', alpha: 0.46 * silk });
     }
   }
 
@@ -1328,7 +1328,12 @@
     },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
+      // a clean context whatever the previous scene left behind (the engine resets only some state)
+      ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'low';
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+      ctx.miterLimit = 10;
       if (T < CUT) drawB(ctx, T);
       else drawAprime(ctx, T);
     },

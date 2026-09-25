@@ -586,13 +586,19 @@
     const res = opts.res == null ? 0.5 : opts.res;
     const sc = k * res;
     const w = Math.max(1, Math.ceil((x1 - x0) * sc)), h = Math.max(1, Math.ceil((y1 - y0) * sc));
-    let b = bufs.cast;
-    if (!b || b.width < w || b.height < h) b = bufs.cast = B.canvas(Math.max(w, b ? b.width : 0), Math.max(h, b ? b.height : 0));
+    const bw = Math.ceil(w / 64) * 64, bh = Math.ceil(h / 64) * 64, key = `cast|${bw}x${bh}`;
+    let b = bufs[key];                                          // size a pure function of the request (determinism)
+    if (!b) {
+      b = bufs[key] = B.canvas(bw, bh);
+      const lru = bufs.lru || (bufs.lru = []);
+      lru.push(key);
+      if (lru.length > 6) delete bufs[lru.shift()];
+    }
     const c = b.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
-    c.clearRect(0, 0, w + 2, h + 2);
+    c.clearRect(0, 0, b.width, b.height);
     c.setTransform(new DOMMatrix([sc, 0, 0, sc, -x0 * sc, -y0 * sc]).multiply(SA.shadowMatrix(baseY, len)));
     c.fillStyle = AINEZU;
     draw(c);

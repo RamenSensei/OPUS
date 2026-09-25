@@ -27,7 +27,8 @@
      cell(p, c, r)                paper cell rect [x, y, w, h]: panel p 0–3, column c 0–2, row r 0–5
      glow(T)                      {x, y, r} moon glow behind the paper (MOON.B)
      draw(ctx, T, opts)           print the shot: opts.id 'B'|'B7', opts.between {layer: fn(ctx, st)},
-                                  opts.skip [layers]
+                                  opts.under fn(ctx, st) (before any layer: e.g. a registered underlay
+                                  that shows where a drifting plate leaves paper), opts.skip [layers]
      light(ctx, T, opts)          live moonlight on the paper (P4 falloff, P7 core, K dim):
                                   opts x, y, r, falloff, core, dim (0..1 cloud), ranges [[x0,x1]…],
                                   eclipse (0..1: the paper around the glow sinks, the ring stays)
@@ -43,8 +44,11 @@
                                   from the paper: paint 藍鼠 coverage in stage coords; the upscale
                                   is the penumbra (res 0.3 ≈ 3 px)
      softPrint(ctx, T, name, o)   print that layer (multiply via P4; o: alpha, mode, plate, ranges)
-     sharpLayer(ctx, name, region)  the same at full resolution (compose, then softPrint)
-     tearPath()                   the ragged hole in panel 2 (七)
+     sharpLayer(ctx, name, region, res?)  the same for crisp silhouettes (default res: ≈0.85
+                                  backing px per logical px — invisible on flat fills, cheaper at 1920);
+                                  compose, then softPrint (layers never compound inside themselves)
+     tearPath()                   the ragged hole in panel 2 (七); carved with a dark pre-dawn
+                                  backing, torn fibres and three curled flaps (B7)
      INK                          { SUSUDAKE, WOOD, AINEZU, PLASTER, TATAMI }
    ========================================================================== */
 (function (TSUKI) {
@@ -961,18 +965,33 @@
     const [x0, y0, x1, y1] = region;
     const s = k * res;
     const w = Math.max(1, Math.ceil((x1 - x0) * s)), h = Math.max(1, Math.ceil((y1 - y0) * s));
-    let b = bufs[name];
-    if (!b || b.width < w || b.height < h) b = bufs[name] = B.canvas(Math.max(w, b ? b.width : 0), Math.max(h, b ? b.height : 0));
+    // the buffer's size is a pure function of the request (rounded up to 64 px), never of what an
+    // earlier frame needed: a smoothed drawImage of a sub-rectangle samples by the texture's size,
+    // so a history-dependent buffer would make the same frame differ by a few levels
+    const bw = Math.ceil(w / 64) * 64, bh = Math.ceil(h / 64) * 64, key = `${name}|${bw}x${bh}`;
+    let b = bufs[key];
+    if (!b) {
+      b = bufs[key] = B.canvas(bw, bh);
+      // keep a few sizes per layer (dropping one only costs a re-allocation of the same size)
+      const lru = bufs[name + '#'] || (bufs[name + '#'] = []);
+      lru.push(key);
+      if (lru.length > 6) delete bufs[lru.shift()];
+    }
+    bufs[name] = b;
     const c = b.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalAlpha = 1;
     c.globalCompositeOperation = 'source-over';
-    c.clearRect(0, 0, w + 2, h + 2);
+    // clear the whole buffer, not just this frame's rectangle: a smoothed drawImage of the
+    // used rectangle may sample a pixel beyond it, and stale ink there would leak between frames
+    c.clearRect(0, 0, b.width, b.height);
     c.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
     c.fillStyle = AINEZU;
     c.strokeStyle = AINEZU;
     c.lineCap = 'round';
     c.lineJoin = 'round';
+    c.lineWidth = 1;
+    c.imageSmoothingEnabled = true;
     b.__region = { x0, y0, x1, y1, w, h, s };
     return c;
   };

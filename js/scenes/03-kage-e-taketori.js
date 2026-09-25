@@ -559,7 +559,12 @@
     init(S) { TSUKI.SHOTS.warmFlat('B', 50, S.k || 1); },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
+      // a clean context whatever the previous scene left behind (the engine resets only some state)
+      ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'low';
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+      ctx.miterLimit = 10;
       // the push-in on the ring (64–66): scale 1 → 1.5, ring centre → (960,610)
       const e = E.inOutSine(U.seg(T, 64, 66));
       if (e > 0) {

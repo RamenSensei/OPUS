@@ -138,14 +138,14 @@
         if (i === 0) k.moveTo(BURNER.x + sway(y), y); else k.lineTo(BURNER.x + sway(y), y);
       }
       const g = k.createLinearGradient(0, tipY, 0, 640);
-      const a = 0.44 * Math.min(1, grow * 4);
+      const a = 0.48 * Math.min(1, grow * 4);
       g.addColorStop(0, U.rgba(C.sumi, a));
       g.addColorStop(0.55, U.rgba(C.sumi, a * 0.9));
       g.addColorStop(1, U.rgba(C.sumi, 0));
       k.strokeStyle = g;
       k.lineCap = 'butt';
       k.lineJoin = 'round';
-      k.lineWidth = 1.6;
+      k.lineWidth = 1.9;
       k.stroke();
       // a faint 胡粉 edge on its moon side: smoke catches the light, the grass does not
       k.globalCompositeOperation = 'lighter';
@@ -414,7 +414,12 @@
     init(S) { buildTile(); TSUKI.SHOTS.warmFlat('B7', 195, S.k || 1); },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
+      // a clean context whatever the previous scene left behind (the engine resets only some state)
+      ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'low';
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+      ctx.miterLimit = 10;
       const e = E.inOutSine(U.seg(T, 204, 206));
       if (e > 0) {
         const s = 1 + 0.04 * e;
