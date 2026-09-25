@@ -67,34 +67,37 @@
     ctx.save();
     TSUKI.SHOTS.C.waterClip(ctx);
     ctx.clip();
+    ctx.translate(REFL.x, REFL.y);
+    ctx.scale(1, persp);
+    ctx.lineCap = 'round';
     for (const s of SHARDS) {
-      const d = s.dist * sc;
-      const cx = REFL.x + Math.cos(s.dir) * d, cy = REFL.y + Math.sin(s.dir) * d * persp;
-      ctx.save();
-      // each shard rides the ripple: pushed out along its radius, stretched along the ring
-      ctx.translate(cx, cy);
-      ctx.scale(1, persp);
-      ctx.rotate(s.spin * sc);
-      const st = 1 + (s.stretch - 1) * sc;
-      const rr0 = s.r0 * R.rx, rr1 = s.r1 * R.rx * (1 - 0.15 * sc);
-      const half = ((s.a1 - s.a0) / 2) * st;
-      ctx.beginPath();
-      // an annular sector centred on its own mid-angle, drawn about the origin
-      const mx = Math.cos(s.am) * s.rm * R.rx, my = Math.sin(s.am) * s.rm * R.rx;
-      ctx.translate(-mx, -my);
-      ctx.arc(0, 0, rr1, s.am - half, s.am + half);
-      ctx.arc(0, 0, Math.max(0.5, rr0 + (rr1 - rr0) * 0.25 * sc), s.am + half * (1 - 0.3 * sc), s.am - half * (1 - 0.3 * sc), true);
-      ctx.closePath();
-      ctx.fillStyle = C.kinari;
-      ctx.fill();
-      // mica: the shards glitter as they fly
-      const k = sc * (0.4 + 0.6 * Math.pow(Math.max(0, Math.sin(T * 13 + s.kira * 40)), 3));
-      if (k > 0.02) {
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = `rgba(255,250,236,${0.45 * k})`;
+      // each shard rides a ripple outward: an arc of light along its ring,
+      // lengthening as the ring grows, thinning as it goes
+      const rad = s.rm * R.rx + s.dist * sc;
+      const th = (s.r1 - s.r0) * R.rx * (1 - 0.55 * sc) + 1.5;
+      const half = ((s.a1 - s.a0) / 2) * (1 - 0.28 * sc) * (s.rm * R.rx + 8) / (rad + 8) * (1 + (s.stretch - 1) * sc) * 0.9;
+      const am = s.am + s.spin * sc;
+      if (rad < th * 0.6) {
+        ctx.fillStyle = C.kinari;
+        ctx.beginPath();
+        ctx.arc(0, 0, th, 0, TAU);
         ctx.fill();
+        continue;
       }
-      ctx.restore();
+      ctx.strokeStyle = C.kinari;
+      ctx.lineWidth = th;
+      ctx.beginPath();
+      ctx.arc(0, 0, rad, am - half, am + half);
+      ctx.stroke();
+      // mica: the shards glitter as they fly
+      const k = sc * (0.4 + 0.6 * Math.pow(Math.max(0, Math.sin(T * 11 + s.kira * 40)), 3));
+      if (k > 0.02) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(255,250,236,${0.5 * k})`;
+        ctx.stroke();
+        ctx.restore();
+      }
     }
     ctx.restore();
   }

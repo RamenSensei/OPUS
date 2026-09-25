@@ -880,38 +880,46 @@
     }
     dp.push([dur, last]);
     if (p.fall) dp.push([dur + rel, last + p.fall * 100]);
-    const o = K.osc(wave(ctx, 'shakuhachi'), f, when);
-    applyEnv(o.detune, when, mono(dp), off);
-
-    // tone: bamboo core → air-filter → flutter → swell envelope
+    const pitch = mono(dp), air = !!p.air;          // air: a breath-only sob, no tone
     const a = 0.19 * Math.pow(vel, 1.2), sw = def(p.swell, 0.25);
-    const lp = K.filter('lowpass', f * lerp(2.5, 6, tone) * (1 + kan) + 400, 0.4);
-    const flut = K.gain(1), env = K.gain(0);
-    applyEnv(env.gain, when, mono([[0, 0], [att, a * 0.8], [Math.max(att + 0.05, dur * 0.6), a * (0.85 + sw)],
-      [dur, a * (0.8 + sw * 0.6)], [dur, 0, rel / 5]]), off);
-    K.chain(o, lp, flut, env, K.out);
+    const flut = K.gain(1);
+    let o = null;
+    if (!air) {
+      // tone: bamboo core → air-filter → flutter → swell envelope
+      o = K.osc(wave(ctx, 'shakuhachi'), f, when);
+      applyEnv(o.detune, when, pitch, off);
+      const lp = K.filter('lowpass', f * lerp(2.5, 6, tone) * (1 + kan) + 400, 0.4);
+      const env = K.gain(0);
+      applyEnv(env.gain, when, mono([[0, 0], [att, a * 0.8], [Math.max(att + 0.05, dur * 0.6), a * (0.85 + sw)],
+        [dur, a * (0.8 + sw * 0.6)], [dur, 0, rel / 5]]), off);
+      K.chain(o, lp, flut, env, K.out);
+    }
 
-    // breath: pitched hollow noise + high air; muraiki bursts at the attack
+    // breath: pitched hollow noise (following the bends) + high air; muraiki bursts at the attack
     const nz = K.noise('white', when, p.seed);
-    const bp = K.filter('bandpass', f, 6), hp = K.filter('highpass', 1400, 0.5), blp = K.filter('lowpass', 5500, 0.5);
-    const g1 = K.gain(8), g2 = K.gain(1.0 + mur), benv = K.gain(0);
+    const bp = K.filter('bandpass', f, air ? 3.5 : 6), hp = K.filter('highpass', 1400, 0.5), blp = K.filter('lowpass', air ? 4200 : 5500, 0.5);
+    applyEnv(bp.detune, when, pitch, off);
+    const g1 = K.gain(air ? 14 : 8), g2 = K.gain((1.0 + mur) * (air ? 0.7 : 1)), benv = K.gain(0);
     nz.connect(bp); bp.connect(g1); g1.connect(benv);
     nz.connect(hp); hp.connect(blp); blp.connect(g2); g2.connect(benv);
-    benv.connect(K.out);
-    const bpk = a * (0.3 + 1.5 * mur), bs = a * lerp(0.14, 0.32, 1 - tone);
+    benv.connect(air ? flut : K.out);
+    if (air) flut.connect(K.out);
+    const bpk = a * (0.3 + 1.5 * mur), bs = air ? a * 0.75 : a * lerp(0.14, 0.32, 1 - tone);
     applyEnv(benv.gain, when, mono([[0, 0], [Math.min(att * 0.5, 0.06) + 0.012, bpk], [Math.min(att + 0.3, dur - 0.02), bs],
       [dur, bs], [dur, 0, rel / 4]]), off);
 
     // life: slow amplitude flutter and pitch drift from the player's breath
     const fl = K.noise('brown', when, p.seed + 7), flp = K.filter('lowpass', 9, 0.5);
     const fg = K.gain(0.05 * FLUTTER), dg = K.gain(5 * FLUTTER);
-    fl.connect(flp); flp.connect(fg); fg.connect(flut.gain); flp.connect(dg); dg.connect(o.detune);
+    fl.connect(flp); flp.connect(fg); fg.connect(flut.gain); flp.connect(dg); dg.connect(bp.detune);
+    if (o) dg.connect(o.detune);
 
     // vibrato arrives late (or yuri: slow, deep head-shake)
     const vd = def(p.vibDelay, yuri ? 0.15 : Math.min(0.8, dur * 0.45));
     const lfo = K.osc('sine', def(p.vibRate, yuri ? 2.9 : 4.8), when), vg = K.gain(0);
     applyEnv(vg.gain, when, mono([[0, 0], [vd, 0], [Math.max(vd + 0.3, dur * 0.9), def(p.vib, yuri ? 45 : 14)]]), off);
-    lfo.connect(vg); vg.connect(o.detune);
+    lfo.connect(vg); vg.connect(bp.detune);
+    if (o) vg.connect(o.detune);
     if (yuri) { const ag = K.gain(0.14); lfo.connect(ag); ag.connect(flut.gain); }
     return K.done(end);
   }, (p) => def(p.dur, 2.5) + def(p.release, 0.4) * 1.5);
