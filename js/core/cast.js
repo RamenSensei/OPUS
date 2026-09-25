@@ -557,8 +557,8 @@
     return tilePattern(ctx, 'nami|' + ground + fg + unit, unit, 128, (c, S) => {
       c.fillStyle = ground;
       c.fillRect(0, 0, S, S);
-      c.strokeStyle = fg;
-      c.lineWidth = S * 0.018;
+      c.strokeStyle = U.rgba(fg, 0.85);
+      c.lineWidth = S * 0.013;
       const waves = (cy, xs) => {
         for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) for (const cx of xs) {
           for (const k of [1, 0.68, 0.36]) {
@@ -573,8 +573,8 @@
       waves(0.74, [0.25, 0.75]);
       c.fillStyle = fg;
       for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
-        leapingRabbit(c, 0.28 * S + ox, 0.26 * S + oy, S * 0.3);
-        leapingRabbit(c, 0.8 * S + ox, 0.02 * S + oy, S * 0.22);
+        leapingRabbit(c, 0.3 * S + ox, 0.3 * S + oy, S * 0.24);
+        leapingRabbit(c, 0.8 * S + ox, 0.05 * S + oy, S * 0.19);
       }
     });
   }
@@ -1532,9 +1532,17 @@
     // collar band crossing to the obi
     const ob = lerpPt(J.hip, J.mid, G.obiAt == null ? 0.3 : G.obiAt);
     const eri = new Path2D();
-    taperTo(eri, crs([off(J.neck, n2, -4.5), off(J.neck, n2, 2.5), off(lerpPt(J.sh, J.mid, 0.4), n2, 8.5), off(ob, n1, 6)], 4), 4.2, 2.6, 0);
+    if (G.shortCollar) taperTo(eri, crs([off(J.neck, n2, -4.5), off(J.neck, n2, 2.5), off(lerpPt(J.neck, J.mid, 0.45), n2, 8.5)], 4), 4, 1.2, 0);
+    else taperTo(eri, crs([off(J.neck, n2, -4.5), off(J.neck, n2, 2.5), off(lerpPt(J.sh, J.mid, 0.4), n2, 8.5), off(ob, n1, 6)], 4), 4.2, 2.6, 0);
     P.fill(eri, G.lining);
     if (P.mid) P.line(eri, 0.4, 0.6);
+    if (G.seatDrape) {
+      // seated on a ledge: the kimono falls from the knees to the ankles as one drape
+      const kn = J.legN[1], an = J.legN[2], kf = J.legF[1];
+      const dr = sp([[Math.min(kn[0], kf[0]) - 14, kn[1] - 6], [kn[0] + 12, kn[1] - 8], [kn[0] + 14, kn[1] + 10], [an[0] + 11, an[1] - 2, 1], [an[0] - 13, an[1] - 1, 1], [Math.min(kn[0], kf[0]) - 12, kn[1] + 14]], true);
+      P.fill(dr, G.bodyFill || G.kimono);
+      P.line(dr);
+    }
     const obi = new Path2D();
     taperTo(obi, [off(ob, n1, -15.5 * fw), off(ob, n1, 14.5 * fw)], G.obiW || 8.5, G.obiW || 8.5, 0);
     P.shape(obi, G.obi, 0.6);
@@ -1677,7 +1685,7 @@
     } else J = rig(q, D);
     if (q.bob) ctx.translate(0, q.bob);
     const wearing = o.haori !== false && pose !== 'lift-haori' && pose !== 'lap';
-    const haoriFill = P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 30) : K.haori;
+    const haoriFill = P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 19) : K.haori;
     const kimFill = P.fx && P.s >= 0.5 ? stripes(ctx, K.kimono, K.stripe, 5) : K.kimono;
     const ret = {};
     // the sleeping child and the haori spread over her (lap)
@@ -1693,9 +1701,10 @@
       specks: wearing && P.fx && P.s < 0.6 && P.s >= 0.18 ? K.haoriFg : null,
     };
     if (q.seat) {
-      // legs dangling from the veranda edge: kimono over the thighs, then down to the feet
-      G.long = false; G.pants = K.kimono; G.hem = 40;
+      // legs dangling from the veranda edge: the kimono drapes over the knees to the ankles
+      G.long = false; G.pants = K.kimono; G.hem = 46; G.seatDrape = true;
     }
+    G.shortCollar = true;
     kimonoBody(P, J, K, G, o.t);
     const ha = J.s2 * 0.6 + (q.neck || 0);
     head(P, J.head[0], J.head[1], ha, K, 'take', o);
@@ -1749,19 +1758,21 @@
     }
     if (pose === 'lift-haori') {
       // the haori held up between both hands, hanging like a curtain
-      const a = [Math.min(hN[0], hF[0]) - 4, Math.min(hN[1], hF[1]) - 2], b = [Math.max(hN[0], hF[0]) + 20, Math.max(hN[1], hF[1])];
+      const cx = (hN[0] + hF[0]) / 2 + 8, top = Math.min(hN[1], hF[1]) - 3;
       const sw = swayFn(o.t, P.wind, 2.1) * 3;
-      const bot = Math.min(-8, a[1] + 150);
+      const W = 34, Lh = Math.min(88, -top - 10), sl = 30;
       const cloth = sp([
-        [a[0] - 6, a[1], 1], [b[0] + 6, b[1] - 2, 1], [b[0] + 18 + sw, b[1] + 40], [b[0] + 20 + sw * 1.5, bot - 18], [b[0] + 12 + sw * 1.6, bot, 1],
-        [a[0] - 14 + sw * 1.2, bot + 4, 1], [a[0] - 20 + sw, a[1] + 60], [a[0] - 12, a[1] + 16],
+        [cx - W * 0.55, top + 2, 1], [cx - 4, top - 3], [cx + W * 0.55, top + 2, 1],           // collar held at the hands
+        [cx + W * 0.62, top + 14], [cx + W + 12 + sw, top + 18], [cx + W + 16 + sw * 1.2, top + 18 + sl], [cx + W * 0.62 + sw, top + 24 + sl, 1], // right sleeve
+        [cx + W * 0.6 + sw * 1.4, top + Lh], [cx + sw * 1.5, top + Lh + 4], [cx - W * 0.6 + sw * 1.4, top + Lh, 1],                            // hem
+        [cx - W * 0.62 + sw, top + 24 + sl, 1], [cx - W - 16 + sw * 1.2, top + 18 + sl], [cx - W - 12 + sw, top + 18], [cx - W * 0.62, top + 14], // left sleeve
       ], true);
-      P.fill(cloth, P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 30) : K.haori);
+      P.fill(cloth, P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 19) : K.haori);
       P.line(cloth);
-      if (P.mid) P.folds([[[[a[0] + 4, a[1] + 6], [a[0] + 2 + sw, a[1] + 70], [a[0] + 2 + sw * 1.4, bot - 6]], 0.7, 0.15], [[[b[0] - 4, b[1] + 6], [b[0] + 4 + sw, b[1] + 60], [b[0] + 6 + sw * 1.4, bot - 10]], 0.7, 0.15]], 0.6);
+      if (P.mid) P.folds([[[[cx - 8, top + 8], [cx - 9 + sw, top + Lh * 0.5], [cx - 8 + sw * 1.4, top + Lh - 2]], 0.6, 0.15], [[[cx + 10, top + 8], [cx + 11 + sw, top + Lh * 0.5], [cx + 12 + sw * 1.4, top + Lh - 2]], 0.6, 0.15]], 0.6);
       P.shape(handPath(J.armN, 9, true), K.skin, 0.55);
       P.shape(handPath(J.armF, 9, true), K.skin, 0.55);
-      ret.cloth = { a: [a[0] - 14, a[1]], b: [b[0] + 20, bot] };
+      ret.cloth = { a: [cx - W - 16, top], b: [cx + W + 16, top + Lh + 4] };
     }
     if (pose === 'lap') {
       // the child asleep across her lap, the haori laid over her
@@ -1786,7 +1797,7 @@
     const look = o.look == null ? 0.35 : o.look;
     const nod = o.nod || 0;
     const wearing = o.haori !== false;
-    const haoriFill = wearing ? (P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 30) : K.haori) : (P.fx && P.s >= 0.5 ? stripes(ctx, K.kimono, K.stripe, 5) : K.kimono);
+    const haoriFill = wearing ? (P.fx && P.s >= 0.6 ? namiUsagi(ctx, K.haori, K.haoriFg, 19) : K.haori) : (P.fx && P.s >= 0.5 ? stripes(ctx, K.kimono, K.stripe, 5) : K.kimono);
     const base = engawa ? -2 : 0;
     // kimono skirt spreading on the boards (seiza), or the seat edge (engawa)
     const skirt = sp([[-44, base - 34], [-50, base - 6], [-46, base + (engawa ? 4 : 1), 1], [46, base + (engawa ? 4 : 1), 1], [50, base - 6], [44, base - 34]], true);
@@ -1856,11 +1867,22 @@
     P.shape(ft, C.gofun, 0.5);
     if (haori) {
       const sw = Math.sin((o.t || 0) * 0.7) * 0.8;
-      const cloth = sp([[x + 12, y - 8], [x + 40, y - 20 - br], [x + 70, y - 22 - br], [x + 96, y - 30 - br * 0.5], [x + 118, y - 22], [x + 124 + sw, y + 9, 1],
-        [x + 96, y + 11], [x + 76, y + 9 + sw], [x + 50, y + 12, 1], [x + 14, y + 12, 1]], true);
-      P.fill(cloth, P.fx && P.s >= 0.6 ? namiUsagi(ctx, KH.haori, KH.haoriFg, 30) : KH.haori);
+      const hf = P.fx && P.s >= 0.6 ? namiUsagi(ctx, KH.haori, KH.haoriFg, 19) : KH.haori;
+      // the haori laid over her: collar at her shoulder, falling over hip and drawn-up knees
+      const cloth = sp([[x + 10, y - 9, 1], [x + 26, y - 17 - br], [x + 48, y - 18 - br], [x + 70, y - 24 - br], [x + 88, y - 28 - br * 0.5], [x + 104, y - 20],
+        [x + 110 + sw, y + 11, 1], [x + 84, y + 13], [x + 62, y + 11 + sw], [x + 36, y + 13, 1], [x + 16, y + 12, 1]], true);
+      P.fill(cloth, hf);
       P.line(cloth);
-      if (P.mid) P.folds([[[[x + 40, y - 16], [x + 46, y - 2], [x + 50, y + 10]], 0.7, 0.2], [[[x + 90, y - 24], [x + 94, y - 6], [x + 96, y + 9]], 0.7, 0.2]], 0.6);
+      // a sleeve of the haori spilling over the front edge onto the boards
+      const slv = sp([[x + 40, y - 6], [x + 62, y - 4], [x + 66, y + 13, 1], [x + 38, y + 13, 1]], true);
+      P.fill(slv, hf);
+      P.line(slv, 0.8);
+      if (P.mid) {
+        const lap = new Path2D();
+        taperTo(lap, crs([[x + 11, y - 8], [x + 20, y - 1], [x + 26, y + 12]], 3), 3.2, 3.2, 0);
+        P.fill(lap, U.mix(KH.haori, C.sumi, 0.45));
+        P.folds([[[[x + 66, y - 18], [x + 72, y - 4], [x + 74, y + 11]], 0.7, 0.2], [[[x + 88, y - 24], [x + 92, y - 6], [x + 94, y + 11]], 0.6, 0.2]], 0.6);
+      }
     }
     // head: okappa seen from the side, resting, eyes closed
     const hd = new Path2D();
