@@ -144,20 +144,23 @@
    * they slip off the sides of the palms and ring the water just beside them.
    */
   const DRIPS = [[-63, 8], [64, 2], [-60, -22], [62, 24], [-58, 30], [61, -16]];
+  const BEAD_TIMES = (() => {
+    const out = [];
+    for (let t = BT.sit + 0.45; t < BT.last - 0.2; t += 0.5) out.push(t);
+    out.push(BT.last);                                   // the last drop, 82.2
+    return out;
+  })();
   function palmBeads(T) {
     const out = [];
-    const n = Math.floor((BT.last - BT.sit) / 0.5) + 1;
-    for (let i = 0; i < n; i++) {
-      const t0 = BT.sit + 0.25 + i * 0.5;
-      if (t0 > BT.last + 0.01) break;
+    BEAD_TIMES.forEach((t0, i) => {
       const age = T - t0;
-      if (age < -0.3 || age > 1.2) continue;
+      if (age < -0.3 || age > 1.2) return;
       const d = DRIPS[[0, 3, 1, 4, 2, 5][i % 6]];
       const st = cupState(t0);
       const x = st.x + d[0] * CUP.s, y = st.y + d[1] * CUP.s;
       const side = Math.sign(d[0]);
       out.push({ i, t0, age, x, y, lx: x + side * 8, ly: y + 58, tl: t0 + 0.32, landed: age > 0.32 });
-    }
+    });
     return out;
   }
 
