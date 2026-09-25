@@ -2,14 +2,17 @@
    cast.js — the film's characters (TSUKI.CAST), drawn procedurally in the
    yamato-e / ukiyo-e manner so every scene shows the same people.
 
-   CALL   TSUKI.CAST.<name>(ctx, x, y, scale, opts)
+   CALL   TSUKI.CAST.<name>(ctx, x, y, scale, opts)  → points (see RETURNS)
           (x, y) = ground contact point (feet / base of the robes) — except
-          kaguya 'rise' and tennyo 'fly', where it is the body centre (waist).
+          kaguya 'rise' and tennyo 'fly' (the waist), hands (see below) and
+          fox 'eyes' (midway between the glints).
           scale 1 = a standing adult ~300 logical px tall. Animals are drawn
-          at true size beside people (rabbit sitting ~55 px, fox ~85 px, stag
-          ~250 px at scale 1): use scale 3–8 for moon-rabbit close-ups.
-          Every call is a pure function of its arguments and leaves ctx as it
-          found it.
+          at true size beside people (rabbit sitting ~55 px, fox ~85 px,
+          monkey sitting ~75 px, stag ~250 px at scale 1): use scale 3–8 for
+          moon close-ups. たけ kneeling is ~150 px at scale 1 (the film's
+          52 px ≈ scale 0.35); 小夜 standing ~155 px (62 px ≈ scale 0.4).
+          Every call is a pure function of its arguments (no Math.random;
+          time only through opts.t) and leaves ctx exactly as it found it.
 
    COMMON OPTS (defaults)
      pose       string, see CAST.POSES[name]; unknown → first pose
@@ -20,18 +23,88 @@
      alpha      1      group opacity (drawn opaque into a small offscreen
                        buffer and composited once: overlapping robes never
                        show through each other)
-     buffer     false  force the offscreen group composite (use with special
-                       globalCompositeOperation / ctx.globalAlpha < 1 is
-                       handled automatically)
-     silhouette null   colour string → flat single-ink silhouette (no lines,
-                       no interior detail), e.g. rabbits printed on the moon
+     buffer     false  force that offscreen composite — use it whenever the
+                       ctx has a special globalCompositeOperation (e.g. a
+                       'multiply' shadow on shoji) so parts never compound
+     silhouette null   colour string (or true = 墨) → flat single-ink
+                       silhouette, no lines or interior detail — shadows on
+                       shoji (CAST.AINEZU 藍鼠), figures printed on the moon
      outline    0.85   sumi key-line alpha (0 = flat colour planes)
+     ink        墨     key-line colour (e.g. C.ginnezu for the drained たけ)
+     style      —      'sumi-line': a line drawing in ink over a thin ink
+                       wash (the Jataka on the moon); wash 0.1 = wash alpha
      palette    {}     overrides of the character's colour table (see the
-                       KAGUYA / OKINA / … tables below; hex strings)
+                       tables below and CAST.palettes; hex strings)
    Level of detail follows the on-screen size: kasane bands, faces and folds
-   from ~90 px tall; textile patterns, hair strands, whiskers at scale ≥ 0.8.
+   from ~90 px tall; textile patterns (波兎, stripes, 絣), hair strands,
+   whiskers at scale ≥ 0.6–0.8.
 
-   CHARACTERS · POSES · EXTRA OPTS
+   RETURNS  most draws return named points already mapped to the caller's
+   space (x, y, scale, facing applied): e.g. grandma → { hand, hands, dango,
+   spout, stick, cloth, child }, child → { hand, hands, head }, hands →
+   { center, w, h, corners } / { center, rx, ry, drips } / { cup, r, rx, ry,
+   lip }, fox → { mouth, paw } / { left, right }, beggar → { head, hands,
+   bowl }, monkey → { fruit }. Keys r/rx/ry/w/h are lengths in caller px.
+
+   CHARACTERS · POSES · EXTRA OPTS   (the film's cast first)
+     grandma  たけ: bent, 銀鼠 bun + 煤竹 comb, 紺 kimono with 鼠 stripes,
+              黄土 obi, 朱 obijime, the 波兎 haori (藍 ground, 胡粉 rabbits
+              over seigaiha). Profile, face = one closed-eye line.
+              seiza · engawa · stack · pour · lift-haori · lap · hold-puppet · walk
+                view   'back' (seiza, engawa): back view, head toward the moon
+                look   back: −1..1 head turn (0.35); profile: head tilt (rad)
+                nod    back: 0..1 dozing nod
+                haori  false → without the haori (kimono only)
+                lift   lift-haori / hold-puppet: 0..1 arms raised (1)
+                arms   hold-puppet: 'both' → a stick in each hand
+                stick  hold-puppet: stick length (70)
+                dango  stack: false → no dango in the hand
+                stream pour: false → no tea stream
+                child  lap: false → no sleeping 小夜 across the lap
+                drained true → the colour-drained palette (月白/胡粉/銀鼠;
+                       pair with ink: C.ginnezu); haori stays saturated
+     oldSayo  小夜 sixty years on: exactly たけ's path and poses, white bun
+     child    小夜 (6): 墨 okappa, 紺 kasuri with 胡粉 flecks, 紅 obi-age
+              stand · carry-susuki · run · kneel-back · reach · sleep ·
+              steal · sit · reach-up
+                sheaf  carry-susuki: length of the susuki sheaf (300 — taller
+                       than she is; the poster-frame silhouette)
+                look   kneel-back: −1..1 head turn / tilt up
+                reach  steal: 0..1 the small arm rising over the engawa lip
+                       (anchor = the lip); dango: true → dango in the hand
+                haori  sleep: false → no haori over her; haoriPalette
+                boy    true → a boy's cropped head; cry: true
+     hands    close-ups (scale 1 = the fox window's inner diamond 300×230)
+              fox-window · cupped · grab · ladle
+                age    0 smooth young → 1 old, knuckled, veined, liver-spotted
+                       (default 1; cupped & grab default 0 = 小夜's hands)
+                interlace fox-window: 0 apart … 1 fingers interlaced (1)
+                tremble 0..1 (±2 px at 9 Hz, from t)
+                sleeve false → bare wrists; patternUnit: 波兎 tile (76)
+                water  cupped: 0..1 a film of water in the palms
+                curl   cupped: finger curl (0.75)
+                close  grab: 0 fingers spread … 1 fists
+                tilt   ladle: 0..1 the cup tips to pour; angle (2.3 rad),
+                       len (300), water 0..1
+              anchor: fox-window = diamond centre; cupped = centre of the
+              bowl; grab = between the wrists; ladle = the old wrist (the cup
+              is returned). CAST.foxWindowRect(x, y, scale, opts) →
+              { cx, cy, w, h, corners, path(ctx) } for clipping the inside.
+     fox      sit · walk · steal · eyes
+                color  'white' (Inari, default) | 'gold'
+                carry  'fish' (Jataka: held crosswise, drawn in outline even
+                       as a silhouette) | 'dango'
+                lookBack 0..1 head turns back (profile flip) — toward Fuji
+                reach  steal: 0 crouched … 1 stretched to the prize; dango
+                eyes   two 胡粉 glints r1.6 with 山吹 halos r4, 14 px apart at
+                       scale 1: blink 0..1, glow (0.38), sep (14)
+     beggar   the Jataka's old beggar (帝釈天 in disguise) · shuffle · sit · rise
+                rise   rise: 0 bent … 1 upright, arms opening (the god)
+     monkey   sit · walk · sticks        fruit (3), offer 0..1 (sit)
+     rabbit   sit · pound · hop · leap · gaze
+                phase  pound: 0..1 stroke (0 raised, .5 impact; default from t)
+                       hop / leap: 0..1 through the jump
+                droop  sit: 0..1 ears flattened, head low (the empty-handed)
      kaguya   stand · back · seated · weep · rise · baby
                 look   back: 0..1 head turned up toward +x (0.6);
                        rise: 'up' to look ahead (default gazes down)
@@ -41,28 +114,54 @@
                 lean   rise: body tilt in radians (0.1)
                 glow   baby: 0..1 light of the bamboo node (1)
                 stalk  baby: false → the girl alone (no bamboo)
-     okina    stand · walk · cut · kneel · reach
-                phase  cut: 0 raised … 1 struck (0.2)
-                holding kneel: 'baby' (default, glowing child) | 'none'
-                glow   kneel: 0..1
-     ouna     stand · kneel · weep · point      (elder: same poses, indigo)
-     elder    stand · kneel · weep · point
-     mikado   stand · walk · kneel · gaze   train 0..1+, look (radians)
      tennyo   fly · stand (on a procession cloud)
                 instrument 'none' | 'sho' | 'flute' | 'lute'
                 dir    fly: flight angle in radians (0 level, −0.3 rising)
-     rabbit   sit · pound · hop · leap · gaze
-                phase  pound: 0..1 stroke (0 raised, .5 impact; default from t)
-                       hop / leap: 0..1 through the jump
+     okina    stand · walk · cut · kneel · reach
+                phase  cut: 0 raised … 1 struck (0.2)
+                holding kneel: 'baby' (default, glowing child) | 'none'
+     ouna     stand · kneel · weep · point      (elder: same poses, indigo)
+     elder    stand · kneel · weep · point
+     mikado   stand · walk · kneel · gaze   train 0..1+, look (radians)
      guard    stand · aim · kneel           (alias: samurai)
-     child    reach · stand · sit          girl: true (bob hair), cry: true
-     fox      sit · walk                   color: 'white' (Inari, default) | 'gold'
      deer     stand · call · graze · walk  antlers: false → doe
 
+   影絵 SHADOW PUPPETS (flat cut paper; paths only, never colour)
+     CAST.puppet(name, ctx, x, y, scale, opts) → { path: Path2D (caller
+       space), rule: 'nonzero'|'evenodd', sticks: Path2D|null, ends: stick
+       ends (for the puppeteer's hands), bbox, …named points }
+     CAST.drawPuppet(ctx, name, x, y, scale, opts) — fills it: color
+       (CAST.AINEZU 藍鼠), mode 'shadow' (uses ctx's composite, e.g. multiply)
+       | 'cut' (destination-out) | 'light'; alpha; penumbra px (1 = held
+       against the paper, 6–10 = far from it; cheap, no blur filter).
+     common opts: t, facing, sticks (true), stickAngle (0.35 rad from down,
+       + toward +x, not mirrored), stickLen, stickW.
+     okina          the bamboo-cutter (60 px at scale 1): pose 'walk' (phase,
+                    staff + hatchet) | 'cut' (swing 0 raised … 1 struck)
+     bamboo         three culms with leaf sprays (620 px): shine 0..1 (a slit
+                    of light in the node → .node), split 0..1 (the culm opens)
+     kaguya         NEGATIVE puppet (evenodd): an arched dark card with her
+                    figure cut out as light, paper bridges for sleeve, hair,
+                    hem, hairline. grow 0..1: child 42 → girl 112 → woman
+                    190 px, one continuous morph; raise 0..1 sleeve to the
+                    face; card: 'oval'
+     kaguya-engawa  negative puppet on a cut-out engawa (eave, post, boards);
+                    raise 0..1
+     palanquin      鳳輦 with phoenix finial, sudare slits, four bearers (phase)
+     cloud          瑞雲 bearing seven flying tennyo and a canopy (羅蓋) with
+                    tassels; ribbon = scarf length multiplier (1.8)
+     climber        たけ's shadow off the paper: youth 0 (bent, seated) → 1
+                    (upright, young); climb k = rungs climbed (115 px each,
+                    fraction = reach · pull · knee · reach); climbMix; hair
+                    0..1 (20 → 260 px Heian hair); look 0..1 (turns back)
+     moon           the paper moon on its stick (r 100)
+
    HELPERS
-     CAST.POSES           { name: [poses] }
+     CAST.POSES           { name: [poses] };  CAST.PUPPETS { name: opts }
      CAST.bounds(name, pose, opts) → [x, y, w, h] local box at scale 1,
                           facing right (for layout / culling)
+     CAST.palettes        { kaguya, grandma, oldSayo, grandmaDrained, sayo }
+     CAST.AINEZU          藍鼠 (mix of 藍 and 鼠), the shoji-shadow ink
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -524,8 +623,15 @@
    * px = tile canvas size, draw(c, px) paints it (seamless).
    */
   function tilePattern(ctx, key, unit, px, draw) {
+    // paint the tile near its on-screen size (a power of two up to px): sampling a
+    // 1:1 pattern is far cheaper than minifying a big one, and crisper
+    const m = ctx.getTransform();
+    const onScreen = unit * Math.hypot(m.a, m.b);
+    px = Math.min(px, Math.max(32, Math.pow(2, Math.ceil(Math.log2(Math.max(1, onScreen))))));
+    key += '|' + px;
     let e = tiles.get(key);
     if (!e) {
+      if (tiles.size > 64) tiles.clear();
       const cv = B.canvas(px, px);
       draw(cv.getContext('2d'), px);
       const pat = ctx.createPattern(cv, 'repeat');
@@ -554,7 +660,7 @@
   }
   /** 波兎: white rabbits leaping over seigaiha waves on 藍. */
   function namiUsagi(ctx, ground, fg, unit) {
-    return tilePattern(ctx, 'nami|' + ground + fg + unit, unit, unit >= 40 ? 256 : 128, (c, S) => {
+    return tilePattern(ctx, 'nami|' + ground + fg + unit, unit, 256, (c, S) => {
       c.fillStyle = ground;
       c.fillRect(0, 0, S, S);
       c.strokeStyle = U.rgba(fg, 0.85);
@@ -587,7 +693,7 @@
   }
   /** 絣: 紺 with small bleeding 胡粉 crosses and dashes. */
   function kasuri(ctx, ground, fg, unit) {
-    return tilePattern(ctx, 'kasuri|' + ground + fg + unit, unit, unit >= 20 ? 128 : 64, (c, S) => {
+    return tilePattern(ctx, 'kasuri|' + ground + fg + unit, unit, 128, (c, S) => {
       c.fillStyle = ground; c.fillRect(0, 0, S, S);
       c.fillStyle = fg;
       const cross = (x, y, k) => {
@@ -1856,8 +1962,8 @@
     // body under the cloth (only its edge shows)
     const body = sp([[x + 6, y - 2], [x + 30, y - 12 - br], [x + 64, y - 14 - br], [x + 92, y - 22 - br * 0.5], [x + 112, y - 16], [x + 118, y + 10, 1], [x + 8, y + 12, 1]], true);
     P.shape(body, P.fx && P.s >= 0.5 ? kasuri(ctx, KC.kimono, KC.kimonoFg, 8) : KC.kimono);
-    // the red obi-age peeking at the waist
-    if (P.fx) {
+    // the red obi-age at the waist (without the haori)
+    if (P.fx && !haori) {
       const ob = sp([[x + 52, y - 12], [x + 62, y - 13], [x + 63, y - 6], [x + 53, y - 5]], true);
       P.shape(ob, KC.obiage, 0.4);
     }
@@ -1882,6 +1988,11 @@
         taperTo(lap, crs([[x + 11, y - 8], [x + 20, y - 1], [x + 26, y + 12]], 3), 3.2, 3.2, 0);
         P.fill(lap, U.mix(KH.haori, C.sumi, 0.45));
         P.folds([[[[x + 66, y - 18], [x + 72, y - 4], [x + 74, y + 11]], 0.7, 0.2], [[[x + 88, y - 24], [x + 92, y - 6], [x + 94, y + 11]], 0.6, 0.2]], 0.6);
+      }
+      // the 紅 obi-age showing past the haori's lapel — the colour that survives
+      if (!P.sil) {
+        const ob = sp([[x + 24, y - 7], [x + 28.5, y - 8.5], [x + 31, y], [x + 29.5, y + 7], [x + 26.5, y + 4]], true);
+        P.shape(ob, KC.obiage, 0.45);
       }
     }
     // head: okappa seen from the side, resting, eyes closed
@@ -2165,7 +2276,8 @@
         rabbitBody(P, [[12, -60], [0, -62 - breathe], [-16, -56], [-28, -44], [-35, -28], [-35, -12], [-28, -2], [-16, 1, 1], [18, 1, 1], [25, -10], [27, -26], [26, -42], [20, -54]], K,
           [[-27, -4], [-25, -24], [-12, -34], [2, -26], [6, -6]]);
         paw(19, -2, 0, 7); paw(27, -1.5, 0, 7);
-        rabbitHead(P, 26, -70 - breathe, 0.05, K, 0.12, t);
+        const dr = U.clamp(o.droop || 0);
+        rabbitHead(P, 26 - dr * 3, -70 - breathe + dr * 8, 0.05 + dr * 0.32, K, 0.12 + dr * 1.15, t);
       }
       return;
     }
@@ -2339,7 +2451,7 @@
   const OUNA_B = (pose) => {
     if (pose === 'kneel' || pose === 'weep') return [-70, -175, 150, 180];
     if (pose === 'point') return [-50, -300, 130, 305];
-    return [-55, -260, 120, 265];
+    return [-55, -260, 128, 265];
   };
   define('ouna', { poses: ['stand', 'kneel', 'weep', 'point'], defaults: {}, bounds: OUNA_B, draw(ctx, P, o) { drawOuna(ctx, P, o, pal(OUNA, o)); } });
   define('elder', { poses: ['stand', 'kneel', 'weep', 'point'], defaults: {}, bounds: OUNA_B, draw(ctx, P, o) { drawOuna(ctx, P, o, pal(ELDER, o)); } });
@@ -2409,34 +2521,35 @@
         pts.push([hx + Math.cos(aa) * L * u + (i - 3) * 0.9 * Math.max(0, u), hy + Math.sin(aa) * L * u]);
       }
       taperTo(stems, pts.slice(0, pts.length - 2), 2.4, 1.3, 0);
-      // plume: a drooping tuft hanging from the last third of the stem
+      // plume (尾花): a silky core along the last third of the stem and fine
+      // filaments hanging from it, drooping more toward the tip — feathery even as a silhouette
       const n = pts.length;
-      const up = [], lo = [];
-      const m = 7;
-      for (let k = 0; k <= m; k++) {
-        const u = 0.64 + (k / m) * 0.36;
-        const fi = u * (n - 1), i0 = Math.min(n - 2, Math.floor(fi));
-        const q = lerpPt(pts[i0], pts[i0 + 1], fi - i0);
-        const d = unit(pts[i0], pts[i0 + 1]);
-        const nn = [-d[1], d[0]];                            // the stem's lower side (points down/back)
-        const sg = nn[1] > 0 ? 1 : -1;
-        const w = len * 0.024 * Math.pow(Math.sin(Math.PI * Math.min(1, (u - 0.64) / 0.36 * 0.85 + 0.12)), 0.6) * (1 + 0.2 * Math.sin(t * 1.7 + i + k));
-        const droop = len * 0.05 * Math.pow((k / m), 1.6);          // the tassel hangs lower toward its end
-        up.push([q[0] - nn[0] * sg * w * 0.2, q[1] - nn[1] * sg * w * 0.2 + droop * 0.25]);
-        lo.push([q[0] + nn[0] * sg * w, q[1] + nn[1] * sg * w + droop * 1.15]);
-        if (P.mid && k % 2 === 1) {
-          const e = lo[lo.length - 1];
-          taperTo(hairs, [e, [e[0] - d[0] * w * 0.5 - 1, e[1] + w * 1.2]], 1.2, 0.2, 0);
-        }
+      const at = (u) => { const fi = u * (n - 1), i0 = Math.min(n - 2, Math.floor(fi)); return [lerpPt(pts[i0], pts[i0 + 1], fi - i0), unit(pts[i0], pts[i0 + 1])]; };
+      const core = [];
+      for (let k = 0; k <= 5; k++) core.push(at(0.6 + k * 0.08)[0]);
+      taperTo(plumes, core, len * 0.012, len * 0.004, 0.3);
+      const m = P.mid ? 9 : 6;
+      for (let k = 0; k < m; k++) {
+        const u = 0.62 + (k / (m - 1)) * 0.37;
+        const [q, d] = at(u);
+        const f = k / (m - 1);
+        const sw2 = Math.sin(t * 1.9 + i * 0.8 + k * 0.6) * 0.12 * (0.4 + wind);
+        const dAng = Math.atan2(d[1], d[0]);
+        // hang toward the ground: rotate from the stem direction toward straight down (+y)
+        const target = Math.PI / 2 + 0.35;
+        let da = target - dAng; while (da > Math.PI) da -= TAU; while (da < -Math.PI) da += TAU;
+        const a0 = dAng + da * 0.2, a1 = dAng + da * (0.62 + 0.3 * f) + sw2;   // leave along the stem, then fall
+        const Lf = len * (0.07 + 0.06 * Math.sin(Math.PI * (0.2 + 0.7 * f))) * (0.85 + 0.3 * r());
+        const mid = [q[0] + Math.cos(a0) * Lf * 0.4, q[1] + Math.sin(a0) * Lf * 0.4];
+        const end = [mid[0] + Math.cos(a1) * Lf * 0.6, mid[1] + Math.sin(a1) * Lf * 0.6];
+        taperTo(plumes, P.mid ? crs([q, mid, end], 2) : [q, mid, end], len * 0.0075, len * 0.0012, 0.4);
+        if (P.mid && k % 3 === 1) taperTo(hairs, [q, [q[0] + Math.cos(a1 + 0.5) * Lf * 0.6, q[1] + Math.sin(a1 + 0.5) * Lf * 0.6]], len * 0.004, 0.2, 0.2);
       }
-      const tip = pts[n - 1];
-      const tp = [tip[0] - 1, tip[1] + len * 0.045];
-      sp(up.concat([[tp[0], tp[1], 1]], lo.reverse()), true, plumes);
     }
-    P.fill(stems, K.stem);
-    P.fill(plumes, K.plume);
-    P.fill(hairs, K.plume);
-    if (P.mid) P.line(plumes, 0.3, 0.45);
+    const f = P.sil ? P.flat : P.fill;       // thin parts: no seam-closing stroke in silhouette
+    f(stems, K.stem);
+    f(plumes, K.plume);
+    f(hairs, K.plume);
   }
 
   /** 小夜 from behind, kneeling (seiza), head tilting up by opts.look (0..1). */
@@ -2530,7 +2643,7 @@
   define('child', {
     poses: ['stand', 'carry-susuki', 'run', 'kneel-back', 'reach', 'sleep', 'steal', 'sit', 'reach-up'], defaults: {},
     bounds(pose, o) {
-      if (pose === 'carry-susuki') { const L = o.sheaf == null ? 300 : o.sheaf; return [-L * 0.7, -L - 30, L * 0.7 + 50, L + 36]; }
+      if (pose === 'carry-susuki') { const L = o.sheaf == null ? 300 : o.sheaf; return [-L * 0.82, -L - 30, L * 0.82 + 50, L + 36]; }
       if (pose === 'run') return [-50, -165, 105, 172];
       if (pose === 'kneel-back') return [-36, -104, 72, 110];
       if (pose === 'reach') return [-40, -110, 120, 116];
@@ -3312,10 +3425,11 @@
 
   define('fox', {
     poses: ['sit', 'walk', 'steal', 'eyes'], defaults: {}, unit: 0.55, size: 80,
-    bounds(pose) {
+    bounds(pose, o) {
       if (pose === 'eyes') return [-24, -14, 48, 28];
-      if (pose === 'steal') return [-142, -140, 270, 146];
-      return pose === 'walk' ? [-148, -138, 250, 146] : [-82, -168, 140, 175];
+      const c = o && o.carry ? 30 : 0;
+      if (pose === 'steal') return [-142, -140, 270 + c, 146];
+      return pose === 'walk' ? [-148, -138, 250 + c, 146] : [-82, -168, 140 + c, 175];
     },
     draw(ctx, P, o) { return drawFox(ctx, P, o, o.color === 'gold' ? pal(FOX_GOLD, o) : pal(FOX_WHITE, o)); },
   });
@@ -3835,7 +3949,7 @@
     const age = o.age == null ? (pose === 'cupped' || pose === 'grab' ? 0 : 1) : U.clamp(o.age);
     K.skinNow = U.mix(K.skin, K.skinOld, age);
     const tr = (o.tremble || 0);
-    const tw = tr ? (Math.sin(t * 47) * 0.6 + Math.sin(t * 29 + 1) * 0.4) * 3 * tr : 0;
+    const tw = tr ? (Math.sin(t * 56.5) * 0.7 + Math.sin(t * 37 + 1) * 0.3) * 2 * tr : 0;
     if (pose === 'cupped') return cuppedHands(ctx, P, o, K, age, tw);
     if (pose === 'ladle') return ladleHand(ctx, P, o, K, age, tw);
     if (pose === 'grab') return grabHands(ctx, P, o, K, age, tw);
@@ -3864,8 +3978,8 @@
     bounds(pose) {
       if (pose === 'cupped') return [-110, -110, 220, 330];
       if (pose === 'grab') return [-175, -130, 350, 350];
-      if (pose === 'ladle') return [-300, -130, 560, 520];
-      return [-680, -180, 1360, 545];
+      if (pose === 'ladle') return [-215, -272, 470, 548];
+      return [-680, -180, 1360, 580];
     },
     draw(ctx, P, o) { return drawHands(ctx, P, o, Object.assign({}, pal(HANDS, o))); },
   });
@@ -3879,7 +3993,7 @@
     scale = scale == null ? 1 : scale;
     const il = opts.interlace == null ? 1 : U.ease.inOutSine(U.clamp(opts.interlace));
     const t = opts.t || 0, tr = opts.tremble || 0;
-    const tw = tr ? (Math.sin(t * 47) * 0.6 + Math.sin(t * 29 + 1) * 0.4) * 3 * tr : 0;
+    const tw = tr ? (Math.sin(t * 56.5) * 0.7 + Math.sin(t * 37 + 1) * 0.3) * 2 * tr : 0;
     const f = opts.facing != null && opts.facing < 0 ? -1 : 1;
     const g = foxWindowGeom(il, tw);
     const corners = g.corners.map(([px, py]) => [x + px * scale * f, y + py * scale]);
@@ -3897,13 +4011,14 @@
     poses: ['seiza', 'engawa', 'stack', 'pour', 'lift-haori', 'lap', 'hold-puppet', 'walk'],
     defaults: {},
     bounds(pose, o) {
-      if (o.view === 'back') return [-48, -142, 96, 150];
-      if (pose === 'engawa') return [-50, -150, 110, 212];
-      if (pose === 'walk') return [-50, -230, 110, 236];
+      if (o.view === 'back' && (pose === 'seiza' || pose === 'engawa')) return [-48, -142, 96, 150];
+      if (pose === 'engawa') return [-50, -150, 122, 212];
+      if (pose === 'walk') return [-50, -230, 130, 236];
       if (pose === 'lap') return [-60, -150, 250, 158];
-      if (pose === 'lift-haori') return [-70, -225, 200, 232];
+      if (pose === 'lift-haori') return [-70, -225, 222, 232];
       if (pose === 'hold-puppet') return [-60, -165 - (o.stick == null ? 70 : o.stick), 150, 172 + (o.stick == null ? 70 : o.stick)];
-      if (pose === 'pour') return [-60, -150, 150, 156];
+      if (pose === 'pour') return [-60, -150, 188, 156];
+      if (pose === 'stack') return [-60, -150, 170, 156];
       return [-60, -150, 135, 156];
     },
     draw(ctx, P, o) { return drawGrandma(ctx, P, o, pal(o.drained ? GRANDMA_DRAINED : GRANDMA, o)); },
@@ -3914,6 +4029,169 @@
     bounds: REG.grandma.bounds,
     draw(ctx, P, o) { return drawGrandma(ctx, P, o, pal(o.drained ? Object.assign({}, GRANDMA_DRAINED, { hair: OLD_SAYO.hair }) : OLD_SAYO, o)); },
   });
+  /* ================================================================== */
+  /* 月の兎 本生譚 — the Jataka on the moon's face: the old beggar        */
+  /* (帝釈天 in disguise) and the monkey. Made for silhouette (墨) or      */
+  /* style: 'sumi-line'; scale 0.2–0.3 gives the film's 50–90 px.        */
+  /* The fox (carry: 'fish') and rabbit (droop, gaze, leap) are above.   */
+  /* ================================================================== */
+  const BEGGAR = Object.assign({}, OKINA, {
+    kimono: U.mix(C.kuchiba, C.nezumi, 0.55), kimonoFg: U.mix(C.kuchiba, C.sumi, 0.3), lining: C.kinari,
+    obi: U.mix(C.nezumi, C.sumi, 0.3), pants: U.mix(C.nezumi, C.kuchiba, 0.4), hair: C.gofun, staff: C.kuchiba, bowl: U.mix(C.odo, C.sumi, 0.25),
+  });
+  function beggarPose(pose, t, o) {
+    if (pose === 'sit') return { kneel: true, spine: 0.36, hunch: 0.5, neck: 0.25, legN: [1.18, -1.54], legF: [1.08, -1.6], armN: [0.95, 1.7], armF: [0.8, 1.66] };
+    if (pose === 'rise') {
+      // from bent old age to upright, arms opening: the god shows himself
+      const r = U.ease.inOutSine(U.clamp(o.rise == null ? 1 : o.rise));
+      return {
+        spine: U.lerp(0.3, -0.05, r), hunch: U.lerp(0.5, 0, r), neck: U.lerp(0.12, -0.3, r),
+        legN: [U.lerp(0.2, 0.1, r), U.lerp(-0.12, 0.02, r)], legF: [U.lerp(-0.04, -0.08, r), U.lerp(-0.22, -0.06, r)],
+        armN: [U.lerp(0.5, 2.25, r), U.lerp(1.2, 2.55, r)], armF: [U.lerp(-0.4, 1.95, r), U.lerp(0.9, 2.3, r)],
+      };
+    }
+    // shuffle: tiny steps, bent double, the staff planted ahead
+    const ph = t * TAU * 0.45, s = Math.sin(ph), c = Math.cos(ph);
+    return {
+      spine: 0.32, hunch: 0.56, neck: 0.18,
+      legN: [0.22 * s + 0.06, 0.22 * s - 0.16 * Math.max(0, -c) - 0.16], legF: [-0.22 * s + 0.06, -0.22 * s - 0.16 * Math.max(0, c) - 0.16],
+      armN: { bend: -1 }, reachN: [36, 12 + s * 2], armF: [0.25, 0.95], bob: Math.abs(c) * 1.2,
+    };
+  }
+  function drawBeggar(ctx, P, o, K) {
+    const t = o.t, pose = o.pose;
+    const q = beggarPose(pose, t, o);
+    const J = rig(q, OKINA_D);
+    const G = { kimono: K.kimono, lining: K.lining, obi: K.obi, pants: K.pants, sandal: K.sandal, wrap: K.wrap, hem: 44, sleeveDepth: 14, pattern: ['same', K.kimonoFg, 5, 0.6] };
+    if (q.bob) ctx.translate(0, q.bob);
+    if (pose === 'shuffle') {
+      const h = J.armN[2];
+      const st = new Path2D();
+      taperTo(st, [[h[0] - 3, h[1] - 22], [h[0] + 12 + Math.sin(t * TAU * 0.45) * 3, -q.bob || 0]], 3.8, 3.2, 0);
+      P.shape(st, K.staff, 0.6);
+    }
+    kimonoBody(P, J, K, G, t);
+    head(P, J.head[0], J.head[1], J.s2 * 0.6 + (q.neck || 0), K, 'okina', o);
+    if (pose === 'shuffle') P.shape(handPath(J.armN, 10, true), K.skin, 0.6);
+    let bowl = null;
+    if (pose === 'sit') {
+      const a = J.armN[2], b = J.armF[2];
+      bowl = [(a[0] + b[0]) / 2 + 6, (a[1] + b[1]) / 2 - 4];
+      const bw = sp([[bowl[0] - 13, bowl[1] - 3, 1], [bowl[0] + 13, bowl[1] - 3, 1], [bowl[0] + 9, bowl[1] + 7], [bowl[0] - 9, bowl[1] + 7]], true);
+      P.shape(bw, K.bowl, 0.7);
+      P.shape(handPath(J.armN, 10, false), K.skin, 0.6);
+    }
+    return { head: J.head, hands: [J.armN[2], J.armF[2]], bowl };
+  }
+  define('beggar', {
+    poses: ['shuffle', 'sit', 'rise'],
+    defaults: {},
+    bounds(pose) {
+      if (pose === 'sit') return [-80, -190, 212, 195];
+      if (pose === 'rise') return [-100, -330, 220, 335];
+      return [-80, -250, 200, 255];
+    },
+    draw(ctx, P, o) { return drawBeggar(ctx, P, o, pal(BEGGAR, o)); },
+  });
+
+  /* --- 猿: a Japanese macaque (design units ×0.55; sitting ≈ 75 px at scale 1) --- */
+  const MONKEY = { fur: U.mix(C.kitsune, C.nezumi, 0.45), belly: U.mix(C.kitsune, C.kinari, 0.5), face: U.mix(C.beni, C.toki, 0.45), fruit: U.mix(C.shu, C.yamabuki, 0.35), leaf: C.matsuba, stick: C.kuchiba };
+  function monkeyHead(P, x, y, a, K) {
+    const ctx = P.ctx;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    const hd = sp([[-14, 2], [-15, -9], [-8, -17], [4, -18], [12, -12], [15, -6], [19, -2], [19, 4, 1], [14, 8], [6, 11], [-6, 12]], true);
+    P.shape(hd, K.fur);
+    const ear = new Path2D();
+    ear.ellipse(-8, -5, 3.4, 4.6, 0.2, 0, TAU);
+    P.shape(ear, U.mix(K.fur, K.face, 0.35), 0.6);
+    if (!P.sil) {
+      const fc = sp([[6, -12], [13, -9], [18, -2], [18, 4], [12, 8], [6, 6], [4, -4]], true);
+      P.shape(fc, K.face, 0.5);
+      if (P.mid) {
+        const e = new Path2D();
+        taperTo(e, [[8, -5], [11, -5.5], [13.5, -4.5]], 1.4, 0.8, 0.3);
+        P.strokes(e, 1, C.sumi);
+        P.folds([[[[5, -9], [10, -10.5], [15, -8]], 0.7, 0.3], [[[15, 5], [12, 6], [9, 5.5]], 0.5, 0.2]], 0.8);
+      }
+    }
+    ctx.restore();
+  }
+  function drawMonkey(ctx, P, o, K) {
+    const t = o.t, pose = o.pose;
+    const breathe = Math.sin(t * 2) * 0.5;
+    const limb = (pts, w0, w1, col) => { const p = new Path2D(); taperTo(p, crs(pts, 4), w0, w1, 0.12); P.shape(p, col || K.fur, 0.8); };
+    const fruits = (x, y, n) => {
+      const f = new Path2D();
+      for (let i = 0; i < n; i++) { const fx = x + (i - (n - 1) / 2) * 8.5, fy = y - (i === 1 ? 4 : 0); f.moveTo(fx + 5.2, fy); f.ellipse(fx, fy, 5.2, 4.8, 0, 0, TAU); }
+      P.shape(f, K.fruit, 0.7);
+      if (P.mid && !P.sil) { const l = new Path2D(); taperTo(l, [[x - 2, y - 6], [x + 2, y - 11], [x + 6, y - 10]], 1.8, 1, 0.5); P.strokes(l, 0.9, K.leaf); }
+      return [x, y];
+    };
+    if (pose === 'walk') {
+      // on all fours, fruit in one hand held off the ground
+      const ph = t * TAU * 1.0;
+      const lg = (hx, hy, k, fore, far) => {
+        const s = Math.sin(ph + k) * 0.35, l = Math.max(0, Math.sin(ph + k + 1.4));
+        const kn = [hx + Math.sin(s) * 26 + (fore ? 2 : -4), hy + Math.cos(s) * 24 - l * 6];
+        limb([[hx, hy], kn, [kn[0] + (fore ? 6 : 4) + s * 8, -l * 5]], fore ? 10 : 13, 7, far ? U.shade(K.fur, 0.86) : K.fur);
+      };
+      lg(28, -52, Math.PI, true, true); lg(-28, -54, 0, false, true);
+      const tl = new Path2D(); taperTo(tl, [[-38, -62], [-48, -68], [-52, -64]], 7, 4, 0); P.shape(tl, K.fur, 0.7);
+      const body = sp([[34, -72 - breathe], [10, -78], [-18, -76], [-40, -66], [-44, -52], [-30, -42], [0, -44], [26, -46], [40, -56]], true);
+      P.shape(body, K.fur);
+      lg(-24, -52, Math.PI, false, false);
+      // near arm carries the fruit (no step)
+      limb([[26, -56], [36, -36], [46, -40]], 10, 7);
+      const fr = fruits(50, -44, o.fruit == null ? 3 : o.fruit);
+      monkeyHead(P, 48, -76, 0.1, K);
+      return { fruit: fr };
+    }
+    if (pose === 'sticks') {
+      // upright on bent legs, a bundle of sticks across the shoulder
+      const ph = t * TAU * 0.8, s = Math.sin(ph);
+      limb([[-6, -44], [6 - s * 6, -24], [0 - s * 10, 0]], 13, 7, U.shade(K.fur, 0.86));
+      const tl = new Path2D(); taperTo(tl, [[-14, -44], [-26, -46], [-30, -40]], 7, 4, 0); P.shape(tl, K.fur, 0.7);
+      const body = sp([[10, -98], [0, -102], [-12, -94], [-18, -70], [-16, -46], [-4, -38], [10, -44], [18, -66], [18, -86]], true);
+      P.shape(body, K.fur);
+      limb([[-4, -44], [10 + s * 6, -24], [4 + s * 10, 0]], 13, 7);
+      // sticks
+      const sk = new Path2D();
+      for (let i = 0; i < 6; i++) { const oy = (i - 2.5) * 2.6, ox = (i % 3) * 5; taperTo(sk, [[-52 + ox, -92 + oy - 16], [40 + ox, -112 + oy + 14]], 3.2, 2.6, 0); }
+      P.shape(sk, K.stick, 0.6);
+      limb([[10, -92], [24, -80], [18, -104]], 9, 6);
+      monkeyHead(P, 18, -116, 0.05, K);
+      limb([[4, -94], [-8, -106], [-18, -104]], 9, 6);
+      return { sticks: [[-52, -108], [40, -98]] };
+    }
+    // sit (offering the fruit forward)
+    const offer = U.clamp(o.offer == null ? 1 : o.offer);
+    const tl = new Path2D(); taperTo(tl, [[-24, -14], [-34, -18], [-38, -12]], 7, 4, 0); P.shape(tl, K.fur, 0.7);
+    limb([[-6, -22], [16, -34], [22, -2]], 16, 9, U.shade(K.fur, 0.86));
+    const body = sp([[10, -86 - breathe], [-4, -88 - breathe], [-18, -78], [-26, -54], [-28, -22], [-20, -4], [0, 0, 1], [18, -2], [22, -24], [22, -50], [18, -74]], true);
+    P.shape(body, K.fur);
+    if (P.mid && !P.sil) { const bl = sp([[18, -70], [20, -48], [16, -26], [10, -40], [12, -62]], true); P.flat(bl, K.belly); }
+    limb([[-4, -20], [20, -30], [28, 0]], 16, 9);
+    const hx = U.lerp(22, 42, offer), hy = U.lerp(-34, -52, offer);
+    limb([[6, -74], [16, -52], [hx, hy]], 11, 8);
+    const fr = fruits(hx + 6, hy - 6, o.fruit == null ? 3 : o.fruit);
+    monkeyHead(P, 16, -98 - breathe, -0.05 - offer * 0.1, K);
+    return { fruit: fr };
+  }
+  define('monkey', {
+    poses: ['sit', 'walk', 'sticks'],
+    defaults: {},
+    unit: 0.55,
+    size: 60,
+    bounds(pose) {
+      if (pose === 'walk') return [-60, -100, 130, 104];
+      if (pose === 'sticks') return [-60, -140, 110, 144];
+      return [-44, -122, 110, 126];
+    },
+    draw(ctx, P, o) { return drawMonkey(ctx, P, o, pal(MONKEY, o)); },
+  });
+
   /* ================================================================== */
   /* 影絵 — shadow-play puppets: flat cut paper as Path2D                 */
   /* CAST.puppet(name, ctx, x, y, scale, opts) builds the path only;      */
@@ -3939,7 +4217,7 @@
       },
       /** A tapered limb/cord along pts with round ends. */
       tube(pts, w0, w1, hole) {
-        const c = pts.length > 2 ? crs(pts, 4) : pts;
+        const c = pts.length > 2 ? crs(pts, pts.length > 4 ? 3 : 4) : pts;
         const n = c.length, L = [], R = [];
         for (let i = 0; i < n; i++) {
           const a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)];
@@ -3949,8 +4227,8 @@
           L.push([c[i][0] + nx * w, c[i][1] + ny * w]); R.push([c[i][0] - nx * w, c[i][1] - ny * w]);
         }
         B.poly(L.concat(R.reverse()), false, hole);
-        if (w0 > 1.5) B.ell(c[0][0], c[0][1], w0 / 2, w0 / 2, 0, hole);
-        if (w1 > 1.5) B.ell(c[n - 1][0], c[n - 1][1], w1 / 2, w1 / 2, 0, hole);
+        if (w0 > 2.5) B.ell(c[0][0], c[0][1], w0 / 2, w0 / 2, 0, hole);
+        if (w1 > 2.5) B.ell(c[n - 1][0], c[n - 1][1], w1 / 2, w1 / 2, 0, hole);
         return B;
       },
     };
@@ -4021,7 +4299,7 @@
       const foot = [hf2[0] + 12 + Math.sin(ph + 0.8) * 6, dy - 2];
       pb.tube([[hf2[0] - 1, hf2[1] - 8], foot], 4, 3.4);
     }
-    return { blade: q(-4, 18), hand: hd, feet: LJ.map((L) => Y(L[2])), grips: [R([2, -96]), R([24, -150])], bbox: [-40, -214, 140, 220] };
+    return { blade: q(-4, 18), hand: hd, feet: LJ.map((L) => Y(L[2])), grips: [R([2, -96]), R([24, -150])], bbox: [-44, -266, 170, 274] };
   }
 
   /* --- three bamboo culms with leaf sprays; a shining slit; the split node (design px) --- */
@@ -4081,7 +4359,7 @@
         }
       }
     }
-    return { node, grips: [[-70, -60], [60, -60]], bbox: [-140, -640, 280, 646], stickLen: 220 };
+    return { node, grips: [[-70, -60], [60, -60]], bbox: [-162, -640, 324, 654], stickLen: 220 };
   }
 
   /* --- かぐや姫 as a negative puppet: child → girl → woman, one path of 22 keypoints --- */
@@ -4275,7 +4553,132 @@
     const TN = [[-190, -70, 1, 0], [-130, -120, 0.9, 1], [70, -120, 1.05, 2], [140, -70, 0.9, 3], [-80, -190, 0.85, 4], [30, -200, 0.95, 5], [190, -150, 0.8, 6]];
     const rib = o.ribbon == null ? 1.8 : o.ribbon;
     for (const [x, y, s, i] of TN) tennyoShadow(pb, x, y + Math.sin(t * 0.7 + i) * 3, s * 1.1, -1, t, i * 1.3, i === 0 ? rib * 2.2 : rib);
-    return { grips: [], bbox: [-340, -240, 620, 290] };
+    return { grips: [], bbox: [-340, -250, 660 + Math.max(0, rib - 1.8) * 70, 300] };
+  }
+
+  /* --- たけ's shadow that peels off the paper: seated old → upright young → climbing --- */
+  //   a rig (joint positions) per keyframe, blended, then built as one union path:
+  //   youth 0..1 (bent seated → standing, the back straightening), climb k (rungs
+  //   climbed, fractional = mid-cycle: reach · pull · knee · reach), hair 0..1
+  //   (20 → 260 px Heian hair), look 0..1 (the head turns back: profile flip).
+  const CL = { R: 115, torso: 100, neck: 16, upper: 56, fore: 50, thigh: 82, shin: 80 };
+  const vA = (a) => [Math.sin(a), Math.cos(a)];            // angle from straight down, + toward +x
+  const addP = (p, a, L) => { const v = vA(a); return [p[0] + v[0] * L, p[1] + v[1] * L]; };
+  function climberRig(kind, o) {
+    const J = {};
+    if (kind === 'seated') {
+      // seiza, bent with age: thighs forward on the floor, shins folded under, hands in the lap
+      J.hip = [-4, -40];
+      J.kneeN = [58, -14]; J.ankleN = [-20, -8]; J.kneeF = [54, -12]; J.ankleF = [-24, -7];
+      J.sh = addP(J.hip, Math.PI - 0.5, CL.torso);  // leaning forward
+      J.hunch = 1;
+      J.neckTop = addP(J.sh, Math.PI - 0.95, CL.neck);
+      J.headA = 0.5;
+      J.elN = [J.sh[0] + 14, J.sh[1] + 50]; J.haN = [J.kneeN[0] - 10, J.kneeN[1] - 22];
+      J.elF = [J.sh[0] + 8, J.sh[1] + 52]; J.haF = [J.kneeF[0] - 16, J.kneeF[1] - 20];
+      J.feet = false;
+    } else if (kind === 'stand') {
+      J.hip = [0, -170];
+      J.kneeN = [4, -90]; J.ankleN = [2, -9]; J.kneeF = [-2, -90]; J.ankleF = [-4, -9];
+      J.sh = [2, -270]; J.hunch = 0;
+      J.neckTop = [4, -286]; J.headA = -0.05;
+      J.elN = [8, -216]; J.haN = [12, -166]; J.elF = [-6, -216]; J.haF = [-4, -166];
+      J.feet = true;
+    } else {
+      // climbing the kumiko: hands and feet on rungs, the body rising 115 px per cycle
+      const k = Math.max(0, o.climb || 0), R = CL.R;
+      const base = Math.floor(k), c = k - base;
+      const seg = (a, b) => U.ease.inOutSine(U.clamp((c - a) / (b - a)));
+      const rung = (j) => -R * j;
+      const move = (from, to, u, x, arc) => [x - Math.sin(Math.PI * u) * arc, U.lerp(rung(from), rung(to), u)];
+      const hy = -170 - R * k - Math.sin(c * TAU * 2) * 4;
+      J.hip = [-26, hy];
+      J.sh = [-16, hy - CL.torso]; J.hunch = 0;
+      J.neckTop = [-12, hy - CL.torso - CL.neck]; J.headA = -0.25;
+      const hN = move(base + 3, base + 4, seg(0, 0.25), 40, 22), hF = move(base + 2.5, base + 3.5, seg(0.5, 0.75), 38, 22);
+      const fN = move(base, base + 1, seg(0.25, 0.5), 30, 26), fF = move(base - 0.5, base + 0.5, seg(0.75, 1), 28, 26);
+      const arm = (sh, ha) => { const [a1] = ik(sh, ha, CL.upper, CL.fore, -1); const el = addP(sh, a1, CL.upper); const d = Math.hypot(ha[0] - el[0], ha[1] - el[1]); return [el, d > CL.fore ? addP(el, Math.atan2(ha[0] - el[0], ha[1] - el[1]), CL.fore) : ha]; };
+      const leg = (hp, ft) => { const [a1] = ik(hp, ft, CL.thigh, CL.shin, 1); const kn = addP(hp, a1, CL.thigh); const d = Math.hypot(ft[0] - kn[0], ft[1] - kn[1]); return [kn, d > CL.shin ? addP(kn, Math.atan2(ft[0] - kn[0], ft[1] - kn[1]), CL.shin) : ft]; };
+      [J.elN, J.haN] = arm(J.sh, hN); [J.elF, J.haF] = arm([J.sh[0] - 4, J.sh[1] + 4], hF);
+      [J.kneeN, J.ankleN] = leg(J.hip, [fN[0], fN[1] - 6]); [J.kneeF, J.ankleF] = leg([J.hip[0] - 4, J.hip[1]], [fF[0], fF[1] - 6]);
+      J.feet = true;
+      J.rungs = [rung(base), rung(base + 5)];
+    }
+    return J;
+  }
+  function blendRig(A, B, f) {
+    const J = {};
+    for (const key of Object.keys(A)) {
+      const a = A[key], b = B[key];
+      if (Array.isArray(a) && typeof a[0] === 'number') J[key] = [U.lerp(a[0], b[0], f), U.lerp(a[1], b[1], f)];
+      else if (typeof a === 'number') J[key] = U.lerp(a, b, f);
+      else J[key] = f < 0.5 ? a : b;
+    }
+    return J;
+  }
+  function puppetClimber(pb, o) {
+    const t = o.t || 0;
+    const youth = smooth01(o.youth == null ? 1 : o.youth);
+    let J = blendRig(climberRig('seated', o), climberRig('stand', o), youth);
+    if (o.climb != null) J = blendRig(J, climberRig('climb', o), smooth01(o.climbMix == null ? 1 : o.climbMix));
+    const hair = U.clamp(o.hair == null ? youth : o.hair);
+    const look = smooth01(o.look || 0);
+    // the robe: one convex skirt round waist, knees and hem (a kimono binds the legs);
+    // the shins show below the hem only while climbing
+    const hemK = o.climb != null ? U.lerp(1, 0.45, smooth01(o.climbMix == null ? 1 : o.climbMix)) : 1;
+    const ta0 = Math.atan2(J.sh[0] - J.hip[0], -(J.sh[1] - J.hip[1]));
+    const fw0 = [Math.cos(ta0), Math.sin(ta0)];
+    const cloud = [[J.hip[0] - fw0[0] * 26, J.hip[1] - fw0[1] * 26 - 8], [J.hip[0] + fw0[0] * 24, J.hip[1] + fw0[1] * 24 - 10]];
+    for (const [kn, an] of [[J.kneeF, J.ankleF], [J.kneeN, J.ankleN]]) {
+      const d = unit(J.hip, kn), n = [-d[1], d[0]];
+      cloud.push([kn[0] + n[0] * 19, kn[1] + n[1] * 19], [kn[0] - n[0] * 19, kn[1] - n[1] * 19]);
+      const hm = lerpPt(kn, an, hemK), d2 = unit(kn, an), n2 = [-d2[1], d2[0]];
+      const wHem = 17 + 6 * hemK;
+      cloud.push([hm[0] + n2[0] * wHem, hm[1] + n2[1] * wHem + 2], [hm[0] - n2[0] * wHem, hm[1] - n2[1] * wHem + 2]);
+      if (hemK < 0.98) pb.tube([hm, an], 10, 8);
+    }
+    // convex hull (monotone chain), then smoothed
+    cloud.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const cr = (O, A, B) => (A[0] - O[0]) * (B[1] - O[1]) - (A[1] - O[1]) * (B[0] - O[0]);
+    const lo = [], hi = [];
+    for (const p of cloud) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (let i = cloud.length - 1; i >= 0; i--) { const p = cloud[i]; while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+    const hull = lo.slice(0, -1).concat(hi.slice(0, -1));
+    pb.poly(hull, true, false);
+    if (J.feet) for (const an of [J.ankleF, J.ankleN]) pb.poly([[an[0] - 8, an[1] - 4], [an[0] + 16, an[1] - 2], [an[0] + 18, an[1] + 5, 1], [an[0] - 8, an[1] + 6, 1]], true);
+    // torso with the hunch of age
+    const ta = Math.atan2(J.sh[0] - J.hip[0], -(J.sh[1] - J.hip[1]));        // lean from vertical
+    const up = [Math.sin(ta), -Math.cos(ta)], fw = [Math.cos(ta), Math.sin(ta)];
+    const T = (u, v) => [J.hip[0] + up[0] * u + fw[0] * v, J.hip[1] + up[1] * u + fw[1] * v];
+    const hb = J.hunch * 26;
+    pb.poly([T(-6, -26), T(40, -25 - hb * 0.3), T(76, -24 - hb), T(100, -12 - hb * 0.6), T(106, 4), T(96, 22), T(60, 24), T(20, 26), T(-6, 24)], true);
+    pb.tube([J.sh, J.neckTop], 22, 18);
+    // head (a profile) — with look → the profile turns back
+    const hc = addP(J.neckTop, Math.PI + (J.headA || 0) * 0.6, 14);
+    const sx = Math.cos(look * Math.PI) || 0.001, ha = J.headA || 0;
+    const H = (x, y) => { const c = Math.cos(ha), s = Math.sin(ha); const X = x * sx * 1.2, Y = y * 1.2; return [hc[0] + X * c - Y * s, hc[1] + X * s + Y * c]; };
+    pb.poly([H(-15, 2), H(-13, -12), H(-3, -20), H(9, -17), H(14, -9), H(18, -1), H(21, 4, 1), H(16, 6), H(17, 9), H(14, 13), H(7, 17), H(-6, 16)], true);
+    // hair: the old bun, or the long tail hanging from the nape (gravity: straight down)
+    const bun = 1 - youth;
+    if (bun > 0.02) { const b = H(-15, -9); pb.ell(b[0], b[1], 9 * bun + 2, 8 * bun + 2); }
+    const nape = (() => { const c = Math.cos(ha), s = Math.sin(ha); return [hc[0] - 15.6 * c - 7.2 * s, hc[1] - 15.6 * s + 7.2 * c]; })();   // the nape stays behind whichever way she looks
+    const Lh = Math.min(U.lerp(20, 260, hair), Math.max(J.ankleN[1], J.ankleF[1]) - nape[1] - 14);
+    const sway = Math.sin(t * 1.4) * 6 * hair;
+    const back = Math.min(J.sh[0], J.hip[0]) - 18 - nape[0];      // fall just clear of the back
+    const hp = [nape];
+    for (let i = 1; i <= 7; i++) { const u = i / 7; hp.push([nape[0] + back * Math.min(1, u * 3) * hair + sway * u * u, nape[1] + Lh * u]); }
+    pb.tube(hp, 16, U.lerp(8, 15, hair));
+    // arms with hanging sleeves (the sleeve slides back when the arm is raised)
+    for (const [el, hd] of [[J.elF, J.haF], [J.elN, J.haN]]) {
+      pb.tube([J.sh, el, hd], 14, 10);
+      pb.ell(hd[0], hd[1], 6, 7);
+      const raised = hd[1] < el[1];
+      const a = raised ? lerpPt(J.sh, el, 0.3) : el, b = raised ? el : lerpPt(el, hd, 0.55);
+      const dp = 30 + 8 * youth;
+      pb.poly([a, b, [b[0] - 4, b[1] + dp * 0.9, 1], [a[0] - 6, a[1] + dp, 1]], true);
+    }
+    const top = Math.min(hc[1] - 22, J.haN[1] - 8, J.haF[1] - 8);
+    return { head: hc, hands: [J.haN, J.haF], feet: [J.ankleN, J.ankleF], grips: [], bbox: [-130, top - 10, 250, -top + 40] };
   }
 
   /* --- the paper moon on its stick --- */
@@ -4293,6 +4696,7 @@
     palanquin: { build: puppetPalanquin, unit: 1, opts: 'phase (default t·1.1)' },
     cloud: { build: puppetCloud, unit: 1, opts: 'ribbon (scarf length multiplier, default 1.8)' },
     moon: { build: puppetMoon, unit: 1, opts: 'r (default 100)' },
+    climber: { build: puppetClimber, unit: 1, opts: 'youth 0..1 (bent seated → upright), climb (rungs, 115 px each; fraction = mid-cycle), climbMix 0..1, hair 0..1 (20 → 260 px), look 0..1 (turns back)' },
   };
 
   /**
@@ -4349,8 +4753,9 @@
    * Draw a puppet's shadow. opts (besides CAST.puppet's): color (default 藍鼠),
    * alpha, mode 'shadow' (fill with ctx's current composite, e.g. multiply) |
    * 'cut' (destination-out: punch it out of what is there) | 'light' (fill,
-   * colour default 月白); penumbra (px): soft edge by offset low-alpha passes
-   * (1 for puppets held against the paper, 6–10 for things far from it).
+   * colour default 月白); penumbra (px): soft edge ≈ penumbra px wide (1 for
+   * puppets held against the paper, 6–10 for things far from it), made by
+   * painting at reduced resolution and upscaling (no blur filter: cheap).
    * With penumbra or alpha < 1 the puppet is drawn once through a scratch
    * canvas so overlaps never compound under multiply. Returns CAST.puppet's result.
    */
@@ -4362,20 +4767,8 @@
     if (a <= 0.004) return r;
     const col = o.color || (o.mode === 'light' ? C.geppaku : AINEZU);
     const pen = o.penumbra || 0;
-    const blur = pen > 2.5 && 'filter' in ctx;
     const paint = (c2) => {
       c2.fillStyle = col;
-      if (pen > 0 && !blur) {
-        c2.save();
-        c2.globalAlpha *= 0.3;
-        for (const [dx, dy] of [[pen, 0], [-pen, 0], [0, pen], [0, -pen], [pen * 0.5, pen * 0.5], [-pen * 0.5, -pen * 0.5]]) {
-          c2.translate(dx, dy);
-          c2.fill(r.path, r.rule);
-          if (r.sticks) c2.fill(r.sticks);
-          c2.translate(-dx, -dy);
-        }
-        c2.restore();
-      }
       c2.fill(r.path, r.rule);
       if (r.sticks) c2.fill(r.sticks);
     };
@@ -4393,19 +4786,27 @@
       x0 = Math.max(0, Math.floor(x0 - padd)); y0 = Math.max(0, Math.floor(y0 - padd));
       x1 = Math.min(ctx.canvas.width, Math.ceil(x1 + padd)); y1 = Math.min(ctx.canvas.height, Math.ceil(y1 + padd));
       if (x1 > x0 && y1 > y0) {
-        const sc = getScratch(x1 - x0, y1 - y0);
+        // the penumbra: paint at 1/k resolution and let the bilinear upscale soften
+        // every edge by ~k px (one fill + one drawImage; a canvas blur filter costs 30 ms)
+        const k = pen > 0 ? Math.max(1.2, pen * 0.6 * Math.hypot(Mx.a, Mx.b)) : 1;
+        const w = Math.ceil((x1 - x0) / k) + 2, h = Math.ceil((y1 - y0) / k) + 2;
+        const sc = getScratch(w, h);
         const s2 = sc.getContext('2d');
         s2.setTransform(1, 0, 0, 1, 0, 0);
         s2.globalAlpha = 1;
         s2.globalCompositeOperation = 'source-over';
-        s2.clearRect(0, 0, x1 - x0, y1 - y0);
-        s2.setTransform(Mx.a, Mx.b, Mx.c, Mx.d, Mx.e - x0, Mx.f - y0);
+        s2.clearRect(0, 0, Math.min(sc.width, w + 3), Math.min(sc.height, h + 3));
+        s2.save();
+        s2.beginPath(); s2.rect(1, 1, w - 2, h - 2); s2.clip();       // a clean 1 px border: no bleed when upscaling
+        s2.setTransform(Mx.a / k, Mx.b / k, Mx.c / k, Mx.d / k, (Mx.e - x0) / k + 1, (Mx.f - y0) / k + 1);
         paint(s2);
+        s2.restore();
         s2.setTransform(1, 0, 0, 1, 0, 0);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha *= a;
-        if (blur) ctx.filter = `blur(${(pen * 0.4 * Math.hypot(Mx.a, Mx.b)).toFixed(2)}px)`;
-        ctx.drawImage(sc, 0, 0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'low';
+        ctx.drawImage(sc, 0, 0, w, h, x0 - k, y0 - k, w * k, h * k);
       }
     } else paint(ctx);
     ctx.restore();

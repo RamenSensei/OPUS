@@ -2,7 +2,7 @@
 /* ==========================================================================
    tools/cast-shoot.js — screenshot the cast model sheets (headless Chromium).
 
-     node tools/cast-shoot.js                      # sheets 1-6 at t=0
+     node tools/cast-shoot.js                      # sheets 1-14 at t=0
      node tools/cast-shoot.js --sheets 1,2 --t 0,1.5,3
      node tools/cast-shoot.js --focus kaguya --scale 1.2 [--t 0,2]
      node tools/cast-shoot.js --perf               # time every character × pose
@@ -58,7 +58,7 @@ const opt = (name, def) => {
     const sc = opt('scale', '1');
     for (const t of times) jobs.push({ q: `focus=${f}&scale=${sc}&t=${t}`, name: `focus-${f}-s${sc}${times.length > 1 ? `_t${t}` : ''}` });
   } else {
-    const sheets = String(opt('sheets', '1,2,3,4,5,6')).split(',');
+    const sheets = String(opt('sheets', '1,2,3,4,5,6,7,8,9,10,11,12,13,14')).split(',');
     for (const s of sheets) for (const t of times) jobs.push({ q: `sheet=${s}&t=${t}`, name: `sheet${s}${times.length > 1 || t ? `_t${t}` : ''}` });
   }
   for (const j of jobs) {

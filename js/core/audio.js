@@ -12,8 +12,11 @@
    renderOffline(T0, T1, rate) → Promise<AudioBuffer> for video export.
 
    The score is TSUKI.SCORE (js/score.js), read lazily at play time:
-     { gain?, events: [{ t, inst, note, vel, dur, pan, rev, dist, ... }],
+     { gain?, master?: [[t, gain], ...],
+       events: [{ t, inst, note, vel, dur, pan, rev, dist, ... }],
        beds:   [{ inst, from, to, level, fadeIn, fadeOut, automation }] }
+   `master` is a film-time gain curve applied AFTER the whole master chain
+   (reverb, compressor, clip): a 0 there is digital silence, tails included.
    Composer helpers: phrase(), scale(), hirajoshi(), note(), freq().
    All randomness is seeded from the event, so renders are repeatable.
 
@@ -21,18 +24,32 @@
      koto       note|[chord] dur(damp) strum(ms, <0 = down) press pressAt
                 pressTime pressHold slide slideAt slideTime vib vibRate vibAt
                 trem tremRate tremShape(swell|fade|grow|even) damp detune
+                harm (touched-node harmonic) · worn (後摺: lossy, short, beating)
      biwa       as koto + strike(0–1 bachi slap); sawari buzz built in
      shakuhachi note dur attack release bendFrom bendTime bends[[dt,semi]]
-                fall yuri vib vibRate vibDelay muraiki tone swell
-     bonsho     note(G2) decay(16) bright beat      rin  note(A5) decay(9) beat
+                fall yuri vib vibRate vibDelay muraiki tone swell air(breath only)
+     bonsho     note(G2) decay(16) bright beat partials('dawn'|[[r,a,dk,splitHz]])
+     rin        note(A5) decay(9) beat                (also the small 鏧 bowl)
      suzu       shakes rate spread count note bright
      taiko      note(A1) decay rim                  kotsuzumi  stroke(pon|ta|chi|pu)
      sho        aitake(kotsu|ichi|ku|otsu|ju|bo|[iv]) root | note[] dur swell
-                release bright width breath
+                release bright width breath levels[[dt,0–1]]
      hyoshigi   count gap kizami(true|n) kizamiDur pitch
+     sozu       dry                      kento     (the kentō CLICK)
+     baren      dur stroke               pestle    (ぺったん)
+     geese      birds honks gap f echo   swish     kind(brush|rustle|crack|peel|
+                                                   press|grass|hiss|cloth) dur bright
+     plink      f0 f1 glide hollow splash          splash kind(hand|gush) drops
+     glass      note[] dur swell release | grains lo hi spread
+     puff       dur gutter               pour      dur f0 f1 tickAt
+     mushi      kind(suzu|matsu) f dur pulses      (one insect, one call)
    beds: from to level fadeIn fadeOut automation[[t,level]] pan rev dist
-     insects density suzumushi matsumushi field · wind brightness gust rate
-     water lap drips koi · drone notes beat bright · fire crackle roar · night air
+         muffle(Hz, 6 dB/oct wall) lp(Hz)
+     insects density suzumushi matsumushi field nSuzu nMatsu fSuzu fMatsu first
+             activity vamp · wind brightness gust rate lo hi q rumble air
+             gusts[[t,amt]] gustAmt gustRise gustFall · trickle flow f q fill[[t,Hz]]
+             bubbles · water lap drips koi · drone notes beat bright
+             fire crackle roar · night air
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -204,8 +221,8 @@
     return h >>> 0;
   };
   const core = new Map();   // noise, impulse responses: kept forever
-  const lru = new Map();    // plucks, bell bunches, clacks: bounded
-  const LRU_MAX = 120;
+  const lru = new Map();    // plucks, bell bunches, clacks, one-shots: bounded
+  const LRU_MAX = 160;
   function cacheCore(key, make) {
     let b = core.get(key);
     if (!b) core.set(key, (b = make()));
@@ -358,7 +375,17 @@
     biwa: { gain: 0.6, bright: 0.72, pos: 0.07, sawari: 0.6, pick: 0.45, second: 0.2, lp: 7000,
       t60: (f) => clamp(4.2 * Math.pow(110 / f, 0.4), 1.6, 4.5),
       body: [[150, 1.0, 5], [410, 1.4, 3.5], [1700, 2.0, 2.5], [4000, 1.0, -5]] },
+    // 後摺: the same koto sixty years on — dull strings, more loss, a false beat
+    kotoWorn: { gain: 0.74, bright: 0.4, pos: 0.13, sawari: 0, pick: 0.17, second: 0.5, secondDetune: 1.0034, lp: 5200,
+      t60: (f) => clamp(2.4 * Math.pow(147 / f, 0.45), 0.9, 2.6),
+      body: [[205, 1.1, 4], [470, 1.3, 3], [1250, 1.8, 1], [3400, 1.0, -7]] },
+    // a touched-node harmonic: nearly pure, glassy, rings long
+    kotoHarm: { gain: 0.6, harm: true, lp: 7000,
+      t60: (f) => clamp(4.4 * Math.pow(440 / f, 0.3), 2.4, 5),
+      body: [[205, 1.1, 2], [470, 1.3, 2], [1250, 1.8, 1], [3400, 1.0, -6]] },
   };
+  /** koto variants live in the same table: koto · kotoWorn · kotoHarm */
+  const stringKind = (kind, p) => (kind === 'koto' && p ? (p.harm ? 'kotoHarm' : p.worn ? 'kotoWorn' : 'koto') : kind);
 
   function ksString(out, sr, f, t60, o, R, amp) {
     const P = sr / f;
@@ -402,10 +429,20 @@
       const t60 = o.t60(f);
       const len = Math.round(sr * Math.min(5.5, t60 * 0.7 + 0.3));
       const x = new Float32Array(len);
-      ksString(x, sr, f, t60, o, R, 1);
-      if (o.second) ksString(x, sr, f * 1.0011, t60 * 0.8, o, R, o.second); // second polarisation
-      const nk = Math.round(sr * 0.005);                   // the nail / plectrum itself
-      for (let i = 0; i < nk; i++) x[i] += o.pick * (R() * 2 - 1) * Math.pow(1 - i / nk, 2);
+      if (o.harm) {
+        // the finger rests on the node as the nail plucks: the octave rings almost pure
+        const tau = t60 / 6.9;
+        [[1, 1, 1], [2, 0.1, 0.55], [3, 0.035, 0.4], [4, 0.012, 0.3]].forEach(([k, a, dk]) => addPartial(x, sr, 0, f * k, a, tau * dk, 0.0035));
+        ksString(x, sr, f, t60 * 0.6, { bright: 0.06, pos: 0.25, sawari: 0 }, R, 0.16);
+        const nk = Math.round(sr * 0.004);
+        let lp = 0;
+        for (let i = 0; i < nk; i++) { lp += 0.25 * (R() * 2 - 1 - lp); x[i] += 0.1 * lp * Math.sin((Math.PI * i) / nk); }
+      } else {
+        ksString(x, sr, f, t60, o, R, 1);
+        if (o.second) ksString(x, sr, f * (o.secondDetune || 1.0011), t60 * 0.8, o, R, o.second); // second polarisation
+        const nk = Math.round(sr * 0.005);                   // the nail / plectrum itself
+        for (let i = 0; i < nk; i++) x[i] += o.pick * (R() * 2 - 1) * Math.pow(1 - i / nk, 2);
+      }
       peakNorm([x], 0.9);
       fadeEnds(x, sr, 0.0005, 0.25);
       const b = newBuf(1, len, sr);
@@ -793,9 +830,9 @@
     n._stop = true;
   }
 
-  function stringInst(kind) {
+  function stringInst(inst) {
     return (ctx, dest, when, p) => {
-      const K = kit(ctx, dest);
+      const K = kit(ctx, dest), kind = stringKind(inst, p);
       K.body = bodyChain(K, kind);
       const notes = noteList(def(p.note, kind === 'biwa' ? 'D3' : 'D4'));
       const vel = clamp(def(p.vel, 0.7));
@@ -814,9 +851,9 @@
       return K.done(K.end);
     };
   }
-  const stringLen = (kind) => (p) => {
+  const stringLen = (inst) => (p) => {
     const ms = noteList(def(p.note, 'D4'));
-    return p.dur !== undefined ? p.dur + 0.4 : PLUCK[kind].t60(mtof(Math.min(...ms))) * 0.8 + 0.3;
+    return p.dur !== undefined ? p.dur + 0.4 : PLUCK[stringKind(inst, p)].t60(mtof(Math.min(...ms))) * 0.8 + 0.3;
   };
   inst('koto', { rev: 0.28, resumable: true }, stringInst('koto'), stringLen('koto'));
   inst('biwa', { rev: 0.34, resumable: true }, stringInst('biwa'), stringLen('biwa'));

@@ -16,13 +16,18 @@
 <script src="../js/core/cast.js"></script>
 <script>
 /* ==========================================================================
-   Cast model sheets.  ?sheet=1..6  ?t=seconds  ?focus=name&scale=s  ?perf=1
-   1 · every character × pose on washi (mid scale)
+   Cast model sheets.  ?sheet=1..13  ?t=seconds  ?focus=name&scale=s  ?perf=1
+   ?zoom=name&pose=p~k:v,…  ?pzoom=puppet&v=k:v~k:v,…
+   1 · the film cast × every pose on washi
    2 · night & moon: back views, silhouettes, rise, tennyo, moon rabbits
-   3 · small-scale legibility (40–90 px figures) + a crowd
-   4 · Kaguya large
-   5 · the others large
-   6 · motion strips (t series)
+   3 · the film cast at film sizes (52–62 px) + the tale cast small
+   4 · Kaguya large            5 · the others large
+   6 · motion strips (t series) 7 · variants  8 · close-ups
+   9 · 影絵 puppets (multiply 藍鼠, negative puppets, penumbra, cut)
+   10 · the Jataka on the moon (silhouette / sumi-line)
+   11 · the film cast in context (poster frame, engawa, shoji, fox, drain)
+   12 · hands close-ups (fox window with its clip, cupped, ladle, grab)
+   13 · the tale cast × every pose   14 · the film cast large
    ========================================================================== */
 (function () {
   'use strict';
@@ -87,18 +92,27 @@
     }
     return yy;
   }
-  const allPoses = (scale, extra) => {
+  // the film's cast (screenplay order) and the legacy tale cast (now puppets / silhouettes)
+  const FILM = ['grandma', 'oldSayo', 'child', 'fox', 'rabbit', 'beggar', 'monkey', 'hands'];
+  const TALE = ['kaguya', 'okina', 'ouna', 'elder', 'mikado', 'tennyo', 'guard', 'deer'];
+  const allPoses = (scale, extra, names) => {
     const out = [];
-    for (const name of Object.keys(CAST.POSES)) {
-      for (const pose of CAST.POSES[name]) out.push({ name, pose, scale, opts: Object.assign({}, extra) });
+    for (const name of names || Object.keys(CAST.POSES)) {
+      if (!CAST.POSES[name]) continue;
+      const k = name === 'hands' ? 0.22 : name === 'grandma' || name === 'oldSayo' ? 1.5 : name === 'child' ? 1.2 : 1;
+      for (const pose of CAST.POSES[name]) out.push({ name, pose, scale: scale * k, opts: Object.assign({}, extra) });
     }
     return out;
   };
 
   const sheets = {
     1() {
-      washi(); title('sheet 1 · every character × pose · scale 0.5');
-      flow(allPoses(0.5), 40, 60, 1880, 30);
+      washi(); title('sheet 1 · the film cast × every pose · scale 0.5 (grandma/oldSayo ×1.5, child ×1.2, hands ×0.22)');
+      flow(allPoses(0.5, {}, FILM), 40, 60, 1880, 28);
+    },
+    13() {
+      washi(); title('sheet 13 · the tale cast (legacy colour versions) × every pose · scale 0.5');
+      flow(allPoses(0.5, {}, TALE), 40, 60, 1880, 30);
     },
     2() {
       night();
@@ -132,20 +146,28 @@
       CAST.okina(ctx, 470, 860, 0.5, { pose: 'kneel', t: T, alpha: 0.6 });
     },
     3() {
-      washi(); title('sheet 3 · small scales (0.14 · 0.22 · 0.3)');
-      let y = flow(allPoses(0.14), 40, 60, 1880, 16);
-      y = flow(allPoses(0.22), 40, y + 10, 1880, 18);
-      flow(allPoses(0.3), 40, y + 10, 1880, 20);
+      washi(); title('sheet 3 · the film cast at film sizes: scale 0.25 · 0.35 (たけ ≈ 52 px, 小夜 ≈ 62 px) — and 0.14 for the tale cast');
+      const film = FILM.filter((n) => n !== 'hands');
+      let y = flow(allPoses(0.25, {}, film), 40, 60, 1880, 18);
+      y = flow(allPoses(0.35, {}, film), 40, y + 16, 1880, 20);
+      flow(allPoses(0.14, {}, TALE), 40, y + 16, 1880, 14);
     },
     4() {
       washi(); title('sheet 4 · Kaguya large');
       flow(CAST.POSES.kaguya.map((p) => ({ name: 'kaguya', pose: p, scale: 1.25 })), 40, 70, 1880, 40);
     },
     5() {
-      washi(); title('sheet 5 · others large');
+      washi(); title('sheet 5 · the tale cast large (okina · ouna · elder · mikado · tennyo · guard · deer)');
       const items = [];
-      for (const n of Object.keys(CAST.POSES)) if (n !== 'kaguya') for (const p of CAST.POSES[n]) items.push({ name: n, pose: p, scale: n === 'rabbit' || n === 'fox' || n === 'deer' ? 1.3 : 0.95 });
-      flow(items, 40, 60, 1880, 30);
+      for (const n of TALE) if (n !== 'kaguya') for (const p of CAST.POSES[n]) items.push({ name: n, pose: p, scale: n === 'deer' ? 0.9 : 0.72 });
+      flow(items, 40, 60, 1880, 26);
+    },
+    14() {
+      washi(); title('sheet 14 · the film cast large (たけ ×1.15 · 小夜 ×0.95 · fox, rabbit, monkey ×1.2 · beggar ×0.55)');
+      const items = [];
+      const k = { grandma: 1.15, oldSayo: 1.15, child: 0.95, fox: 1.2, rabbit: 1.2, monkey: 1.2, beggar: 0.55 };
+      for (const n of ['grandma', 'child', 'fox', 'rabbit', 'beggar', 'monkey']) for (const p of CAST.POSES[n]) items.push({ name: n, pose: p, scale: k[n] * (n === 'child' && p === 'carry-susuki' ? 0.8 : 1) });
+      flow(items, 40, 60, 1880, 26);
     },
     6() {
       washi(); title('sheet 6 · motion strips t = 0 … 5.25 (0.75 s)');
@@ -245,6 +267,94 @@
       CAST.drawPuppet(ctx, 'kaguya', 1430, 990, 1.2, { mode: 'cut', grow: 1, facing: -1, sticks: false });
       CAST.drawPuppet(ctx, 'moon', 1700, 830, 0.8, { mode: 'cut', stickAngle: -0.3 });
       label(1580, 1050, "mode:'cut' (destination-out) on sumi");
+    },
+    10() {
+      // the Jataka on the moon's face (screen 四): 墨 silhouettes α .85 and style 'sumi-line', 50–90 px
+      night();
+      title('sheet 10 · 月の兎 本生譚 on the moon · silhouette 墨 α.85 (left) · style sumi-line (right)', true);
+      B.moon(ctx, 520, 560, 420, { halo: 0.6, maria: 0 });
+      B.moon(ctx, 1400, 560, 420, { halo: 0.6, maria: 0 });
+      const sil = { silhouette: C.sumi, alpha: 0.85, t: T };
+      const line = { style: 'sumi-line', t: T };
+      for (const [cx, o] of [[520, sil], [1400, line]]) {
+        CAST.beggar(ctx, cx - 190, 640, 0.27, Object.assign({ pose: 'sit' }, o));
+        CAST.beggar(ctx, cx - 280, 470, 0.22, Object.assign({ pose: 'shuffle', facing: -1 }, o));
+        CAST.beggar(ctx, cx - 60, 360, 0.24, Object.assign({ pose: 'rise' }, o));
+        CAST.monkey(ctx, cx - 70, 640, 1.0, Object.assign({ pose: 'sit', facing: -1 }, o));
+        CAST.monkey(ctx, cx + 170, 470, 0.9, Object.assign({ pose: 'sticks', facing: -1 }, o));
+        CAST.fox(ctx, cx + 60, 650, 1.1, Object.assign({ pose: 'walk', carry: 'fish', facing: -1 }, o));
+        CAST.rabbit(ctx, cx + 210, 700, 1.2, Object.assign({ pose: 'sit', droop: 1, facing: -1 }, o));
+        CAST.rabbit(ctx, cx + 110, 800, 1.2, Object.assign({ pose: 'gaze', facing: -1 }, o));
+        CAST.rabbit(ctx, cx - 10, 820, 1.2, Object.assign({ pose: 'leap', phase: 0.4, facing: -1 }, o));
+        CAST.monkey(ctx, cx + 120, 360, 0.9, Object.assign({ pose: 'walk' }, o));
+      }
+    },
+    11() {
+      // the film's cast in context: poster frame, engawa, shoji shadows, the fox, the drain
+      night();
+      title('sheet 11 · the film cast: 小夜 poster frame · たけ on the engawa · shadows on shoji (藍鼠) · the fox · A′ drain', true);
+      // poster frame: 小夜 with the sheaf crossing a huge 山吹 moon
+      B.moon(ctx, 330, 470, 260, { halo: 0.5, maria: 0, color: C.yamabuki });
+      CAST.child(ctx, 350, 700, 1.25, { pose: 'carry-susuki', silhouette: U.mix(C.sumi, C.tetsukon, 0.4), t: T, wind: 0.4 });
+      label(330, 760, "child carry-susuki (silhouette) — the poster frame", 'rgba(238,242,234,0.55)', 12);
+      // engawa, Shot A′ scale: たけ upright with 小夜 asleep in her lap; drained version beside
+      ctx.fillStyle = U.mix(C.odo, C.sumi, 0.5); ctx.fillRect(620, 690, 700, 22);
+      CAST.grandma(ctx, 760, 690, 1.25, { pose: 'lap', t: T });
+      CAST.grandma(ctx, 1060, 690, 1.25, { pose: 'lap', t: T, drained: true, ink: C.ginnezu });
+      label(840, 740, 'grandma lap', 'rgba(238,242,234,0.55)', 12);
+      label(1140, 740, 'grandma lap drained:true ink:銀鼠 (haori & obi-age stay)', 'rgba(238,242,234,0.55)', 12);
+      // shoji panel with shadows
+      ctx.fillStyle = C.geppaku; ctx.fillRect(1380, 60, 500, 640);
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      const sh = CAST.AINEZU;
+      CAST.grandma(ctx, 1520, 680, 1.6, { pose: 'lift-haori', lift: 1, silhouette: sh, buffer: true, t: T });
+      CAST.child(ctx, 1640, 690, 1.3, { pose: 'sleep', silhouette: sh, buffer: true, t: T });
+      CAST.grandma(ctx, 1450, 380, 0.9, { pose: 'hold-puppet', silhouette: sh, buffer: true, t: T, stick: 90 });
+      CAST.drawPuppet(ctx, 'moon', 1520, 170, 0.45, { t: T, sticks: false });
+      ctx.strokeStyle = U.rgba(C.sumi, 0.8); ctx.lineWidth = 4;
+      for (let i = 1; i < 3; i++) { ctx.beginPath(); ctx.moveTo(1380 + i * 500 / 3, 60); ctx.lineTo(1380 + i * 500 / 3, 700); ctx.stroke(); }
+      for (let j = 1; j < 6; j++) { ctx.beginPath(); ctx.moveTo(1380, 60 + j * 640 / 6); ctx.lineTo(1880, 60 + j * 640 / 6); ctx.stroke(); }
+      ctx.restore();
+      label(1630, 725, 'shadows on shoji: grandma lift-haori / hold-puppet, child sleep (multiply 藍鼠)', 'rgba(238,242,234,0.55)', 12);
+      // the fox: eyes in the grass, stealing, sitting in the dawn susuki
+      CAST.fox(ctx, 180, 900, 1, { pose: 'eyes', t: T });
+      CAST.fox(ctx, 260, 905, 1, { pose: 'eyes', blink: 0.7, t: T });
+      label(220, 940, 'fox eyes (blink 0 / .7)', 'rgba(238,242,234,0.55)', 12);
+      CAST.fox(ctx, 480, 1010, 1.6, { pose: 'steal', dango: true, silhouette: C.sumi, t: T });
+      CAST.fox(ctx, 700, 1010, 1.6, { pose: 'steal', reach: 0.3, t: T });
+      CAST.fox(ctx, 880, 1010, 1.2, { pose: 'sit', silhouette: C.sumi, lookBack: 1, t: T });
+      label(680, 1040, 'fox steal (silhouette, dango) · steal reach:.3 · sit lookBack:1', 'rgba(238,242,234,0.55)', 12);
+      // old 小夜 at the engawa edge, back view, and たけ walking
+      CAST.oldSayo(ctx, 1080, 1010, 1.2, { pose: 'engawa', view: 'back', look: 0.6, t: T });
+      CAST.oldSayo(ctx, 1230, 1010, 1.2, { pose: 'pour', t: T });
+      CAST.grandma(ctx, 1450, 1010, 1.0, { pose: 'walk', t: T });
+      CAST.child(ctx, 1600, 1010, 1.0, { pose: 'run', t: T });
+      CAST.child(ctx, 1760, 1010, 1.1, { pose: 'kneel-back', look: 0.6, t: T });
+      label(1400, 1040, 'oldSayo engawa back · oldSayo pour · grandma walk · child run · child kneel-back', 'rgba(238,242,234,0.55)', 12);
+    },
+    12() {
+      // hands close-up: 狐の窓 at film size with the moon's true face inside; cupped & ladle from above
+      night();
+      title('sheet 12 · hands: 狐の窓 (inside = CAST.foxWindowRect clip) · cupped with water · ladle · grab', true);
+      const fx = 700, fy = 430, fs = 1.1;
+      const r = CAST.foxWindowRect(fx, fy, fs, { interlace: 1 });
+      ctx.save();
+      ctx.beginPath(); r.path(ctx); ctx.clip();
+      ctx.fillStyle = C.kon; ctx.fillRect(r.cx - r.w, r.cy - r.h, r.w * 2, r.h * 2);
+      B.moon(ctx, r.cx, r.cy + 20, 130, { halo: 0.2, maria: 0 });
+      ctx.restore();
+      CAST.hands(ctx, fx, fy, fs, { pose: 'fox-window', t: T });
+      label(fx, 900, 'hands fox-window ×1.1 (age 1)', 'rgba(238,242,234,0.55)', 12);
+      // basin water, cupped hands with a tiny moon
+      ctx.fillStyle = U.mix(C.ai, C.koiai, 0.4);
+      ctx.beginPath(); ctx.ellipse(1560, 620, 330, 200, 0, 0, Math.PI * 2); ctx.fill();
+      const cu = CAST.hands(ctx, 1500, 700, 1.3, { pose: 'cupped', water: 1, t: T });
+      if (cu) { ctx.fillStyle = C.gofun; ctx.beginPath(); ctx.arc(cu.center[0], cu.center[1], 18, 0, Math.PI * 2); ctx.fill(); }
+      const la = CAST.hands(ctx, 1760, 330, 1.0, { pose: 'ladle', tilt: 0.3, t: T });
+      if (la) { ctx.fillStyle = C.gofun; ctx.beginPath(); ctx.ellipse(la.cup[0], la.cup[1], la.rx * 0.7, la.ry * 0.7, 0, 0, Math.PI * 2); ctx.fill(); }
+      CAST.hands(ctx, 1260, 1010, 0.8, { pose: 'grab', close: 0.4, t: T, silhouette: C.sumi });
+      label(1560, 1050, 'cupped water:1 (+ moon r18 at .center) · ladle tilt:.3 (moon at .cup) · grab silhouette', 'rgba(238,242,234,0.55)', 12);
     },
     focus() {
       const name = q.get('focus');
