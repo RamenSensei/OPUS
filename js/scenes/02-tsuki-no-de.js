@@ -15,11 +15,34 @@
   'use strict';
   const U = TSUKI.U;
 
+  /**
+   * お月見泥棒 (33.0–34.2): the camera leans in on the engawa — 1.0 → 1.9 about
+   * (1040,690) over 31.8–33.0, held while the small arm takes the top dango and
+   * たけ turns her face to the moon (screen left) pretending not to see, then
+   * eased home by 36.6, before the andon (37.0) and the push to the shoji (38).
+   * (A.drawGarden's zoom: the carved layers scaled as one impression, the near
+   * live things — figures, dango, susuki — redrawn under the camera.)
+   */
+  const THIEF = { about: [1040, 690], k: 1.9 };
+  const thiefZoom = (T) => {
+    if (T <= 31.8 || T >= 36.6) return 1;
+    const E = U.ease.inOutSine;
+    return 1 + (THIEF.k - 1) * E(U.seg(T, 31.8, 33.0)) * (1 - E(U.seg(T, 35.2, 36.6)));
+  };
+
   TSUKI.scene('tsuki-no-de', {
+    init(S) {
+      // the stage scratch for the thief's zoom and the push to the shoji, before the first frame needs it
+      const A = TSUKI.SHOTS.A;
+      if (A.warmBuffers) A.warmBuffers(S.k || 1);
+    },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
       const A = TSUKI.SHOTS.A;
-      A.drawGarden(ctx, T);
+      // 序's full-frame caches are done with
+      if (T >= 14 && A.releaseJo) A.releaseJo();
+      const z = thiefZoom(T);
+      A.drawGarden(ctx, T, z > 1.0005 ? { zoom: { k: z, about: THIEF.about } } : undefined);
       // 序's 短冊, 色紙 and 縁 seal: held, then fading with the DOM title (14.4–16.0)
       if (T < 16 && A.titlePanels) {
         const k = A.push(T);

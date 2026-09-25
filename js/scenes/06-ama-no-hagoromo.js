@@ -8,9 +8,10 @@
    122.5 たけ's shadow slips off her haori (the letter writes itself, DOM)
    124–126 she holds it up against the moon: its 波兎 shines through
    126–128.5 she lays it over the sleeping child; the shadows merge
-   132  shadows cast by nothing: a 瑞雲 with seven tennyo and a canopied
-        carriage pours out of the window and slides down panels 2–3
-        (far from the paper: soft, α .7 → .25)
+   132  shadows cast by nothing: a 霊芝雲 pours out of the window and slides
+        down panels 2–3 carrying a canopied carriage (CAST's 鳳輦, its bearers
+        on the cloud), seven tennyo flying round it — two blocks: the cloud
+        soft and pale (α .5), the carriage and tennyo crisp (α .75); ×⅓ at 140
    136–139.8 the ribbon of light (天の羽衣) unfurls down the central stile
    140  CULMINATION: the moon centred in the window. Her shadow peels off
         the paper (skew, penumbra), stands, straightens (老いをせず), turns
@@ -22,8 +23,9 @@
         the moon again — forgotten
    148–148.22 she slides up past the top rail; 148.2–148.45 small and dark
         against the moon she is absorbed (kira 148.4); the 墨 叢雲 closes
-        over the window (148.6–152): the whole room goes dark
-   152.4 the cloud passes; only the child's shadow under the haori's
+        over the window (148.3–148.65): the whole room dims with it
+   151.95–152.45 the cloud passes, the room relit in step as the disc is
+        uncovered; only the child's shadow under the haori's
    155  cut, in silence, to A′: たけ upright against the post, eyes closed,
         小夜 asleep in her lap under the haori. 155.4–157.8 her colour
         drains downward to 胡粉/銀鼠 (a feathered front with kira on her)
@@ -36,7 +38,8 @@
    and the climbing shadow (ONE rig: seated-old → standing-young → climbing,
    equal parts, blended — so the peel is continuous), the haori as its own
    T-shaped cut piece, the celestial procession, the ribbon, the 叢雲, the
-   波兎 silk tile, the A′ offerings and heko-obi bow. CAST: 小夜 asleep
+   波兎 silk tile, the A′ offerings and heko-obi bow. CAST: the carriage
+   ('palanquin' puppet), 小夜 asleep
    ('sleep' silhouette) on the paper, the A′ pair (grandma 'lap').
    ========================================================================== */
 (function (TSUKI) {
@@ -495,109 +498,124 @@
   /* shadows cast by nothing: the 来迎 procession                         */
   /* ================================================================== */
   /**
-   * One flying tennyo, local: head leading along +x, ~100 px from the crown to the
-   * trailing robe; the knees bent back, one arm reaching ahead scattering flowers, the
-   * other raising a lotus; the 天衣 loops over her shoulders and streams back in S-curves.
+   * One flying tennyo (飛天), local: flying toward +x, ≈105 px from the lotus to the
+   * upturned feet. The chest lifted and the head up (a small profile with the 宝髻),
+   * one arm ahead with a flower tray (華籠), the other raised behind with a lotus; the
+   * skirt flaring at the knees with the lower legs bent up behind — the apsara's
+   * signature — and the 天衣: two long ribbons, each a single arc (one looping over
+   * her head, one under her body); only their far ends sway.
    */
   function tennyoPaths(add, T, i) {
-    const ph = T * 1.2 + i * 1.7;
-    const bob = Math.sin(ph) * 1.2;
-    const Y = (y) => y + bob;
-    // head (with the jewelled double topknot, 宝髻) and the neck
-    const hd = new Path2D(); hd.ellipse(46, Y(-2), 8.2, 7.6, 0.2, 0, U.TAU); add(hd);
-    for (const [x, y, r] of [[49, -11, 4.2], [43, -13, 3.6]]) { const k = new Path2D(); k.ellipse(x, Y(y), r, r * 1.15, 0.3, 0, U.TAU); add(k); }
-    add(tube([[40, Y(3)], [33, Y(6)]], 8, 9));
-    // torso, then the robe flowing back over the bent legs; three pointed tails at the hem
-    add(splinePath([[36, Y(-2)], [22, Y(-5)], [8, Y(-4)], [-8, Y(-6)], [-26, Y(-14)], [-44, Y(-22) + Math.sin(ph + 1) * 3, 1],
-      [-36, Y(-10)], [-58, Y(-8) + Math.sin(ph + 1.6) * 3, 1], [-42, Y(1)], [-60, Y(8) + Math.sin(ph + 2.2) * 3, 1],
-      [-30, Y(8)], [-6, Y(12)], [14, Y(13)], [30, Y(10)]]));
-    // the feet peeping from the hem, bent back
-    add(tube([[-30, Y(-12)], [-40, Y(-26)], [-36, Y(-32)]], 6, 4));
-    // arms: ahead and a little down, scattering flowers; the other bent up with a lotus
-    add(tube([[32, Y(4)], [48, Y(12)], [64, Y(14)]], 6, 4.4));
-    for (const [x, y] of [[74, 20], [82, 12], [79, 28]]) { const f = new Path2D(); f.ellipse(x, Y(y), 2.4, 2.1, 0, 0, U.TAU); add(f); }
-    add(tube([[26, Y(-1)], [20, Y(-14)], [30, Y(-23)]], 5.6, 4.4));
-    add(splinePath([[26, Y(-24)], [30, Y(-34)], [35, Y(-27)], [38, Y(-33)], [40, Y(-23)], [33, Y(-20)]]));
-    // the 天衣: a loop arching over the head from shoulder to shoulder, its two ends streaming back
-    const loop = [];
-    for (let j = 0; j <= 10; j++) { const a = Math.PI * (j / 10); loop.push([36 - Math.cos(a) * 12, Y(-4 - Math.sin(a) * 24)]); }
-    add(tube(loop, 4.6, 4.6));
-    for (const [k, y0, L, amp] of [[0, -4, 190, 13], [1, 8, 150, 11]]) {
-      const pts = [];
-      for (let j = 0; j <= 16; j++) {
-        const q = j / 16;
-        const x = (k ? 30 : 24) - q * L;
-        const y = y0 + (k ? 1 : -1) * 14 * Math.sin(Math.PI * Math.min(1, q * 2.2)) + Math.sin(q * 5.5 - ph * 1.1 + k * 2) * amp * Math.min(1, q * 1.6);
-        pts.push([x, Y(y)]);
-      }
-      add(tube(pts, 5.8, 3.6));
-    }
-  }
-  /** the 瑞雲 with its canopy and carriage; local, travelling toward +x (the head), tail streaming back */
-  function cloudPaths(add, T) {
-    const puff = (i) => 1 + 0.03 * Math.sin(T * 0.9 + i * 1.7);
-    // the cushion: big curls on top, flat scalloped underside
-    const lobes = [[-78, -4, 22], [-44, -16, 30], [-4, -22, 34], [38, -16, 30], [72, -4, 22], [96, 6, 14], [-96, 6, 14]];
-    lobes.forEach(([x, y, r], i) => { const p = new Path2D(); p.ellipse(x, y, r * puff(i) * 1.15, r * 0.82 * puff(i + 2), 0, 0, U.TAU); add(p); });
-    add(splinePath([[-104, 8], [-70, 20, 1], [-52, 14], [-34, 22, 1], [-14, 15], [6, 23, 1], [26, 15], [46, 22, 1], [66, 14], [88, 20, 1], [108, 8], [60, -2], [-60, -2]]));
-    // curls (scroll ends) at the cloud's head and back
-    for (const [x, y, s] of [[112, 0, 1], [-114, 2, -1]]) {
-      const pts = [];
-      for (let j = 0; j <= 10; j++) { const a = j / 10 * U.TAU * 0.8; pts.push([x + s * Math.sin(a) * (12 - j * 0.6), y - (1 - Math.cos(a)) * (10 - j * 0.5)]); }
-      add(tube(pts, 9, 4));
-    }
-    // the canopy (羅蓋) on its pole, tassels swaying; the carriage beneath it
-    const cx = 2;
-    add(splinePath([[cx - 26, -30, 1], [cx + 26, -30, 1], [cx + 22, -66, 1], [cx - 22, -66, 1]]));        // carriage body
-    add(splinePath([[cx - 32, -64, 1], [cx + 32, -64, 1], [cx + 26, -72, 1], [cx - 26, -72, 1]]));        // its roof
-    add(tube([[cx, -72], [cx, -128]], 3.4, 3));
-    add(splinePath([[cx - 50, -118], [cx - 24, -138], [cx, -146], [cx + 24, -138], [cx + 50, -118, 1], [cx + 30, -124], [cx, -132], [cx - 30, -124, 1]]));
-    const fin = new Path2D(); fin.ellipse(cx, -151, 4.5, 5.5, 0, 0, U.TAU); add(fin);
-    for (let j = -2; j <= 2; j++) {
-      const sx = cx + j * 22, sw = Math.sin(T * 1.8 + j) * 2.5;
-      add(tube([[sx, -121 + Math.abs(j) * 3], [sx + sw * 0.5, -104], [sx + sw, -90]], 2, 1.6));
-      const b2 = new Path2D(); b2.ellipse(sx + sw, -87, 2.6, 3.4, 0, 0, U.TAU); add(b2);
-    }
+    const ph = T * 1.1 + i * 1.7;
+    const Y = (y) => y + Math.sin(ph) * 1.0;
+    const el = (x, y, rx, ry, a) => { const p = new Path2D(); p.ellipse(x, Y(y), rx, ry, a || 0, 0, U.TAU); add(p); };
+    // head (a small profile: brow, nose, chin toward +x), the 宝髻 in two loops, the neck
+    add(splinePath([[40, Y(-17)], [48, Y(-18)], [53, Y(-13)], [54, Y(-10)], [57, Y(-8), 1], [54, Y(-6)], [54, Y(-3)], [49, Y(-1)], [42, Y(-3)], [38, Y(-10)]]));
+    el(41, -22, 4.4, 4.0, -0.4); el(34, -20, 4.0, 3.6, -0.6);
+    add(tube([[43, Y(-3)], [37, Y(2)]], 6.5, 8));
+    // torso: the chest lifted, the waist low behind it
+    add(splinePath([[42, Y(1)], [30, Y(-1)], [16, Y(3)], [4, Y(6)], [2, Y(14)], [18, Y(15)], [34, Y(11)]]));
+    // the skirt: full at the hips, flaring round the knees into two trailing points
+    add(splinePath([[8, Y(4)], [-14, Y(2)], [-34, Y(-2)], [-58, Y(-6) + Math.sin(ph + 1) * 2.5, 1], [-40, Y(6)],
+      [-60, Y(14) + Math.sin(ph + 1.6) * 2.5, 1], [-34, Y(16)], [-12, Y(17)], [6, Y(16)]]));
+    // the lower legs bent up behind the knees, the soles turned up
+    add(tube([[-30, Y(0)], [-40, Y(-12)], [-44, Y(-22)]], 7, 5));
+    add(tube([[-44, Y(-22)], [-51, Y(-24)]], 4.6, 3.6));
+    // the arm ahead with the flower tray, two petals falling from it
+    add(tube([[34, Y(4)], [47, Y(10)], [60, Y(8)]], 5.4, 4.2));
+    el(66, 5, 8, 2.8, -0.15);
+    el(73, 14 + Math.sin(ph * 0.7) * 2, 2.2, 1.7, 0.4); el(64, 20 + Math.sin(ph * 0.7 + 1) * 2, 2, 1.6, -0.3);
+    // the arm raised behind, a lotus on its stem
+    add(tube([[28, Y(0)], [18, Y(-12)], [22, Y(-26)]], 5.2, 4.2));
+    add(tube([[22, Y(-26)], [23, Y(-36)]], 2, 1.6));
+    add(splinePath([[23, Y(-35)], [17, Y(-41), 1], [21, Y(-40)], [23, Y(-47), 1], [25, Y(-40)], [29, Y(-41), 1]]));
+    // 天衣: two long single arcs, tapering; only the far ends sway
+    const sw = (k) => Math.sin(ph * 1.3 + k) * 5;
+    add(tube(B.qpts(38, Y(0), 30, Y(-58), -112, Y(-30) + sw(0), 20), 4.6, 1.4));
+    add(tube(B.qpts(12, Y(14), -24, Y(40), -116, Y(26) + sw(2), 20), 4.6, 1.4));
   }
   /**
-   * The whole procession at T into a layer (stage coords). It pours out of the
-   * window: the cloud's head from just under the window (132) down to (1060,560)
-   * (139); the tennyo fly ahead and around it, heads leading down the path.
+   * The 瑞雲 (霊芝雲), local, travelling toward +x (its head): a flat-topped cushion of
+   * puffs the carriage rides on, its front and back ends rolling into curls (light cut
+   * into each roll so the curl reads through the penumbra).
    */
-  const DESCENT = Math.atan2(290, 170);          // the path's angle (down-right)
-  const GLIDE = 0.46;                             // each tennyo glides down more gently than the cloud falls
-  const TENNYO = [
-    // [along, across, scale, extra rotation, delay] relative to the cloud head, in path coords
-    [175, -30, 1.02, 0.1, 0], [125, 60, 0.94, -0.12, 0.25], [70, -105, 0.9, 0.18, 0.4], [30, 118, 0.96, -0.05, 0.1],
-    [-45, -120, 0.86, 0.25, 0.55], [-60, 104, 0.9, -0.2, 0.7], [-150, -40, 0.82, 0.12, 0.85],
-  ];
-  function paintProcession(L, T) {
-    const u = E.outSine(clamp01((T - 132) / 7));
-    const head = [U.lerp(930, 1060, u), U.lerp(236, 560, u)];
-    const dirx = Math.cos(DESCENT), diry = Math.sin(DESCENT);
-    const Mc = new DOMMatrix().translate(head[0], head[1]).rotate(10).scale(1.05, 1.05);
-    cloudPaths((p) => { const q = new Path2D(); q.addPath(p, Mc); L.fill(q); }, T);
-    // the cloud's tail streams back up to the window it poured out of, thinning to a wisp
-    {
-      const a0 = Mc.transformPoint(new DOMPoint(-104, 2)), a = [a0.x, a0.y], z = [G.window.x - 6, G.window.y + G.window.r + 4];
-      const d = unit(a, z), nm = [-d[1], d[0]], len = Math.hypot(z[0] - a[0], z[1] - a[1]);
-      const pts = [];
-      for (let j = 0; j <= 24; j++) {
-        const q = j / 24;
-        const bow = Math.sin(Math.PI * q) * 34 + Math.sin(q * 7 + T * 0.7) * 7 * q;
-        pts.push([a[0] + d[0] * len * q + nm[0] * bow, a[1] + d[1] * len * q + nm[1] * bow]);
+  function paintCloud(L, T) {
+    const puff = (i) => 1 + 0.03 * Math.sin(T * 0.8 + i * 1.7);
+    // the flat top
+    L.fill(splinePath([[-176, 4], [-150, -10], [-80, -15], [0, -16], [80, -15], [150, -10], [182, 2], [170, 24], [-164, 24]]));
+    // puffs under it, scalloping the underside
+    const P = [[-150, 16, 22], [-112, 20, 30], [-66, 24, 34], [-16, 26, 38], [36, 24, 36], [86, 22, 32], [130, 18, 26]];
+    P.forEach(([x, y, r], i) => { const q = new Path2D(); q.ellipse(x, y, r * 1.1 * puff(i), r * 0.8 * puff(i + 3), 0, 0, U.TAU); L.fill(q); });
+    // the curls (霊芝): at the head a big roll hooked forward and down, at the back a smaller one
+    const CURLS = [[176, 20, 30, 1], [-178, 18, 22, -1], [60, 44, 20, 1]];
+    CURLS.forEach(([x, y, r, f], i) => { const q = new Path2D(); q.ellipse(x, y, r * puff(i + 5), r * 0.92 * puff(i + 6), 0, 0, U.TAU); L.fill(q); });
+    L.save();
+    L.globalCompositeOperation = 'destination-out';
+    L.lineCap = 'round';
+    CURLS.forEach(([x, y, r, f]) => {
+      // a spiral of light: from the roll's eye out to its lower edge
+      L.lineWidth = Math.max(4.5, r * 0.26);
+      L.beginPath();
+      for (let j = 0; j <= 16; j++) {
+        const q = j / 16, an = f > 0 ? Math.PI * (1.5 - 1.6 * q) : Math.PI * (-0.5 + 1.6 * q), rr = r * (0.18 + 0.52 * q);
+        const px = x + Math.cos(an) * rr * f * (f > 0 ? 1 : -1), py = y + Math.sin(an) * rr;
+        if (j) L.lineTo(px, py); else L.moveTo(px, py);
       }
-      L.fill(tube(pts, 22, 2.2));
+      L.stroke();
+    });
+    L.restore();
+  }
+  /** the 天人 escort round the carriage: [dx, dy] from the cloud's head (stage px), rotation, bob phase */
+  const TENNYO = [
+    [205, -70, 0.05], [175, 95, -0.08], [55, -285, 0.12], [-120, -205, 0.08],
+    [-245, -60, 0.14], [-205, 105, -0.05], [-360, -175, 0.18],
+  ];
+  const GLIDE = 0.12;                              // they fly almost level, a little down, as the cloud falls
+  const TEN_S = 1.25;                              // ≈130 px from the lotus to the feet
+  const CLOUD_ROT = U.deg(10);
+  /** the procession's head (the cloud's front) at T: from just under the window (132) to (1060,560) (139) */
+  function processionHead(T) {
+    const u = E.outSine(clamp01((T - 132) / 7));
+    return { u, x: U.lerp(930, 1060, u), y: U.lerp(236, 560, u) };
+  }
+  /**
+   * Pass 1, far from the paper (soft): the 霊芝雲 and its tail streaming back up to the
+   * window it poured out of. Stage coords.
+   */
+  function paintProcessionCloud(L, T) {
+    const hd = processionHead(T);
+    L.save();
+    L.translate(hd.x, hd.y); L.rotate(CLOUD_ROT);
+    paintCloud(L, T);
+    L.restore();
+    const a0 = new DOMMatrix().translate(hd.x, hd.y).rotate(10).transformPoint(new DOMPoint(-150, 12));
+    const a = [a0.x, a0.y], z = [G.window.x - 6, G.window.y + G.window.r + 4];
+    const d = unit(a, z), nm = [-d[1], d[0]], len = Math.hypot(z[0] - a[0], z[1] - a[1]);
+    const pts = [];
+    for (let j = 0; j <= 24; j++) {
+      const q = j / 24;
+      const bow = Math.sin(Math.PI * q) * 38 + Math.sin(Math.PI * 2 * q + T * 0.5) * 8 * q;
+      pts.push([a[0] + d[0] * len * q + nm[0] * bow, a[1] + d[1] * len * q + nm[1] * bow]);
     }
-    TENNYO.forEach(([a, c, s, r0, dl], i) => {
-      // each drifts a little on its own (they settle round the cloud as it slows)
-      const bob = Math.sin(T * 0.8 + i * 1.3) * 6;
-      const lag = (1 - u) * 40 * dl;
-      const px = head[0] + dirx * (a - lag) - diry * (c + bob), py = head[1] + diry * (a - lag) + dirx * (c + bob);
-      const M = new DOMMatrix().translate(px, py).rotate((GLIDE + r0) * 180 / Math.PI).scale(s * 1.12, s * 1.12 * (i % 2 ? -1 : 1));
+    L.fill(tube(pts, 30, 3));
+  }
+  /**
+   * Pass 2, crisp: the canopied carriage (CAST's 鳳輦, its bearers standing on the cloud)
+   * and the seven tennyo flying round it. Stage coords.
+   */
+  function paintProcessionFigures(L, T) {
+    const hd = processionHead(T);
+    const Mc = new DOMMatrix().translate(hd.x, hd.y).rotate(10);
+    const pal = CAST.puppet('palanquin', null, 0, 0, 0.85, { t: T, phase: 0.2, sticks: false });
+    if (pal) { const q = new Path2D(); q.addPath(pal.path, Mc.translate(10, -12)); L.fill(q, pal.rule); }
+    TENNYO.forEach(([dx, dy, r0], i) => {
+      // each drifts a little on its own, and trails the cloud a little while it still falls
+      const lag = (1 - hd.u) * 30 * (0.4 + 0.6 * U.hash(i + 3));
+      const px = hd.x + dx - lag * 0.5 + Math.sin(T * 0.7 + i * 1.3) * 4;
+      const py = hd.y + dy - lag + Math.sin(T * 0.8 + i * 2.1) * 5;
+      const M = new DOMMatrix().translate(px, py).rotate((GLIDE + r0) * 180 / Math.PI).scale(TEN_S, TEN_S);
       tennyoPaths((p) => { const q = new Path2D(); q.addPath(p, M); L.fill(q); }, T, i);
     });
-    return head;
   }
 
   /* ================================================================== */
@@ -723,18 +741,21 @@
   /* ================================================================== */
   function cloudX(T, layer) {
     // leading-edge keyframes [t, x]: the far and mid streaks pass first, then the near 墨
-    // bank slams the window shut (148.6) and holds it until 152.0, gone by 152.4
+    // bank closes over the window (148.3–148.65; it reaches the disc's centre only after the
+    // kira, ≈148.47), drifts on while it hides the moon, and its trailing lobes (≈470 px behind
+    // the lead) uncover the disc at an even pace 151.95–152.45, in step with the room's relight
+    // (drawB); by 152.5 the last lobe has left the window
     const K = [
       { w: 360, keys: [[148.15, 840], [148.5, 1000], [151.9, 1160], [152.6, 1420]] },
       { w: 380, keys: [[148.2, 840], [148.55, 1010], [151.9, 1170], [152.7, 1440]] },
-      { w: 430, keys: [[148.4, 846], [148.6, 1078], [152.0, 1150], [152.4, 1500]] },
+      { w: 430, keys: [[148.3, 846], [148.65, 1078], [151.95, 1431], [152.5, 1580]], eases: [E.inOutSine, (x) => Math.pow(x, 2.5), E.linear] },
     ][layer];
     const k = K.keys;
     if (T < k[0][0] || T > k[k.length - 1][0]) return { on: false, cx: 0, w: K.w };
     let i = 0;
     while (i < k.length - 2 && T > k[i + 1][0]) i++;
     const u = (T - k[i][0]) / (k[i + 1][0] - k[i][0]);
-    const ease = i === 1 ? E.linear : i === 0 ? E.outCubic : E.inCubic;
+    const ease = K.eases ? K.eases[i] : i === 1 ? E.linear : i === 0 ? E.outCubic : E.inCubic;
     const lead = U.lerp(k[i][1], k[i + 1][1], ease(U.clamp(u)));
     return { on: true, cx: lead - K.w / 2, w: K.w, lead };
   }
@@ -770,19 +791,6 @@
       pts.push([x, cy + h * 0.5 + sc, i % 2 ? 0 : 1]);
     }
     return splinePath(pts);
-  }
-  /** fraction of the moon disc covered by the near cloud (32 samples) */
-  function coverage(T) {
-    const m = MOON.B(T);
-    const nc = cloudX(T, 2);
-    if (!nc.on) return 0;
-    let hit = 0;
-    for (let i = 0; i < 32; i++) {
-      const a = (i / 32) * U.TAU * 3.1, rr = m.r * Math.sqrt((i + 0.5) / 32);
-      const px = m.x + Math.cos(a) * rr;
-      if (Math.abs(px - nc.cx) < nc.w / 2 - 24) hit++;
-    }
-    return hit / 32;
   }
   function drawClouds(c, T, part) {
     if (T < 148.1 || T > 152.75) return;
@@ -906,21 +914,30 @@
       merge = T < 141.35;
     }
     // ---------- far from the paper: the procession of the celestials (132–148.5) ----------
+    // two blocks: the 霊芝雲 soft and pale (藍鼠 α .5, ≈3 px penumbra), the carriage and the
+    // tennyo crisp and darker (α .75); both fade to a third from 139–140 and hold
     if (T >= 132 && T < 148.9) {
-      const a = 0.72 * U.seg(T, 132, 132.8) * (1 - 0.66 * io(T, 139, 140)) * (1 - U.seg(T, 147.9, 148.8));
-      const u = E.outSine(clamp01((T - 132) / 7));
-      const hx = U.lerp(930, 1060, u), hy = U.lerp(236, 560, u);
-      const reg = [Math.max(G.panels[0][0], hx - 420), G.top, Math.min(G.panels[3][1], hx + 420), Math.min(G.bottom, hy + 380)];
-      const far = SB.softLayer(c, 'far', reg, 0.5);
-      paintProcession(far, T);
-      // where she climbs through them, her own shadow is the shadow (they never compound)
-      if (Lc) {
+      const f = U.seg(T, 132, 132.8) * (1 - 0.66 * io(T, 139, 140)) * (1 - U.seg(T, 147.9, 148.8));
+      const hd = processionHead(T);
+      const cut = (lay) => {
+        // where she climbs through them, her own shadow is the shadow (they never compound)
+        if (!Lc) return;
         const RC = Lc.canvas.__region;
-        far.save(); far.globalCompositeOperation = 'destination-out';
-        far.drawImage(Lc.canvas, 0, 0, RC.w, RC.h, RC.x0, RC.y0, RC.w / RC.s, RC.h / RC.s);
-        far.restore();
-      }
-      SB.softPrint(c, T, 'far', { alpha: a });
+        lay.save(); lay.globalCompositeOperation = 'destination-out';
+        lay.drawImage(Lc.canvas, 0, 0, RC.w, RC.h, RC.x0, RC.y0, RC.w / RC.s, RC.h / RC.s);
+        lay.restore();
+      };
+      const creg = [Math.max(G.panels[0][0], Math.min(hd.x - 210, G.window.x - 60)), G.top,
+        Math.min(G.panels[3][1], hd.x + 230), Math.min(G.bottom, hd.y + 110)];
+      const far = SB.softLayer(c, 'far', creg, 0.3);
+      paintProcessionCloud(far, T);
+      cut(far);
+      SB.softPrint(c, T, 'far', { alpha: 0.5 * f });
+      const freg = [Math.max(G.panels[0][0], hd.x - 520), G.top, Math.min(G.panels[3][1], hd.x + 320), Math.min(G.bottom, hd.y + 190)];
+      const cel = SB.sharpLayer(c, 'celest', freg);
+      paintProcessionFigures(cel, T);
+      cut(cel);
+      SB.softPrint(c, T, 'celest', { alpha: 0.75 * f });
     }
     // ---------- against the paper: offerings, たけ with the haori, 小夜 ----------
     SB.sharpFill(c, T, [[offeringsPath(T), 'nonzero']]);
@@ -1052,8 +1069,9 @@
   }
 
   function drawB(ctx, T) {
-    const cov = coverage(T);
-    const dark = Math.max(cov, U.env(T, 148.5, 148.65, 151.95, 152.4) * 0.97);
+    // the room under the 叢雲: it dims as the streaks and the near bank close (148.25–148.65)
+    // and relights as the bank's trailing lobes uncover the disc (151.95–152.45; cloudX)
+    const dark = 0.97 * U.env(T, 148.25, 148.65, 151.95, 152.45);
     const st = climberState(T);
     const cfg = st && !st.inWin ? climberFigure(st) : null;
     if (cfg) {

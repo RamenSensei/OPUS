@@ -783,20 +783,34 @@
       // where the moon rises (x 0–760) the sky's bokashi dies into the bare
       // paper at the horizon (y 600 → 740), as Hiroshige lets it: the rising
       // moon's 山吹 then prints on paper, not over blue
-      c.save();
-      c.globalCompositeOperation = 'destination-out';
-      for (let x = -4; x < 860; x += 4) {
-        const k = 1 - U.smoothstep(690, 840, x);
-        if (k <= 0) break;
-        const top = 596 - 10 * (1 - k);
-        const g2 = c.createLinearGradient(0, top, 0, 748);
-        g2.addColorStop(0, 'rgba(0,0,0,0)');
-        g2.addColorStop(0.45, `rgba(0,0,0,${0.55 * k})`);
-        g2.addColorStop(1, `rgba(0,0,0,${0.84 * k})`);
-        c.fillStyle = g2;
-        c.fillRect(x, top, 4.5, 250);
+      // One smooth mask, computed per device pixel (build time only): the fade
+      // starts at y 596 (sagging 10 px higher where it thins out toward x 840),
+      // reaches 0.55 at 45 % of the way to y 748 and 0.84 below it. (Stepped
+      // 4 px columns overlapped by half a pixel and printed a comb here.)
+      {
+        const q = c.getTransform().a;
+        const Y0 = Math.floor(586 * q), mw = Math.ceil(860 * q), mh = Math.ceil(848 * q) - Y0;
+        const mcv = B.canvas(mw, mh), mc = mcv.getContext('2d');
+        const img = mc.createImageData(mw, mh), d = img.data;
+        const g = (u) => (u <= 0 ? 0 : u < 0.45 ? 0.55 * (u / 0.45) : u < 1 ? 0.55 + 0.29 * ((u - 0.45) / 0.55) : 0.84);
+        for (let px = 0; px < mw; px++) {
+          const x = (px + 0.5) / q;
+          const k = 1 - U.smoothstep(690, 840, x);
+          if (k <= 0) continue;
+          const top = 596 - 10 * (1 - k);
+          for (let py = 0; py < mh; py++) {
+            const y = (Y0 + py + 0.5) / q;
+            if (y >= top + 250) continue;
+            d[(py * mw + px) * 4 + 3] = Math.round(255 * k * g((y - top) / (748 - top)));
+          }
+        }
+        mc.putImageData(img, 0, 0);
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.globalCompositeOperation = 'destination-out';
+        c.drawImage(mcv, 0, Y0);
+        c.restore();
       }
-      c.restore();
     });
     pen('P6i', (c) => {
       const col = INK.ichi;
@@ -1967,7 +1981,11 @@
     }
     if (a > 0.002) {
       const late = T >= 160;
-      MOON.draw(ctx, m.x, m.y, m.r, T, { alpha: a, halo: late ? 0.5 : 0.35 * (1 - gk), haloR: m.r * 1.9 });
+      // 四: the printed rabbit keeps pounding over the garden until the cut to B (118),
+      // long after the ぺったん has faded out of hearing (≈112)
+      const SD = TSUKI.SHOTS.D;
+      const pestle = T >= 106 && T < 118 && SD && SD.pestle ? SD.pestle(T) : 0;
+      MOON.draw(ctx, m.x, m.y, m.r, T, { alpha: a, halo: late ? 0.5 : 0.35 * (1 - gk), haloR: m.r * 1.9, pestle });
     }
     ctx.restore();
     return m;
@@ -2021,12 +2039,20 @@
     layer(ctx, T, 'sky', opts);
   };
   /** 序 9.0–9.6: the ichimonji block is inked across the top — a feathered, brushed front, not a clip */
+  // the band lives in the top 132 px: the scratch is the top fifth of the frame only
   let wipeBuf = null;
+  function wipeBufFor(cw, ch) {
+    const bh = Math.ceil(ch * 0.2);
+    if (!wipeBuf || wipeBuf.width !== cw || wipeBuf.height !== bh) wipeBuf = B.canvas(cw, bh);
+    return wipeBuf;
+  }
+  /** pre-allocate / let go of 序's ichimonji scratch (01-jo-surizome's init / A.releaseJo) */
+  A.warmWipe = (cw, ch) => { try { wipeBufFor(cw, ch); } catch (e) { /* only an optimisation */ } };
+  A.releaseWipe = () => { if (wipeBuf) { wipeBuf.width = 0; wipeBuf.height = 0; wipeBuf = null; } };
   function ichimonjiWipe(ctx, T, st) {
     PRINT.drawLayer(ctx, 'A', 'sky', T, { state: st, only: ['P6'] });
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
-    if (!wipeBuf || wipeBuf.width !== cw || wipeBuf.height !== ch) wipeBuf = B.canvas(cw, ch);
-    const b = wipeBuf.getContext('2d');
+    const b = wipeBufFor(cw, ch).getContext('2d');
     b.setTransform(1, 0, 0, 1, 0, 0);
     b.globalCompositeOperation = 'source-over';
     b.globalAlpha = 1;
@@ -2664,36 +2690,8 @@
    * field → pond → water live → near susuki (behind figures) → offerings → figures →
    * near susuki (front) → sōzu tube → 萩 → florets / glints
    */
-  A.drawGarden = (ctx, T, opts = {}) => {
-    const o = opts;
-    const still = !!o.still;
-    ctx.save();
-    ctx.imageSmoothingQuality = 'low';    // plates are cached 1:1; only the push / crops resample them
-    if (o.camera !== false) {
-      const k = pushAt(T);
-      if (k !== 1) {
-        // the push toward the shoji (38–40): print the frame 1:1 (cheap, unresampled
-        // plates), then scale the finished impression once
-        const m = ctx.getTransform(), kk = ctx.canvas.width / W;
-        if (Math.abs(m.a - kk) < 1e-3 && Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && Math.abs(m.e) < 1e-3 && Math.abs(m.f) < 1e-3) {
-          const cw = ctx.canvas.width, ch = ctx.canvas.height;
-          if (!pushBuf || pushBuf.width !== cw || pushBuf.height !== ch) pushBuf = B.canvas(cw, ch);
-          const pc = pushBuf.getContext('2d');
-          pc.setTransform(kk, 0, 0, kk, 0, 0);
-          pc.globalAlpha = 1;
-          pc.globalCompositeOperation = 'source-over';
-          pc.fillStyle = C.kinari;
-          pc.fillRect(0, 0, W, H);
-          A.drawGarden(pc, T, Object.assign({}, o, { camera: false }));
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'low';
-          ctx.drawImage(pushBuf, 1180 - 1180 * k, 630 - 630 * k, W * k, H * k);
-          ctx.restore();
-          return;
-        }
-        ctx.translate(1180, 630); ctx.scale(k, k); ctx.translate(-1180, -630);
-      }
-    }
+  /** the carved layers and what lives inside them: sky … banks (the part a camera may take as one impression) */
+  function gardenBack(ctx, T, o) {
     A.drawSky(ctx, T, o);
     if (o.moon !== false) A.drawMoon(ctx, T, { alpha: o.moonAlpha, glow: o.glow });
     A.drawFar(ctx, T, o);
@@ -2706,6 +2704,10 @@
     A.drawPondLayer(ctx, T, o);
     A.drawPond(ctx, T, o);
     A.drawBanks(ctx, T, o);
+  }
+  /** the near things, drawn live: susuki around the figures, the offerings, the figures, sōzu, 萩 */
+  function gardenFront(ctx, T, o) {
+    const still = !!o.still;
     const st = o.figures === false ? { hidden: true } : A.sayo(T, o);
     const depth = st.hidden ? 2000 : st.y;
     if (still) PRINT.drawLayer(ctx, 'A', 'still', T, o.state ? { state: o.state } : {});
@@ -2720,6 +2722,68 @@
     }
     A.drawFlorets(ctx, T);
     A.drawGlints(ctx, T);
+  }
+  /** a full-frame scratch the size of the stage (the push and the zoom print into it); A.warmBuffers pre-allocates it */
+  function stageBuf(cw, ch) {
+    if (!pushBuf || pushBuf.width !== cw || pushBuf.height !== ch) pushBuf = B.canvas(cw, ch);
+    const pc = pushBuf.getContext('2d');
+    pc.setTransform(cw / W, 0, 0, cw / W, 0, 0);
+    pc.globalAlpha = 1;
+    pc.globalCompositeOperation = 'source-over';
+    pc.fillStyle = C.kinari;
+    pc.fillRect(0, 0, W, H);
+    return pc;
+  }
+  A.warmBuffers = (k) => { try { stageBuf(Math.round(W * k), Math.round(H * k)); } catch (e) { /* only an optimisation */ } };
+  /** let the stage scratch go (e.g. once 一 is over; it is rebuilt on demand) */
+  A.releaseBuffers = () => { if (pushBuf) { pushBuf.width = 0; pushBuf.height = 0; pushBuf = null; } };
+  const isStageUnit = (ctx) => {
+    const m = ctx.getTransform(), kk = ctx.canvas.width / W;
+    return Math.abs(m.a - kk) < 1e-3 && Math.abs(m.d - kk) < 1e-3 && Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6 && Math.abs(m.e) < 1e-3 && Math.abs(m.f) < 1e-3;
+  };
+
+  A.drawGarden = (ctx, T, opts = {}) => {
+    const o = opts;
+    if (pushBuf && T >= 41.5) A.releaseBuffers();   // 一's push and zoom are over (a seek back rebuilds it)
+    ctx.save();
+    ctx.imageSmoothingQuality = 'low';    // plates are cached 1:1; only the push / crops resample them
+    if (o.camera !== false) {
+      const k = pushAt(T);
+      if (k !== 1) {
+        // the push toward the shoji (38–40): print the frame 1:1 (cheap, unresampled
+        // plates), then scale the finished impression once
+        if (isStageUnit(ctx)) {
+          const pc = stageBuf(ctx.canvas.width, ctx.canvas.height);
+          A.drawGarden(pc, T, Object.assign({}, o, { camera: false }));
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'low';
+          ctx.drawImage(pushBuf, 1180 - 1180 * k, 630 - 630 * k, W * k, H * k);
+          ctx.restore();
+          return;
+        }
+        ctx.translate(1180, 630); ctx.scale(k, k); ctx.translate(-1180, -630);
+      }
+      // a closer camera (opts.zoom = {k, about}): the carved layers are printed 1:1 and
+      // their impression scaled once; the near, live things are redrawn under the
+      // camera, so the figures and the dango stay sharp
+      const z = o.zoom;
+      if (z && z.k > 1.0005 && isStageUnit(ctx)) {
+        const [ax, ay] = z.about;
+        const pc = stageBuf(ctx.canvas.width, ctx.canvas.height);
+        pc.save();
+        pc.imageSmoothingQuality = 'low';
+        gardenBack(pc, T, o);
+        pc.restore();
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(pushBuf, ax - ax * z.k, ay - ay * z.k, W * z.k, H * z.k);
+        ctx.translate(ax, ay); ctx.scale(z.k, z.k); ctx.translate(-ax, -ay);
+        gardenFront(ctx, T, o);
+        ctx.restore();
+        return;
+      }
+    }
+    gardenBack(ctx, T, o);
+    gardenFront(ctx, T, o);
     ctx.restore();
   };
 

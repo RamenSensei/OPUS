@@ -12,9 +12,20 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const sp = JSON.parse(fs.readFileSync(path.join(ROOT, 'design/screenplay.json'), 'utf8'));
 
+// Lasting per-cue additions that the screenplay does not carry (yet), keyed
+// "segment-id@t". sub_ink: 'dark' sets the Chinese subtitle in sumi where its
+// band (y 960–1040) is pale paper: the 藍 panel of 月に雁 and the blank washi
+// after the unprinting. (序's cue is ink 'dark' but its subtitle sits over the
+// night pond, so the poem's ink cannot be reused for the subtitle.)
+const OVERRIDES = {
+  'atozuri@13.6': { sub_ink: 'dark' },
+  'fuji-no-keburi@20.8': { sub_ink: 'dark' },
+};
+
 const KIND = { haiku: 'haiku', waka: 'waka', narration: 'narration', title: 'title', caption: 'caption', kanshi: 'kanshi', letter: 'letter' };
 
-function cueOut(c) {
+function cueOut(c, segId) {
+  c = { ...c, ...(OVERRIDES[`${segId}@${c.t}`] || {}) };
   const kind = KIND[c.kind] || 'narration';
   const o = { t: c.t, dur: c.dur, kind, ja: c.ja };
   if (c.author) o.author = c.author;
@@ -31,6 +42,7 @@ function cueOut(c) {
   if (c.layout) o.layout = c.layout;
   if (c.sigAt) o.sigAt = c.sigAt;
   if (c.chirashi) o.chirashi = c.chirashi;
+  if (c.sub_ink) o.sub_ink = c.sub_ink;
   // Kaguya's letter and the title are brushed (text_style.fonts)
   if (!o.font && (kind === 'title' || kind === 'letter' || /かぐや姫の文/.test(c.author || ''))) o.font = 'brush';
   return o;
@@ -72,7 +84,7 @@ sp.segments.forEach((s, i) => {
     out.push(`        transition: ${tr},`);
   }
   out.push('        text: [');
-  for (const c of s.text_cues || []) out.push(`          ${J(cueOut(c))},`);
+  for (const c of s.text_cues || []) out.push(`          ${J(cueOut(c, s.id))},`);
   out.push('        ],');
   out.push('      },');
 });

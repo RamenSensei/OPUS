@@ -364,6 +364,31 @@
     });
   }
 
+  /*
+   * A paper wall (bed `muffle`): the first-order (6 dB/oct) bilinear low-pass
+   *   y[n] = b0·(x[n] + x[n−1]) + p·y[n−1],  k = tan(π·fc/sr), b0 = k/(1+k), p = (1−k)/(1+k)
+   * as its impulse response (h0 = b0, h1 = b0(1+p), h_n = p·h_{n−1}), cut at −140 dB, for a ConvolverNode.
+   * Measured against createIIRFilter([b0, b0], [1, −p]) on noise: residual −121…−133 dB, zero latency,
+   * the same sound. Why not the IIR node: Chrome's createIIRFilter runs seconds of impulse to find its tail
+   * time (the cost scales with the sample rate) — ≈ 20 ms of main thread per node at 48 kHz, a dropped frame
+   * at every muffled bed's entrance and up to 14 at once on a seek. This is ≈ 0.1 ms. Cached per (rate, Hz).
+   */
+  function wallIR(sr, hz) {
+    const fc = Math.min(Math.max(20, hz), sr * 0.45);
+    return cacheCore(`wall:${sr}:${fc.toFixed(1)}`, () => {
+      const k = Math.tan((Math.PI * fc) / sr), b0 = k / (1 + k), p = (1 - k) / (1 + k);
+      let n = 2;
+      for (let h = b0 * (1 + p); Math.abs(h) > 1e-7 * b0 && n < 8192; h *= p) n++;
+      const b = newBuf(2, n, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = b.getChannelData(ch);
+        d[0] = b0;
+        for (let i = 1, h = b0 * (1 + p); i < n; i++, h *= p) d[i] = h;
+      }
+      return b;
+    });
+  }
+
   /* ------------------------------------------------------------------ */
   /* plucked strings: extended Karplus–Strong, rendered to buffers        */
   /* ------------------------------------------------------------------ */
@@ -1696,9 +1721,10 @@
     let head = out;
     const dist = clamp(def(p.dist, 0));
     if (dist > 0) { const lp = K.filter('lowpass', 18000 * Math.pow(0.08, dist), 0.5); head.connect(lp); head = lp; }
-    if (p.muffle) {         // a paper wall: first-order (6 dB/oct) low-pass
-      const k = Math.tan((Math.PI * Math.min(p.muffle, ctx.sampleRate * 0.45)) / ctx.sampleRate), b0 = k / (1 + k);
-      const f = ctx.createIIRFilter([b0, b0], [1, (k - 1) / (k + 1)]);
+    if (p.muffle) {         // a paper wall: first-order (6 dB/oct) low-pass (see wallIR: not createIIRFilter)
+      const f = ctx.createConvolver();
+      f.normalize = false;
+      f.buffer = wallIR(ctx.sampleRate, p.muffle);
       K.nodes.push(f);
       head.connect(f); head = f;
     }

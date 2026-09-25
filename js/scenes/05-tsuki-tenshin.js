@@ -5,9 +5,12 @@
    108–111: the tilt down to earth — the Shot D sky slides up by 1080e,
    Shot A slides in from below by 1080(1−e), and the ONE moon is drawn once
    on top of both masters, travelling from Shot D's (960,430) r 260 to
-   MOON.A(111), its halo fading. Shot D's susuki still print over it (the moon
-   is a hole; plumes print over it), fading before Buson writes (110.0);
-   soft suyari-gasumi ride the seam. From 111: Shot A (SHOTS.A.drawGarden),
+   MOON.A(111), its halo fading. Shot D's susuki (its bottom edge) leave
+   first (108.2–108.8), before they could hang in Shot A's sky. The join is
+   never seen: a 180 px 紺 bokashi is printed across it, and soft
+   suyari-gasumi ride it — behind the moon (nothing touches the moon), the
+   one right of the Buson pocket staying to the end. The pestle keeps
+   striking; only its sound fades. From 111: Shot A (SHOTS.A.drawGarden),
    where たけ gives 小夜 her dango and the child falls asleep in her lap (the
    figure tables live in shot-a.js).
    ========================================================================== */
@@ -59,11 +62,15 @@
 
   /* ---- すやり霞 on the seam: flat 胡粉 bands, soft top and bottom -------- */
   const MIST = [
-    // x0, x1 (at e = 0 → 1), width, dy from the seam, height, alpha, seed, leaves the Buson pocket
-    { x: [-240, -160], w: 1300, dy: -76, h: 82, a: 0.56, seed: 41, pocket: false },
-    { x: [820, 700], w: 1360, dy: -22, h: 64, a: 0.5, seed: 43, pocket: true },
-    { x: [140, 200], w: 980, dy: 32, h: 50, a: 0.42, seed: 47, pocket: false },
+    // x0, x1 (at e = 0 → 1), width, dy from the seam, height, alpha, seed.
+    // The Buson poem writes at x ≈ 1150–1400 from 110.0: the left bands end
+    // before it, the right one starts after it, so none has to leave early.
+    { x: [-240, -160], w: 1300, dy: -76, h: 82, a: 0.56, seed: 41 },
+    { x: [1560, 1500], w: 900, dy: -22, h: 64, a: 0.5, seed: 43 },
+    { x: [140, 200], w: 980, dy: 32, h: 50, a: 0.42, seed: 47 },
   ];
+  /** The seam's bokashi: the mid-tone between Shot D's foot (紺) and Shot A's head. */
+  const SEAM = { h: 180, col: U.mix(C.kon, C.koiai, 0.35) };
   let mistSpr = null;
   function mistSprites(k) {
     if (mistSpr && Math.abs(mistSpr.k - k) / k < 0.1) return mistSpr;
@@ -134,24 +141,35 @@
       garden(ctx, T, { moon: false, camera: false });
       ctx.restore();
     }
-    // the ONE moon, drawn once on top of both masters
-    const a = MOON.A(TILT[1]);
-    const x = U.lerp(SD.MOON.x, a.x, e), y = U.lerp(SD.MOON.y, a.y, e), r = U.lerp(SD.MOON.r, a.r, e);
-    haloRing(ctx, x, y, SD.MOON.haloR * (r / SD.MOON.r), 1 - e, T);
-    // its own halo eases from Shot D's (0.25, r 380) to Shot A's (0.35, 1.9 r)
-    MOON.draw(ctx, x, y, r, T, { halo: U.lerp(0.25, 0.35, e), haloR: U.lerp(380 * (r / SD.MOON.r), r * 1.9, e), maria: 0 });
-    MOON.maria(ctx, x, y, r, 0.22, C.sumi, { pestle: SD.pestle(T) });
-    // Shot D's susuki print over the moon as it passes, and are gone before Buson writes
-    const sa = 1 - U.smoothstep(109.6, 110.2, T);
+    // Shot D's susuki (its bottom edge) leave before the join can carry them into Shot A's sky
+    const sa = 1 - U.smoothstep(108.2, 108.8, T);
     if (dn > 0 && sa > 0) PRINT.with(ctx, 'K', T, (c) => SD.susuki(c, T, up, sa));
-    // soft suyari-gasumi ride the seam
+    // the join is never seen: a 紺 bokashi printed across it (P6, the sky block);
+    // it comes in as the join rises from the bottom edge, and its lower half
+    // shrinks as the join reaches the top, so it is gone at 111
+    const seamIn = U.smoothstep(0, 0.04, e);
+    if (dn > 0 && seamIn > 0) {
+      const h0 = SEAM.h / 2, h1 = Math.min(h0, dn);
+      PRINT.with(ctx, 'P6', T, (c) => {
+        c.globalAlpha *= seamIn;
+        const g = c.createLinearGradient(0, dn - h0, 0, dn + h1);
+        const m = h0 / (h0 + h1);
+        g.addColorStop(0, U.rgba(SEAM.col, 0));
+        g.addColorStop(m * 0.45, U.rgba(SEAM.col, 0.55));
+        g.addColorStop(m, U.rgba(SEAM.col, 1));
+        g.addColorStop(m + (1 - m) * 0.55, U.rgba(SEAM.col, 0.55));
+        g.addColorStop(1, U.rgba(SEAM.col, 0));
+        c.fillStyle = g;
+        c.fillRect(0, dn - h0, 1920, h0 + h1);
+      });
+    }
+    // soft suyari-gasumi ride the seam — printed before the moon, which is a hole over them
     if (e > 0.001 && e < 0.999) {
       const k = Math.min(1, Math.sin(Math.PI * e) * 2.2);
       const spr = mistSprites(ctx.getTransform().a);
       PRINT.with(ctx, 'P7', T, (c) => {
         MIST.forEach((m, i) => {
-          let al = m.a * k;
-          if (m.pocket) al *= 1 - U.smoothstep(109.6, 110.0, T);
+          const al = m.a * k;
           if (al <= 0.003) return;
           c.save();
           c.globalAlpha *= al;
@@ -160,6 +178,13 @@
         });
       });
     }
+    // the ONE moon, drawn once on top of both masters and everything between them
+    const a = MOON.A(TILT[1]);
+    const x = U.lerp(SD.MOON.x, a.x, e), y = U.lerp(SD.MOON.y, a.y, e), r = U.lerp(SD.MOON.r, a.r, e);
+    haloRing(ctx, x, y, SD.MOON.haloR * (r / SD.MOON.r), 1 - e, T);
+    // its own halo eases from Shot D's (0.25, r 380) to Shot A's (0.35, 1.9 r)
+    MOON.draw(ctx, x, y, r, T, { halo: U.lerp(0.25, 0.35, e), haloR: U.lerp(380 * (r / SD.MOON.r), r * 1.9, e), maria: 0 });
+    MOON.maria(ctx, x, y, r, 0.22, C.sumi, { pestle: SD.pestle(T) });
   }
 
   /**

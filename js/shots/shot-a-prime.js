@@ -71,8 +71,15 @@
       const L = shot.layers[layer];
       if (!L) return;
       const X = PRINT.TIMES;
-      const moving = st.keyReveal || st.phase === 'printing' || st.phase === 'tears' || st.phase === 'unprint' ||
+      let moving = st.keyReveal || st.phase === 'tears' || st.phase === 'unprint' ||
         (T >= X.jolt && T < X.jolt + X.joltDur + 0.02);
+      if (!moving && st.phase === 'printing') {
+        // 序: live while any block is still landing, settling or being wiped on; once every
+        // plate is down and still, the state is the one 14+ prints — so are its flats
+        moving = st.ichimonji < 1;
+        for (const p in st.off) if (st.off[p][0] !== 0 || st.off[p][1] !== 0) { moving = true; break; }
+        if (!moving) for (const p in st.alpha) if (p !== 'D' && st.alpha[p] < 1) { moving = true; break; }
+      }
       if (moving || opts.live) { PRINT.drawLayer(ctx, id, layer, T, opts); return; }
       const ids = Object.keys(L).sort();
       let sig = `w${st.wear.toFixed(3)}`;
@@ -213,21 +220,44 @@
       x.drawImage(foxSprite(), 0, 0, W / 2, H / 2);
       return agedSprite;
     };
+    // … resampled ONCE to the backing store (like paper.js P.fit): a stretched full-frame
+    // multiply every frame costs ≈5× a 1:1 blit (7 ms against 1.3 at 1280)
+    let agedFit = null;
+    const fitSprite = (cw, ch) => {
+      if (agedFit && agedFit.width === cw && agedFit.height === ch) return agedFit;
+      agedFit = B.canvas(cw, ch);
+      const x = agedFit.getContext('2d');
+      x.imageSmoothingEnabled = true;
+      x.imageSmoothingQuality = 'high';
+      x.drawImage(ageSprite(), 0, 0, cw, ch);
+      agedSprite = null; fox = null;          // the half-res sources are rebuilt only if the size changes
+      return agedFit;
+    };
     TSUKI.SHOTS.age = (ctx, T, opts = {}) => {
       const amt = opts.amount == null ? PRINT.state(T).wear : opts.amount;
       if (amt <= 0.001) return;
+      const cv = ctx.canvas, k = cv.width / W;
+      const fit = fitSprite(cv.width, cv.height);
       ctx.save();
       if (opts.holes && opts.holes.length) {
         ctx.beginPath();
         ctx.rect(0, 0, W, H);
         for (const [hx, hy, hr] of opts.holes) { ctx.moveTo(hx + hr, hy); ctx.arc(hx, hy, hr, 0, U.TAU, true); }
-        ctx.clip('evenodd');
+        ctx.clip('evenodd');                   // (the clip survives the setTransform below)
       }
       ctx.globalCompositeOperation = 'multiply';
       ctx.globalAlpha = amt;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'low';
-      ctx.drawImage(ageSprite(), 0, 0, W, H);
+      const m = ctx.getTransform();
+      if (m.b === 0 && m.c === 0 && Math.abs(m.a - k) < 1e-6 && Math.abs(m.d - k) < 1e-6 && Math.abs(m.e) < 1e-6 && Math.abs(m.f) < 1e-6) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(fit, 0, 0);
+      } else {
+        // under a camera move the foxing travels with the paper (a resample, only while it moves)
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'low';
+        ctx.drawImage(fit, 0, 0, W, H);
+      }
       ctx.restore();
     };
   }

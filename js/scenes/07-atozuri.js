@@ -83,6 +83,8 @@
     ctx.translate(-cam.about[0], -cam.about[1]);
   };
   const camPoint = (cam, x, y) => [cam.to[0] + (x - cam.about[0]) * cam.scale, cam.to[1] + (y - cam.about[1]) * cam.scale];
+  /** key-line width factor for props drawn under a close insert camera: ≈1.6–2.5 px on screen, not base × zoom */
+  const keyScale = (cam) => 1 / (Math.max(1, cam.scale) * 0.55);
   function fallbackAprime(ctx, T, opts) {
     ctx.save();
     if (opts.camera) camApply(ctx, opts.camera);
@@ -109,6 +111,90 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* carved key lines for the close inserts                              */
+  /* ------------------------------------------------------------------ */
+  /**
+   * A Path2D that also remembers its outline as polylines, so the same shape
+   * can be filled (colour blocks) and cut as a key line whose width swells and
+   * thins along it like a knife-cut line — instead of a uniform stroke that the
+   * insert camera magnifies into a 4–5 px vector contour.
+   */
+  function carvePath() {
+    const path = new Path2D(), subs = [];
+    let cur = null, last = [0, 0];
+    const begin = (x, y) => { cur = { pts: [[x, y]], closed: false }; subs.push(cur); last = [x, y]; };
+    const push = (x, y) => { if (!cur) begin(last[0], last[1]); cur.pts.push([x, y]); last = [x, y]; };
+    return {
+      path, subs,
+      moveTo(x, y) { path.moveTo(x, y); begin(x, y); },
+      lineTo(x, y) { path.lineTo(x, y); push(x, y); },
+      quadraticCurveTo(cx, cy, x, y) {
+        path.quadraticCurveTo(cx, cy, x, y);
+        const p0 = last;
+        for (let i = 1; i <= 12; i++) { const t = i / 12, u = 1 - t; push(u * u * p0[0] + 2 * u * t * cx + t * t * x, u * u * p0[1] + 2 * u * t * cy + t * t * y); }
+      },
+      bezierCurveTo(ax, ay, bx, by, x, y) {
+        path.bezierCurveTo(ax, ay, bx, by, x, y);
+        const p0 = last;
+        for (let i = 1; i <= 16; i++) {
+          const t = i / 16, u = 1 - t;
+          push(u * u * u * p0[0] + 3 * u * u * t * ax + 3 * u * t * t * bx + t * t * t * x, u * u * u * p0[1] + 3 * u * u * t * ay + 3 * u * t * t * by + t * t * t * y);
+        }
+      },
+      ellipse(x, y, rx, ry, rot, a0, a1) {
+        path.ellipse(x, y, rx, ry, rot, a0, a1);
+        const cr = Math.cos(rot), sr = Math.sin(rot), n = Math.max(20, Math.ceil((rx + ry) * 0.8));
+        const P = (a) => { const ex = Math.cos(a) * rx, ey = Math.sin(a) * ry; return [x + ex * cr - ey * sr, y + ex * sr + ey * cr]; };
+        const s = P(a0);
+        begin(s[0], s[1]);
+        for (let i = 1; i <= n; i++) { const q = P(a0 + ((a1 - a0) * i) / n); push(q[0], q[1]); }
+        if (Math.abs(a1 - a0) >= TAU - 1e-6) cur.closed = true;
+      },
+      rect(x, y, w, h) { path.rect(x, y, w, h); begin(x, y); push(x + w, y); push(x + w, y + h); push(x, y + h); cur.closed = true; },
+      closePath() { path.closePath(); if (cur) { cur.closed = true; last = cur.pts[0]; cur = null; } },
+    };
+  }
+  /**
+   * Cut the key line of carvePath(s) `cps` in the current ink: width w (in the
+   * ctx's units) swelling and thinning between 60 % and 100 % along the line,
+   * open ends tapered. One fill of quads with round knuckles at the corners.
+   */
+  function carveLine(c, cps, w, seed) {
+    const out = new Path2D();
+    let si = 0;
+    for (const cp of Array.isArray(cps) ? cps : [cps]) for (const sp of cp.subs) {
+      const pts = sp.pts;
+      if (pts.length < 2) continue;
+      if (sp.closed) { const a = pts[0], b = pts[pts.length - 1]; if (Math.hypot(a[0] - b[0], a[1] - b[1]) > 1e-6) pts.push(a.slice()); }
+      const L = [0];
+      for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+      const tot = L[L.length - 1];
+      if (tot < 1e-6) continue;
+      const sd = seed * 13.7 + si++ * 5.3;
+      const half = (i) => {
+        let k = 0.8 + 0.2 * U.wobble(L[i] / 11 + sd, 917);
+        if (!sp.closed) k *= U.lerp(0.4, 1, U.smoothstep(0, Math.min(7, tot * 0.3), Math.min(L[i], tot - L[i])));
+        return (w * k) / 2;
+      };
+      let pd = null;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy);
+        if (l < 1e-6) continue;
+        const nx = -dy / l, ny = dx / l, ha = half(i), hb = half(i + 1);
+        out.moveTo(a[0] + nx * ha, a[1] + ny * ha);
+        out.lineTo(b[0] + nx * hb, b[1] + ny * hb);
+        out.lineTo(b[0] - nx * hb, b[1] - ny * hb);
+        out.lineTo(a[0] - nx * ha, a[1] - ny * ha);
+        out.closePath();
+        // a knuckle where the line turns (same winding as the quads: the union fills)
+        if (pd && pd[0] * dx / l + pd[1] * dy / l < 0.97) { out.moveTo(a[0] + ha, a[1]); out.arc(a[0], a[1], ha, 0, TAU, true); }
+        pd = [dx / l, dy / l];
+      }
+    }
+    c.fill(out);
+  }
+
+  /* ------------------------------------------------------------------ */
   /* A′ inserts: the offerings of the late night, at A′ scale            */
   /* ------------------------------------------------------------------ */
   const OS = { x: 1066, y: 950, s: 1.65 };     // old 小夜 on たけ's exact spot in A′ (cf. 五)
@@ -118,21 +204,22 @@
   const POT_DOWN = { x: 986, y: 958 };         // where the pot is set down, beside her knee
 
   function cupPath(x, y, w, h) {
-    const p = new Path2D();
+    const p = carvePath();
     p.moveTo(x - w / 2, y - h);
     p.bezierCurveTo(x - w / 2 - 1, y - h * 0.4, x - w * 0.42, y - 1, x - w * 0.34, y);
     p.lineTo(x + w * 0.34, y);
     p.bezierCurveTo(x + w * 0.42, y - 1, x + w / 2 + 1, y - h * 0.4, x + w / 2, y - h);
-    p.closePath();
+    // left open: fills close it, but the key line must not cut across the mouth (the rim does)
     return p;
   }
   /** a yunomi on the boards; tea level, optional steam; returns the tea surface */
   function drawCup(ctx, T, x, y, o) {
     const k = o.scale || 1;
     const w = 30 * k, h = 30 * k;
+    const lw = o.lw || 1;                          // key-line scale under the insert camera
     const pen = shotA().livePen(ctx, T);
-    const body = cupPath(x, y, w, h);
-    const rim = new Path2D();
+    const bodyC = cupPath(x, y, w, h), body = bodyC.path;
+    const rim = carvePath();
     rim.ellipse(x, y - h, w / 2, 3.8 * k, 0, 0, TAU);
     const tea = new Path2D();
     tea.ellipse(x, y - h + 0.8 * k, w / 2 - 1.6 * k, 3.0 * k, 0, 0, TAU);
@@ -150,8 +237,8 @@
     });
     if (o.fill > 0) pen('P3', (c) => { c.globalAlpha *= o.fill; c.fillStyle = TEA; c.fill(tea); });
     pen('K', (c) => {
-      c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 1.1; c.stroke(body); c.stroke(rim);
-      c.fillStyle = U.rgba(C.sumi, 0.6); c.fillRect(x - w * 0.3, y - 1.2, w * 0.6, 1.4);
+      c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [bodyC, rim], 1.1 * lw, x);
+      c.fillStyle = U.rgba(C.sumi, 0.6); c.fillRect(x - w * 0.3, y - 1.2 * lw, w * 0.6, 1.4 * lw);
     });
     if (o.steam > 0) {
       pen('P7', (c) => {
@@ -174,22 +261,23 @@
     return { teaX: x, teaY: y - h + 0.8 * k, rx: w / 2 - 1.6 * k, ry: 3.0 * k };
   }
   /** the 土瓶 set down on the boards: a round earthen pot, a spout, a cane handle */
-  function drawPot(ctx, T, x, y) {
+  function drawPot(ctx, T, x, y, lw = 1) {
     const pen = shotA().livePen(ctx, T);
-    const body = new Path2D();
-    body.moveTo(x - 22, y - 4);
-    body.bezierCurveTo(x - 26, y - 24, x - 14, y - 34, x, y - 34);
-    body.bezierCurveTo(x + 14, y - 34, x + 26, y - 24, x + 22, y - 4);
-    body.quadraticCurveTo(x, y + 2, x - 22, y - 4);
-    body.closePath();
-    const spout = new Path2D();
-    spout.moveTo(x - 20, y - 16); spout.quadraticCurveTo(x - 32, y - 20, x - 38, y - 32); spout.lineTo(x - 34, y - 34);
-    spout.quadraticCurveTo(x - 28, y - 25, x - 19, y - 24); spout.closePath();
-    const lid = new Path2D();
-    lid.ellipse(x, y - 34, 10, 2.6, 0, 0, TAU);
-    lid.moveTo(x + 3, y - 38); lid.ellipse(x, y - 38, 3, 2.2, 0, 0, TAU);
-    const handle = new Path2D();
-    handle.moveTo(x - 17, y - 28); handle.bezierCurveTo(x - 18, y - 58, x + 18, y - 58, x + 17, y - 28);
+    const bodyC = carvePath();
+    bodyC.moveTo(x - 22, y - 4);
+    bodyC.bezierCurveTo(x - 26, y - 24, x - 14, y - 34, x, y - 34);
+    bodyC.bezierCurveTo(x + 14, y - 34, x + 26, y - 24, x + 22, y - 4);
+    bodyC.quadraticCurveTo(x, y + 2, x - 22, y - 4);
+    bodyC.closePath();
+    const spoutC = carvePath();
+    spoutC.moveTo(x - 20, y - 16); spoutC.quadraticCurveTo(x - 32, y - 20, x - 38, y - 32); spoutC.lineTo(x - 34, y - 34);
+    spoutC.quadraticCurveTo(x - 28, y - 25, x - 19, y - 24); spoutC.closePath();
+    const lidC = carvePath();
+    lidC.ellipse(x, y - 34, 10, 2.6, 0, 0, TAU);
+    lidC.moveTo(x + 3, y - 38); lidC.ellipse(x, y - 38, 3, 2.2, 0, 0, TAU);
+    const handleC = carvePath();
+    handleC.moveTo(x - 17, y - 28); handleC.bezierCurveTo(x - 18, y - 58, x + 18, y - 58, x + 17, y - 28);
+    const body = bodyC.path, spout = spoutC.path, lid = lidC.path, handle = handleC.path;
     const pc = U.mix(C.odo, C.sumi, 0.5);
     pen('P1', (c) => {
       c.fillStyle = pc; c.fill(body); c.fill(spout);
@@ -198,20 +286,20 @@
       c.strokeStyle = U.mix(C.kuchiba, C.odo, 0.4); c.lineWidth = 2.4; c.lineCap = 'round'; c.stroke(handle);
     });
     pen('K', (c) => {
-      c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 1.1;
-      c.stroke(body); c.stroke(spout); c.stroke(lid);
-      c.lineWidth = 0.8; c.stroke(handle);
+      c.fillStyle = U.rgba(C.sumi, 0.85);
+      carveLine(c, [bodyC, spoutC, lidC], 1.1 * lw, x + 3);
+      carveLine(c, handleC, 0.8 * lw, x + 5);
     });
     pen.flush();
   }
 
   /** the jug of susuki (grey in the late print), the 三方 with fifteen dango, the lacquer box, the paper cut-out */
-  function drawLateOfferings(ctx, T) {
+  function drawLateOfferings(ctx, T, lw = 1) {
     const A = shotA();
     const pen = A.livePen(ctx, T);
     const { x: jx, y: jy } = JUG;
     // the jug (鼠 stoneware)
-    const jug = new Path2D();
+    const jugC = carvePath(), jug = jugC;
     jug.moveTo(jx - 14, jy - 86);
     jug.bezierCurveTo(jx - 16, jy - 78, jx - 10, jy - 70, jx - 22, jy - 58);
     jug.bezierCurveTo(jx - 42, jy - 40, jx - 38, jy - 6, jx - 22, jy);
@@ -219,17 +307,29 @@
     jug.bezierCurveTo(jx + 38, jy - 6, jx + 42, jy - 40, jx + 22, jy - 58);
     jug.bezierCurveTo(jx + 10, jy - 70, jx + 16, jy - 78, jx + 14, jy - 86);
     jug.closePath();
-    const mouth = new Path2D();
-    mouth.ellipse(jx, jy - 86, 14, 4, 0, 0, TAU);
+    const mouthC = carvePath();
+    mouthC.ellipse(jx, jy - 86, 14, 4, 0, 0, TAU);
+    const jp = jugC.path, mouth = mouthC.path;
     pen('P4', (c) => {
-      c.fillStyle = C.nezumi; c.fill(jug);
-      c.save(); c.clip(jug); c.fillStyle = U.mix(C.nezumi, C.sumi, 0.3); c.fillRect(jx + 8, jy - 90, 40, 94); c.restore();
+      c.fillStyle = C.nezumi; c.fill(jp);
+      c.save(); c.clip(jp); c.fillStyle = U.mix(C.nezumi, C.sumi, 0.3); c.fillRect(jx + 8, jy - 90, 40, 94);
+      // 釉だれ: a darker glaze poured over the shoulder, running down the belly in tongues
+      c.fillStyle = U.rgba(U.mix(C.nezumi, C.sumi, 0.45), 0.6);
+      c.beginPath();
+      const y0 = jy - 60;
+      c.moveTo(jx - 44, y0 - 8); c.lineTo(jx + 44, y0 - 8); c.lineTo(jx + 44, y0 + 3);
+      for (const [dx, len, hw] of [[24, 9, 4], [12, 27, 4.5], [1, 15, 3.5], [-11, 36, 5], [-24, 13, 4]]) {
+        c.quadraticCurveTo(dx + hw + 4 + jx, y0 + 5, jx + dx + hw, y0 + 6);
+        c.bezierCurveTo(jx + dx + hw, y0 + len * 0.7, jx + dx + hw * 1.2, y0 + len, jx + dx, y0 + len + 1.5);
+        c.bezierCurveTo(jx + dx - hw * 1.2, y0 + len, jx + dx - hw, y0 + len * 0.7, jx + dx - hw, y0 + 6);
+      }
+      c.quadraticCurveTo(jx - 36, y0 + 4, jx - 44, y0 + 3);
+      c.closePath();
+      c.fill();
+      c.restore();
       c.fillStyle = U.mix(C.nezumi, C.sumi, 0.5); c.fill(mouth);
-      // a run of glaze
-      c.fillStyle = U.rgba(C.ginnezu, 0.7);
-      c.beginPath(); c.moveTo(jx - 8, jy - 60); c.quadraticCurveTo(jx - 4, jy - 34, jx - 9, jy - 22); c.quadraticCurveTo(jx - 13, jy - 36, jx - 12, jy - 58); c.closePath(); c.fill();
     });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 1.4; c.stroke(jug); c.stroke(mouth); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [jugC, mouthC], 1.4 * lw, jx); });
     // the susuki in the jug (grey plumes: the warm and fresh blocks are gone)
     const r = U.rng(606);
     const stems = new Path2D(), hairs = new Path2D(), hairsHi = new Path2D(), key = new Path2D(), leaves = new Path2D();
@@ -264,19 +364,19 @@
     pen('P3', (c) => { c.fillStyle = U.mix(C.matsuba, C.nezumi, 0.4); c.fill(leaves); });
     pen('P4', (c) => { c.fillStyle = U.mix(C.nezumi, C.rikyu, 0.45); c.fill(stems); c.fillStyle = C.ginnezu; c.fill(hairs); });
     pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.ginnezu, 0.35); c.fill(hairsHi); });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.75); c.lineWidth = 0.9; c.stroke(key); });
+    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.75); c.lineWidth = 0.9 * lw; c.stroke(key); });
     // the 三方 with fifteen dango stacked 9 · 4 · 2, seen from the front:
     // three on the tray (the row behind peeping between), two in the hollows, one on top
     const { x: sx, y: sy } = SANBO;
-    const tray = new Path2D();
+    const trayC = carvePath(), tray = trayC;
     tray.moveTo(sx - 46, sy - 58); tray.lineTo(sx + 46, sy - 58); tray.lineTo(sx + 42, sy - 44); tray.lineTo(sx - 42, sy - 44); tray.closePath();
-    const rimT = new Path2D();
+    const rimT = carvePath();
     rimT.moveTo(sx - 46, sy - 58); rimT.lineTo(sx - 42, sy - 62); rimT.lineTo(sx + 42, sy - 62); rimT.lineTo(sx + 46, sy - 58);
-    const stand = new Path2D();
+    const standC = carvePath(), stand = standC;
     stand.moveTo(sx - 32, sy - 44); stand.lineTo(sx + 32, sy - 44); stand.lineTo(sx + 36, sy); stand.lineTo(sx - 36, sy); stand.closePath();
-    const hole = new Path2D();
+    const holeC = carvePath(), hole = holeC;
     hole.moveTo(sx - 9, sy - 8); hole.lineTo(sx - 9, sy - 26); hole.quadraticCurveTo(sx, sy - 36, sx + 9, sy - 26); hole.lineTo(sx + 9, sy - 8); hole.closePath();
-    const back = new Path2D(), front = new Path2D();
+    const back = carvePath(), front = carvePath();
     const rr = 9.2, base = sy - 60 - rr + 1;
     const ball = (p, x, y, s) => { p.moveTo(x + rr * s, y); p.ellipse(x, y, rr * s, rr * s * 0.95, 0, 0, TAU); };
     ball(back, sx - 9.2, base - 5, 0.96); ball(back, sx + 9.2, base - 5, 0.96);
@@ -284,28 +384,28 @@
     for (const dx of [-9.2, 9.2]) ball(front, sx + dx, base - 16, 1);
     ball(front, sx, base - 32, 1);
     pen('P1', (c) => {
-      c.fillStyle = U.mix(C.kinari, C.odo, 0.35); c.fill(stand);
-      c.fillStyle = U.mix(C.kinari, C.odo, 0.22); c.fill(tray);
-      c.fillStyle = U.mix(C.odo, C.sumi, 0.45); c.fill(hole);
+      c.fillStyle = U.mix(C.kinari, C.odo, 0.35); c.fill(standC.path);
+      c.fillStyle = U.mix(C.kinari, C.odo, 0.22); c.fill(trayC.path);
+      c.fillStyle = U.mix(C.odo, C.sumi, 0.45); c.fill(holeC.path);
     });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 1.2; c.stroke(tray); c.stroke(rimT); c.stroke(stand); c.stroke(hole); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [trayC, rimT, standC, holeC], 1.2 * lw, sx); });
     // the row behind first (it peeps between the front three), then the front of the stack
-    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.45); c.fill(back); });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 0.9; c.stroke(back); });
+    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.45); c.fill(back.path); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, back, 0.9 * lw, sx + 1); });
     pen.flush();
-    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.22); c.fill(front); });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 0.9; c.stroke(front); });
+    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.22); c.fill(front.path); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, front, 0.9 * lw, sx + 2); });
     // the black-lacquer box of old paper cut-outs (no 朱: 墨 with 銀鼠 highlights)
     const { x: bx0, y: by0 } = BOX;
-    const box = new Path2D();
+    const box = carvePath();
     box.rect(bx0 - 44, by0 - 30, 88, 30);
-    const lid = new Path2D();
+    const lid = carvePath();
     lid.rect(bx0 - 47, by0 - 38, 94, 9);
     pen('P4', (c) => {
-      c.fillStyle = U.mix(C.sumi, C.enji, 0.12); c.fill(box); c.fill(lid);
+      c.fillStyle = U.mix(C.sumi, C.enji, 0.12); c.fill(box.path); c.fill(lid.path);
       c.fillStyle = U.rgba(C.ginnezu, 0.8); c.fillRect(bx0 - 42, by0 - 36.5, 60, 1.6); c.fillRect(bx0 - 40, by0 - 26, 1.4, 20);
     });
-    pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.9); c.lineWidth = 1; c.stroke(box); c.stroke(lid); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.9); carveLine(c, [box, lid], 1 * lw, bx0); });
     pen.flush();
     // the old 影絵 card of the bamboo grove, leaning on the lacquer box — flat 墨 paper on its stick
     const CAST = TSUKI.CAST;
@@ -320,7 +420,7 @@
     }
   }
   /** 退紅: a strip torn from the heko-obi, tied round the stems — hand-applied, overrunning the key line */
-  function drawStrip(ctx, T, a) {
+  function drawStrip(ctx, T, a, lw = 1) {
     const { x: jx, y: jy } = JUG;
     const y = jy - 104;
     ctx.save();
@@ -355,7 +455,7 @@
     ctx.save();
     ctx.globalAlpha *= a * 0.6;
     ctx.strokeStyle = U.rgba(C.sumi, 0.7);
-    ctx.lineWidth = 0.9;
+    ctx.lineWidth = 0.9 * lw;
     ctx.beginPath();
     ctx.moveTo(jx - 11, y - 1); ctx.quadraticCurveTo(jx, y - 5, jx + 11, y - 2);
     ctx.moveTo(jx - 11, y + 4.5); ctx.quadraticCurveTo(jx, y + 1.5, jx + 11, y + 3.5);
@@ -425,7 +525,8 @@
     const u = U.seg(T, 169.85, 170.5, E.inOutSine);
     const f = cups().far;
     const drift = U.seg(T, 169, 171);
-    return { scale: U.lerp(2.3 + 0.06 * drift, 4.7, u), about: [U.lerp(972, f.x + 2, u), U.lerp(884, f.y - 22, u)], to: [960, U.lerp(640, 600, u)] };
+    // the hold frames the cup and her sleeve and hand; her face leaves the frame at the top
+    return { scale: U.lerp(2.3 + 0.06 * drift, 4.7, u), about: [U.lerp(972, f.x + 2, u), U.lerp(884, f.y + 6, u)], to: [960, U.lerp(640, 600, u)] };
   };
   function drawInsertCups(ctx, T) {
     const cam = CAM1(T);
@@ -435,6 +536,7 @@
     const pose = down ? 'seiza' : 'pour';
     const cp = cups();
     const sp = spoutAt();
+    const lw = keyScale(cam);
     let far = null;
     drawAprime(ctx, T, {
       camera: cam,
@@ -442,11 +544,11 @@
       between: {
         post: (c) => castLateShadows(c, T, cam, pose, true, down, false),
         eave: (c) => {
-          if (down) drawPot(c, T, POT_DOWN.x, POT_DOWN.y);
+          if (down) drawPot(c, T, POT_DOWN.x, POT_DOWN.y, lw);
           drawOldSayoA(c, T, pose);
           const fillFar = U.seg(T, tea[0] + 0.08, tea[0] + 0.5), fillNear = U.seg(T, tea[1] + 0.08, tea[1] + 0.5);
-          far = drawCup(c, T, cp.far.x, cp.far.y, { fill: fillFar, steam: 0, scale: cp.far.k });
-          drawCup(c, T, cp.near.x, cp.near.y, { fill: fillNear, steam: U.seg(T, tea[1] + 0.3, tea[1] + 1.3), scale: cp.near.k });
+          far = drawCup(c, T, cp.far.x, cp.far.y, { fill: fillFar, steam: 0, scale: cp.far.k, lw });
+          drawCup(c, T, cp.near.x, cp.near.y, { fill: fillNear, steam: U.seg(T, tea[1] + 0.3, tea[1] + 1.3), scale: cp.near.k, lw });
           // the streams: short falls from the spout, the first bending a little toward the far cup
           const pour = (tx, ty, a) => {
             if (a <= 0) return;
@@ -498,14 +600,14 @@
       age: false,
       between: {
         post: (c) => castLateShadows(c, T, cam, 'seiza', false, false, true),
-        eave: (c) => drawLateOfferings(c, T),
+        eave: (c) => drawLateOfferings(c, T, keyScale(cam)),
       },
     });
     ageInsert(ctx, cam);
     // hand-applied after the print (and after the years)
     ctx.save();
     camApply(ctx, cam);
-    drawStrip(ctx, T, 1);
+    drawStrip(ctx, T, 1, keyScale(cam));
     ctx.restore();
   }
 
@@ -518,7 +620,8 @@
   const GEESE = [
     { t0: 174.0, speed: 1.0, span: 210, off: [0, 0], ph: 0.0 },
     { t0: 174.35, speed: 1.0, span: 170, off: [-128, -34], ph: 0.33 },
-    { t0: 175.4, speed: 0.8, span: 140, off: [-46, -168], ph: 0.52 },
+    // the third, left behind (小夜): upper right of the disc at the hero time, crossing its upper half ≈178.6
+    { t0: 174.9, speed: 0.95, span: 140, off: [40, -60], ph: 0.52 },
   ];
   const FLY = { p0: [1402, -150], p1: [470, 820], dur: 7.0 };
   // the two caches of the crop: the aged 藍 field of the panel, and the aged margin paper
@@ -674,11 +777,8 @@
       }
     });
   }
-  function drawKakemono(ctx, T) {
-    const inU = U.seg(T, 173.0, 173.8, E.outCubic);
-    const outU = U.seg(T, 181.4, 182.0, E.inOutSine);
-    const close = inU * (1 - outU);
-    const K = kakeCaches(ctx);
+  /** the 月に雁 print itself: the aged 藍 field, the fresh moon, the geese */
+  function kakemonoPrint(ctx, T, K) {
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(K.field, 0, 0);
@@ -690,19 +790,47 @@
     ctx.restore();
     // the geese, descending steeply from upper right to lower left across the disc
     drawGeese(ctx, T);
+  }
+  /** the yellowed washi margins at `close` (1 = shut to the 640 px kakemono), with its mounting line */
+  function kakemonoMargins(ctx, K, close) {
+    if (close <= 0.001) return;
+    const lw = PANEL.x0 * close, rx = W - (W - PANEL.x1) * close;
+    margins(ctx, K, lw, rx);
+    ctx.save();
+    ctx.strokeStyle = U.rgba(C.sumi, 0.85);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(lw + 0.5, 0.5, rx - lw - 1, H - 1);
+    ctx.strokeStyle = U.rgba(C.sumi, 0.1);
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(lw - 3, 0); ctx.lineTo(lw - 3, H); ctx.moveTo(rx + 3, 0); ctx.lineTo(rx + 3, H); ctx.stroke();
+    ctx.restore();
+  }
+  const kakeClose = (T) => U.seg(T, 173.0, 173.8, E.outCubic) * (1 - U.seg(T, 181.4, 182.0, E.inOutSine));
+  function drawKakemono(ctx, T) {
+    const K = kakeCaches(ctx);
+    kakemonoPrint(ctx, T, K);
     // the margins: yellowed washi sliding in from both sides
-    if (close > 0.001) {
-      margins(ctx, K, PANEL.x0 * close, W - (W - PANEL.x1) * close);
-      const lw = PANEL.x0 * close, rx = W - (W - PANEL.x1) * close;
+    kakemonoMargins(ctx, K, kakeClose(T));
+  }
+  /**
+   * 181.4–182: the margins open onto the engawa. The 月に雁 print dissolves
+   * off the panel as they go (the moon fades with it, it does not pop), and
+   * the empty A′ is there underneath — the window about to rise.
+   */
+  function drawKakemonoOut(ctx, T) {
+    const K = kakeCaches(ctx);
+    const outU = U.seg(T, 181.4, 182.0, E.inOutSine);
+    drawFoxWindow(ctx, T);
+    if (outU < 0.999) {
       ctx.save();
-      ctx.strokeStyle = U.rgba(C.sumi, 0.85);
-      ctx.lineWidth = 1;
-      ctx.strokeRect(lw + 0.5, 0.5, rx - lw - 1, H - 1);
-      ctx.strokeStyle = U.rgba(C.sumi, 0.1);
-      ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(lw - 3, 0); ctx.lineTo(lw - 3, H); ctx.moveTo(rx + 3, 0); ctx.lineTo(rx + 3, H); ctx.stroke();
+      ctx.beginPath();
+      ctx.rect(PANEL.x0, 0, PANEL.x1 - PANEL.x0, H);
+      ctx.clip();
+      ctx.globalAlpha = 1 - outU;
+      kakemonoPrint(ctx, T, K);
       ctx.restore();
     }
+    kakemonoMargins(ctx, K, kakeClose(T));
   }
   function margins(ctx, K, lw, rx) {
     const k = ctx.canvas.width / W;
@@ -717,7 +845,9 @@
   /* ------------------------------------------------------------------ */
   /* 182–190: the fox window                                             */
   /* ------------------------------------------------------------------ */
-  const FW = { x: 960, y: 452, s: 1.27 };
+  // the diamond sits a little below the frame's centre, so the sleeves run out of
+  // the frame early (≤ 45 % of it) and the window, not the arms, is the picture
+  const FW = { x: 960, y: 592, s: 1.27 };
   function handsAt(T) {
     const rise = 1 - E.outCubic(U.seg(T, 182.0, 183.0));
     const fall = E.inOutSine(U.seg(T, 189.1, 190.6));
@@ -838,6 +968,15 @@
     emptyA = cv;
     return cv;
   }
+  /**
+   * The first impression inside the diamond: framed on the 三方, the thief's
+   * arm and たけ (183), then, as the child climbs up and sits (184.2–186.0),
+   * a slow push onto her — ≈100 px tall when she turns and looks out (186).
+   */
+  const innerCrop = (T) => {
+    const u = E.inOutSine(U.seg(T, 184.2, 186.0));
+    return { scale: U.lerp(2.2, 2.6, u), about: [U.lerp(1035, 1040, u), U.lerp(676, 675, u)] };
+  };
   function drawFoxWindow(ctx, T) {
     const CAST = TSUKI.CAST;
     const A = shotA();
@@ -861,7 +1000,7 @@
     ctx.clip();
     ctx.fillStyle = C.kinari;
     ctx.fillRect(win.cx - win.w, win.cy - win.h, win.w * 2, win.h * 2);
-    A.cropTransform(ctx, { scale: 1.8, about: [1080, 668], to: [win.cx, win.cy] });
+    A.cropTransform(ctx, Object.assign(innerCrop(T), { to: [win.cx, win.cy] }));
     A.drawGarden(ctx, Tp, { camera: false, gazeOut: U.seg(Tp, 36.0, 37.0) });
     ctx.restore();
     // her forearms in the 波兎 sleeves rising from below the frame, and the old
@@ -882,7 +1021,7 @@
   function restSprites(ctx) {
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
     if (rest && rest.cw === cw) return rest;
-    const k = cw / W, y0 = 180, y1 = H + 20;
+    const k = cw / W, y0 = FW.y - 272, y1 = H + 20;
     const mk = (paint) => {
       const cv = B.canvas(cw, Math.ceil((y1 - y0) * k)), c = cv.getContext('2d');
       c.setTransform(k, 0, 0, k, 0, -y0 * k);
@@ -896,18 +1035,29 @@
     rest = {
       cw, y0,
       sleeves: mk((c) => sleeves(c, T, h, 0)),
-      // the same authored window as in 三, aged: a near-foreground 墨 silhouette
-      // with its knuckles, creases and tendons cut out of the block in pale lines,
-      // a 銀鼠 rim where the moon (upper right) catches the edges
+      // the same authored window as in 三, old: moonlit skin in one flat pale
+      // block, carved 墨 key lines, knuckles, creases, a few age spots; a 胡粉
+      // rim where the moon (upper right) catches the edges
       hands: mk((c) => PRINT.with(c, 'K', T, (cc) => {
-        CAST.hands(cc, h.x + 1.8, h.y - 1.8, h.s, Object.assign({}, hopts, { silhouette: U.mix(C.ginnezu, C.gofun, 0.25) }));
-        CAST.hands(cc, h.x, h.y, h.s, Object.assign({}, hopts, { palette: WIN_PAL, ink: WIN_INK, outline: 1 }));
+        CAST.hands(cc, h.x + 2.6, h.y - 2.6, h.s, Object.assign({}, hopts, { silhouette: U.rgba(C.gofun, 0.55) }));
+        CAST.hands(cc, h.x, h.y, h.s, Object.assign({}, hopts, { palette: winPal(), ink: C.sumi, outline: 0.9 }));
       })),
     };
     return rest;
   }
-  const WIN_INK = U.mix(C.sumi, C.ai, 0.2);
-  const WIN_PAL = { skin: WIN_INK, skinOld: WIN_INK, spot: WIN_INK, vein: WIN_INK, nail: U.mix(WIN_INK, C.ginnezu, 0.12), crease: U.mix(C.ginnezu, WIN_INK, 0.2) };
+  // old skin under the moon: the flesh block (胡粉 + 狐色) pulled toward 藍, on the late paper
+  let WIN_PAL = null;
+  const winPal = () => {
+    if (WIN_PAL) return WIN_PAL;
+    const skin = aged(U.mix(U.mix(C.gofun, C.kitsune, 0.28), C.ai, 0.22));
+    return (WIN_PAL = {
+      skin, skinOld: skin,
+      crease: U.mix(C.sumi, C.ai, 0.2),
+      spot: U.mix(skin, C.odo, 0.5),
+      vein: U.mix(C.ai, skin, 0.35),
+      nail: aged(U.mix(C.gofun, C.ai, 0.3)),
+    });
+  };
 
   /* ------------------------------------------------------------------ */
   TSUKI.scene('atozuri', {
@@ -934,12 +1084,8 @@
       else if (T < 171) drawInsertCups(ctx, T);
       else if (T < 173) drawInsertStrip(ctx, T);
       else if (T < 181.4) drawKakemono(ctx, T);
-      else if (T < 182) {
-        // the margins open onto the engawa (the window about to rise)
-        drawFoxWindow(ctx, T);
-        const outU = U.seg(T, 181.4, 182.0, E.inOutSine);
-        margins(ctx, kakeCaches(ctx), PANEL.x0 * (1 - outU), W - (W - PANEL.x1) * (1 - outU));
-      } else drawFoxWindow(ctx, T);
+      else if (T < 182) drawKakemonoOut(ctx, T);
+      else drawFoxWindow(ctx, T);
     },
   });
 })(window.TSUKI = window.TSUKI || {});

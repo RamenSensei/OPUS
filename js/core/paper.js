@@ -1,8 +1,13 @@
 /* ==========================================================================
    paper.js — washi & print finish, applied over every frame.
-   A single texture is generated once (deterministically) at stage size:
-   kozo fibres, pulp mottling and aged edges (焼け). The engine multiplies
-   it over the finished frame, which binds every scene into one "print".
+   A texture pair is generated once (deterministically): kozo fibres, pulp
+   mottling and aged edges (焼け) multiplied, and tiny gofun flecks screened.
+   It binds every scene into one "print".
+   Normally the pair is painted ONCE per stage size into two canvases that
+   sit over the film (P.mount) and the browser's compositor blends them
+   (mix-blend-mode multiply / screen, see css/film.css), so no frame pays
+   for it. P.apply composites the same pair into a canvas instead, for a
+   canvas-only export.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -10,16 +15,22 @@
   const U = TSUKI.U, B = TSUKI.B;
   const P = (TSUKI.PAPER = {});
 
-  let grain = null;   // multiply layer (paper tone + fibres + mottling)
-  let light = null;   // screen layer (tiny bright flecks of gofun)
+  let LW = 1920, LH = 1080;   // logical size the textures are authored at
+  let low = null;             // half-res pulp mottling (the only costly part)
 
-  /** Build textures at logical size (default 1920×1080). ~60–120ms once. */
+  /** Set the logical size (default 1920×1080). The textures are painted lazily. */
   P.build = (W = 1920, H = 1080) => {
+    LW = W; LH = H;
+    low = null;
     fitW = fitH = 0;
-    // work at half resolution for the noise, upscale smoothly: washi mottling
-    // is low-frequency, and fibres are drawn as vectors at full resolution.
-    const w = Math.ceil(W / 2), h = Math.ceil(H / 2);
-    const low = B.canvas(w, h);
+  };
+
+  // work at half resolution for the noise, upscale smoothly: washi mottling
+  // is low-frequency, and fibres are drawn as vectors at full resolution.
+  function mottling() {
+    if (low) return low;
+    const w = Math.ceil(LW / 2), h = Math.ceil(LH / 2);
+    low = B.canvas(w, h);
     const lc = low.getContext('2d');
     const img = lc.createImageData(w, h);
     const d = img.data;
@@ -39,16 +50,24 @@
       }
     }
     lc.putImageData(img, 0, 0);
+    return low;
+  }
 
-    grain = B.canvas(W, H);
-    const g = grain.getContext('2d');
+  /** Paint the multiply layer (g) and the screen layer (l), both bw×bh, directly at that size. */
+  function paint(g, l, bw, bh) {
+    const s = bw / LW;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = 'high';
-    g.drawImage(low, 0, 0, W, H);
+    g.drawImage(mottling(), 0, 0, bw, bh);
+    g.setTransform(s, 0, 0, s, 0, 0);
     // kozo fibres: long, thin, faintly darker hairs
     const r = U.rng(77);
     g.lineCap = 'round';
     for (let i = 0; i < 900; i++) {
-      const x = r() * W, y = r() * H, len = U.lerp(12, 70, r()), a = r() * Math.PI;
+      const x = r() * LW, y = r() * LH, len = U.lerp(12, 70, r()), a = r() * Math.PI;
       const bend = U.lerp(-8, 8, r());
       g.strokeStyle = `rgba(150,128,96,${U.lerp(0.05, 0.16, r())})`;
       g.lineWidth = U.lerp(0.4, 1.1, r());
@@ -59,23 +78,24 @@
     }
     // a few fibre clumps
     for (let i = 0; i < 40; i++) {
-      const x = r() * W, y = r() * H;
+      const x = r() * LW, y = r() * LH;
       g.fillStyle = `rgba(160,140,110,${U.lerp(0.03, 0.08, r())})`;
       g.beginPath();
       g.ellipse(x, y, U.lerp(3, 10, r()), U.lerp(1, 3, r()), r() * Math.PI, 0, U.TAU);
       g.fill();
     }
 
-    light = B.canvas(W, H);
-    const l = light.getContext('2d');
+    l.setTransform(1, 0, 0, 1, 0, 0);
+    l.clearRect(0, 0, bw, bh);
+    l.setTransform(s, 0, 0, s, 0, 0);
     for (let i = 0; i < 2600; i++) {
-      const x = r() * W, y = r() * H;
+      const x = r() * LW, y = r() * LH;
       l.fillStyle = `rgba(255,250,235,${U.lerp(0.03, 0.12, r())})`;
-      const s = U.lerp(0.6, 1.8, r());
-      l.fillRect(x, y, s, s);
+      const sz = U.lerp(0.6, 1.8, r());
+      l.fillRect(x, y, sz, sz);
     }
     for (let i = 0; i < 500; i++) {
-      const x = r() * W, y = r() * H, len = U.lerp(8, 40, r()), a = r() * Math.PI;
+      const x = r() * LW, y = r() * LH, len = U.lerp(8, 40, r()), a = r() * Math.PI;
       l.strokeStyle = `rgba(255,248,230,${U.lerp(0.04, 0.1, r())})`;
       l.lineWidth = U.lerp(0.4, 1, r());
       l.beginPath();
@@ -83,31 +103,46 @@
       l.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
       l.stroke();
     }
-  };
+  }
 
-  // Copies of the textures resampled once to the stage's backing size, so
-  // each frame composites them 1:1 (no per-frame resampling).
-  let fitW = 0, fitH = 0, grainFit = null, lightFit = null;
+  // the textures at the stage's backing size: either the mounted DOM
+  // canvases (compositor) or two offscreen copies (P.apply)
+  let fitW = 0, fitH = 0, grainFit = null, lightFit = null, mounted = null;
+
+  /**
+   * Hand the paper to the compositor: grainEl / lightEl are canvases placed
+   * over the film (css: mix-blend-mode multiply / screen). strength 0..1.
+   */
+  P.mount = (grainEl, lightEl, strength = 1) => {
+    mounted = { g: grainEl, l: lightEl };
+    grainFit = lightFit = null;      // the offscreen pair is no longer needed
+    fitW = fitH = 0;
+    grainEl.style.opacity = String(0.9 * strength);
+    lightEl.style.opacity = String(0.8 * strength);
+  };
+  P.mounted = () => !!mounted;
+
+  /** Size and paint the textures for a backing store of bw×bh (no-op if unchanged). */
   P.fit = (bw, bh) => {
-    if (!grain) P.build();
-    if (bw === fitW && bh === fitH && grainFit) return;
+    if (bw === fitW && bh === fitH) return;
     fitW = bw; fitH = bh;
-    const scaled = (src) => {
-      const c = B.canvas(bw, bh), x = c.getContext('2d');
-      x.imageSmoothingQuality = 'high';
-      x.drawImage(src, 0, 0, bw, bh);
-      return c;
-    };
-    grainFit = scaled(grain);
-    lightFit = scaled(light);
+    if (mounted) {
+      for (const c of [mounted.g, mounted.l]) { c.width = bw; c.height = bh; }
+      paint(mounted.g.getContext('2d', { alpha: false }), mounted.l.getContext('2d'), bw, bh);
+    } else {
+      grainFit = B.canvas(bw, bh);
+      lightFit = B.canvas(bw, bh);
+      paint(grainFit.getContext('2d'), lightFit.getContext('2d'), bw, bh);
+    }
   };
 
   /**
-   * Apply the paper finish over the whole backing store of ctx.
-   * strength 0..1 (engine default 1).
+   * Composite the paper finish over the whole backing store of ctx
+   * (canvas-only path; the film normally uses P.mount). strength 0..1.
    */
   P.apply = (ctx, strength = 1) => {
     const cv = ctx.canvas;
+    if (mounted) return;
     P.fit(cv.width, cv.height);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -120,5 +155,5 @@
     ctx.restore();
   };
 
-  P.grainCanvas = () => grain;
+  P.grainCanvas = () => (mounted ? mounted.g : grainFit);
 })(window.TSUKI = window.TSUKI || {});

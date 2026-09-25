@@ -26,6 +26,8 @@
      GEOM                         the room's measurements (panels, rungs, window, tear…)
      cell(p, c, r)                paper cell rect [x, y, w, h]: panel p 0–3, column c 0–2, row r 0–5
      glow(T)                      {x, y, r} moon glow behind the paper (MOON.B)
+     withCamera(ctx, cam, draw)   a push on the whole shot ({s, about, to}): the stage is printed 1:1
+                                  into a buffer, then scaled once (never every plate scaled)
      draw(ctx, T, opts)           print the shot: opts.id 'B'|'B7', opts.between {layer: fn(ctx, st)},
                                   opts.under fn(ctx, st) (before any layer: e.g. a registered underlay
                                   that shows where a drifting plate leaves paper), opts.skip [layers]
@@ -43,9 +45,11 @@
      softLayer(ctx, name, region, res)  a small low-res layer over [x0,y0,x1,y1] for shadows far
                                   from the paper: paint 藍鼠 coverage in stage coords; the upscale
                                   is the penumbra (res 0.3 ≈ 3 px)
-     softPrint(ctx, T, name, o)   print that layer (multiply via P4; o: alpha, mode, plate, ranges)
-     sharpLayer(ctx, name, region, res?)  the same for crisp silhouettes (default res: ≈0.85
-                                  backing px per logical px — invisible on flat fills, cheaper at 1920);
+     softPrint(ctx, T, name, o)   print that layer (multiply via P4; o: alpha, mode, plate, ranges);
+                                  a full-resolution layer on an unscaled stage is blitted 1:1 on the
+                                  device grid (no filtered resample: ≈9× cheaper than an upscale)
+     sharpLayer(ctx, name, region, res?)  the same for crisp silhouettes (default res 1: one buffer
+                                  px per device px, so softPrint takes the 1:1 path);
                                   compose, then softPrint (layers never compound inside themselves)
      tearPath()                   the ragged hole in panel 2 (七); carved with a dark pre-dawn
                                   backing, torn fibres and three curled flaps (B7)
@@ -314,19 +318,21 @@
       // --- tokonoma ---
       plaster(P1, K, tk.x0, tk.y0, tk.x1 - tk.x0, tk.floor - tk.y0, late ? 0.35 : 0.4, late ? 37 : 36);
       if (late) {
-        // the unfaded rectangle: where the scroll hung for decades the plaster kept its 黄土
+        // the unfaded rectangle: where the scroll hung for decades the plaster kept its 黄土 —
+        // a ghost of the scroll's shape, not a thing: no key line, its edges feathered ≈5 px
+        // (five stacked pulls, each inset 1.2 px, together α 0.4)
         const u = G.unfaded;
-        P1.fillStyle = U.rgba(U.mix(PLASTER, C.sumi, 0.12), 0.72);
-        P1.fillRect(u.x0, u.y0, u.x1 - u.x0, u.y1 - u.y0);
+        P1.fillStyle = U.rgba(U.mix(PLASTER, C.sumi, 0.12), 1 - Math.pow(0.6, 1 / 5));
+        for (let i = 0; i < 5; i++) {
+          const d = i * 1.2 - 2.4;
+          P1.fillRect(u.x0 + d, u.y0 + d, u.x1 - u.x0 - 2 * d, u.y1 - u.y0 - 2 * d);
+        }
         const cx = (u.x0 + u.x1) / 2;
         K.fillStyle = U.rgba(C.sumi, 0.85);
         K.fillRect(cx - 1.5, u.y0 - 28, 3, 6);             // the nail
-        K.strokeStyle = U.rgba(C.sumi, 0.25);
-        K.lineWidth = 1;
-        K.strokeRect(u.x0 + 0.5, u.y0 + 0.5, u.x1 - u.x0 - 1, u.y1 - u.y0 - 1);
       }
       {
-        const k0 = late ? 0.5 : 1;
+        const k0 = late ? 0.75 : 1;                        // (七: the alcove stays dim; only the ghost shows)
         const gt = K.createLinearGradient(0, tk.y0, 0, tk.y0 + 200);
         gt.addColorStop(0, U.rgba(C.sumi, 0.75 * k0));
         gt.addColorStop(1, U.rgba(C.sumi, 0.1 * k0));
@@ -823,6 +829,43 @@
     ctx.restore();
   };
 
+  /**
+   * A camera push on the whole shot: draw(c) paints the unscaled stage into a device-size
+   * buffer (so every plate, layer and the late paper keep their 1:1 blits), clipped to what
+   * the camera sees; the finished impression is then scaled once onto ctx.
+   * cam: { s (≥ 1), about: [x, y] (stage point), to: [x, y] (where it lands on screen) }.
+   */
+  let camBuf = null;
+  SB.withCamera = (ctx, cam, draw) => {
+    if (!cam || cam.s <= 1.0001) { draw(ctx); return; }
+    const cv = ctx.canvas, k = cv.width / W;
+    if (!camBuf || camBuf.width !== cv.width || camBuf.height !== cv.height) camBuf = B.canvas(cv.width, cv.height);
+    const b = camBuf.getContext('2d');
+    b.setTransform(1, 0, 0, 1, 0, 0);
+    b.globalAlpha = 1;
+    b.globalCompositeOperation = 'source-over';
+    b.clearRect(0, 0, camBuf.width, camBuf.height);
+    b.setLineDash([]); b.lineDashOffset = 0; b.miterLimit = 10;
+    // the stage rectangle the camera sees (snapped outward to the device grid)
+    const x0 = Math.max(0, Math.floor((cam.about[0] - cam.to[0] / cam.s) * k - 1) / k);
+    const y0 = Math.max(0, Math.floor((cam.about[1] - cam.to[1] / cam.s) * k - 1) / k);
+    const x1 = Math.min(W, Math.ceil((cam.about[0] + (W - cam.to[0]) / cam.s) * k + 1) / k);
+    const y1 = Math.min(H, Math.ceil((cam.about[1] + (H - cam.to[1]) / cam.s) * k + 1) / k);
+    b.setTransform(k, 0, 0, k, 0, 0);
+    b.save();
+    b.beginPath(); b.rect(x0, y0, x1 - x0, y1 - y0); b.clip();
+    draw(b);
+    b.restore();
+    ctx.save();
+    ctx.translate(cam.to[0], cam.to[1]);
+    ctx.scale(cam.s, cam.s);
+    ctx.translate(-cam.about[0], -cam.about[1]);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'low';
+    ctx.drawImage(camBuf, x0 * k, y0 * k, (x1 - x0) * k, (y1 - y0) * k, x0, y0, x1 - x0, y1 - y0);
+    ctx.restore();
+  };
+
   SB.windowClip = (ctx) => {
     ctx.beginPath();
     ctx.arc(G.window.x, G.window.y, G.window.r, 0, U.TAU);
@@ -962,7 +1005,9 @@
    */
   SB.softLayer = (ctx, name, region, res = 0.3) => {
     const k = ctx.canvas.width / W;
-    const [x0, y0, x1, y1] = region;
+    // the region's origin snapped to the device grid: a res-1 layer then lands pixel on pixel
+    const x0 = Math.floor(region[0] * k) / k, y0 = Math.floor(region[1] * k) / k;
+    const x1 = region[2], y1 = region[3];
     const s = k * res;
     const w = Math.max(1, Math.ceil((x1 - x0) * s)), h = Math.max(1, Math.ceil((y1 - y0) * s));
     // the buffer's size is a pure function of the request (rounded up to 64 px), never of what an
@@ -996,19 +1041,35 @@
     return c;
   };
 
-  /** Print a soft layer onto the paper: 藍鼠 multiply through P4, smoothly upscaled. */
+  /**
+   * Print a soft layer onto the paper: 藍鼠 multiply through P4, smoothly upscaled.
+   * A full-resolution layer (sharpLayer) on an unscaled stage is blitted 1:1 on the
+   * device grid instead — a filtered upscale of the same area costs ≈9× as much.
+   */
   SB.softPrint = (ctx, T, name, opts = {}) => {
     const b = bufs[name];
     if (!b || !b.__region) return;
     const R = b.__region;
+    const k = ctx.canvas.width / W;
     PRINT.with(ctx, opts.plate || 'P4', T, (c) => {
       c.save();
-      if (opts.clip !== false) SB.paperClip(c, opts.ranges);
+      if (opts.clip !== false) SB.paperClip(c, opts.ranges);          // (a clip survives setTransform)
       c.globalCompositeOperation = opts.mode || 'multiply';
       c.globalAlpha *= opts.alpha == null ? 1 : opts.alpha;
-      c.imageSmoothingEnabled = true;
-      c.imageSmoothingQuality = 'medium';
-      c.drawImage(b, 0, 0, R.w, R.h, R.x0, R.y0, R.w / R.s, R.h / R.s);
+      const m = c.getTransform();
+      if (Math.abs(R.s - k) < 1e-6 && m.b === 0 && m.c === 0 && Math.abs(m.a - k) < 1e-6 && Math.abs(m.d - k) < 1e-6) {
+        // 1:1 — the buffer's pixels are device pixels (the region origin is on the grid); the
+        // plate's registration offset (m.e, m.f) is kept, rounded to the device grid
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.imageSmoothingEnabled = false;
+        c.drawImage(b, 0, 0, R.w, R.h, Math.round(R.x0 * k + m.e), Math.round(R.y0 * k + m.f), R.w, R.h);
+      } else {
+        // a true soft layer (res < 1) or a camera move: the smooth upscale is the penumbra
+        // ('low' = bilinear; the mipmaps of 'medium' do nothing for a magnification)
+        c.imageSmoothingEnabled = true;
+        c.imageSmoothingQuality = 'low';
+        c.drawImage(b, 0, 0, R.w, R.h, R.x0, R.y0, R.w / R.s, R.h / R.s);
+      }
       c.restore();
     });
   };
@@ -1019,8 +1080,8 @@
    * softLayer with res 1; print it with softPrint(…, {mode: 'source-over'}).
    */
   SB.sharpLayer = (ctx, name, region, res) => {
-    // flat silhouettes: above ≈0.85 backing px per logical px the extra resolution is invisible
-    const k = ctx.canvas.width / W;
-    return SB.softLayer(ctx, name, region, res == null ? Math.min(1, 0.85 / Math.max(0.01, k)) : res);
+    // one buffer px per device px: softPrint then blits it 1:1 (a lower resolution would only
+    // look the same and cost far more, because the upscale is a filtered resample every frame)
+    return SB.softLayer(ctx, name, region, res == null ? 1 : res);
   };
 })(window.TSUKI = window.TSUKI || {});

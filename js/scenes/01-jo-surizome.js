@@ -201,6 +201,20 @@
     return cv;
   }
 
+  /**
+   * Let 序's full-frame caches go (the deckle, the two key sheets, the ichimonji
+   * scratch) once 序 has been played through — not before it has been drawn at
+   * all (the poster frame is 一's). They are rebuilt on demand after a seek back.
+   */
+  let joDrawn = false;
+  A.releaseJo = () => {
+    if (!joDrawn) return;
+    joDrawn = false;
+    releaseKeys();
+    if (deckle) { deckle.cv.width = 0; deckle.cv.height = 0; deckle = null; }
+    if (A.releaseWipe) A.releaseWipe();
+  };
+
   /** the 鉤見当: a karazuri L embossed 3 px inside the sheet's trimmed corner; a raking light runs along it 0.8–2.0 */
   const KENTO = { x: 1877, y: 1037, L: 46 };
   function kento(ctx, T, a) {
@@ -241,126 +255,142 @@
 
   /* ------------------------------------------------------------------ */
   /* 2–6 s: only the key block exists yet. Every layer's K plate goes into */
-  /* one sheet and the baren spiral (PRINT's keyReveal) masks it once.    */
+  /* one sheet, and the baren's spiral out of the house reveals it.       */
   /* ------------------------------------------------------------------ */
-  let maskCv = null, seamCv = null;
-  const SPIRAL = { cx: 1180, cy: 560, pitch: 160 };
+  // The baren circles once per CUES.baren.stroke (0.7 s — the score's rub and
+  // its stereo circling), so the spiral's front turns at the same rate: the
+  // reach grows linearly over PRINT's 2 → 6 and the pitch is the reach per
+  // circle (1300 px / (4 s / 0.7 s) ≈ 228 px). The spiral starts pointing up
+  // and turns clockwise, so the front is at the right when the rub pans right.
+  // (PRINT.state's keyReveal gates it and gives the centre; its eased reach and
+  // width are not used here.)
+  const REACH = 1300;
+  const barenCue = () => { const c = TSUKI.CUES && TSUKI.CUES.baren; return c && c.stroke > 0 ? c : { from: 2, to: 6, stroke: 0.7 }; };
+  const SPIRAL = (() => {
+    const X = PRINT.TIMES, cue = barenCue();
+    const t0 = X.printStart, t1 = X.keyDone;
+    return { cx: 1180, cy: 560, t0, t1, pitch: (REACH * cue.stroke) / (t1 - t0), rot: -Math.PI / 2 };
+  })();
+  const spiralB = () => SPIRAL.pitch / TAU;
+  const reachAt = (T) => REACH * U.clamp((T - SPIRAL.t0) / (SPIRAL.t1 - SPIRAL.t0));
   const wAt = (th) => SPIRAL.pitch * (1.0 + 0.18 * (U.noise1(th * 1.7, 5) - 0.5)) + 6;
-  /** the starved seams between the baren's turns: goma-zuri dots fixed to the spiral (built once) */
-  function seamTexture(cw, ch) {
-    if (seamCv && seamCv.width === cw && seamCv.height === ch) return seamCv;
-    seamCv = B.canvas(cw, ch);
-    const c = seamCv.getContext('2d'), k = cw / W;
-    c.setTransform(k, 0, 0, k, 0, 0);
-    const b = SPIRAL.pitch / TAU, r = U.rng(606);
-    const p1 = new Path2D(), p2 = new Path2D();
-    for (let th = TAU * 0.5; th < 60; th += 0.004) {
-      const rr = r(), rr2 = r();
-      if (rr > 0.3) continue;
-      const rad = b * th + SPIRAL.pitch / 2 + U.lerp(-5, 5, rr2);
-      const x = SPIRAL.cx + Math.cos(th) * rad, y = SPIRAL.cy + Math.sin(th) * rad;
-      if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
-      (rr < 0.12 ? p1 : p2).rect(x, y, U.lerp(1, 2, r()), U.lerp(1, 2, r()));
+  const spiralPt = (th, rad) => [SPIRAL.cx + Math.cos(th + SPIRAL.rot) * rad, SPIRAL.cy + Math.sin(th + SPIRAL.rot) * rad];
+
+  /**
+   * One band of the rub as a fill path (stage coords): the spiral from th0 to
+   * th1, its half-width hk·wAt/2 breathing along it (the baren's pressure);
+   * adjacent turns overlap or leave a starved seam where both run narrow.
+   * cap: round end at th1. Returns { path, box: [x0, y0, x1, y1] }.
+   */
+  function band(th0, th1, hk, cap) {
+    const b = spiralB(), path = new Path2D();
+    const outer = [], inner = [];
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    const grow = (p) => { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; };
+    for (let th = th0; ; ) {
+      const r = b * th, h = (wAt(th) * hk) / 2;
+      const o = spiralPt(th, r + h), i = spiralPt(th, Math.max(0, r - h));
+      outer.push(o); inner.push(i); grow(o);
+      if (th >= th1) break;
+      th = Math.min(th1, th + U.clamp(Math.sqrt(2 / Math.max(20, r + h)), 0.012, 0.15));
     }
-    c.fillStyle = 'rgba(0,0,0,0.85)'; c.fill(p1);
-    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fill(p2);
-    return seamCv;
-  }
-  function barenMask(like, kr) {
-    const cv = like.canvas;
-    if (!maskCv || maskCv.width !== cv.width || maskCv.height !== cv.height) maskCv = B.canvas(cv.width, cv.height);
-    const m = maskCv.getContext('2d');
-    m.setTransform(1, 0, 0, 1, 0, 0);
-    m.globalCompositeOperation = 'source-over';
-    m.globalAlpha = 1;
-    m.clearRect(0, 0, maskCv.width, maskCv.height);
-    const k = cv.width / W;
-    m.setTransform(k, 0, 0, k, 0, 0);
-    m.lineCap = 'round';
-    m.lineJoin = 'round';
-    m.strokeStyle = '#000';
-    const b = SPIRAL.pitch / TAU;
-    const thMax = kr.reach / b;
-    const lead = Math.max(0, thMax - 1.25 * TAU);
-    const P = (th) => [SPIRAL.cx + Math.cos(th) * b * th, SPIRAL.cy + Math.sin(th) * b * th];
-    // the full pressure, in short runs of one width each; then the leading turn
-    // and a quarter as a lighter, narrower first pass
-    const run = (t0, t1, wk, a) => {
-      const step = 0.07, span = Math.max(0.35, Math.min(0.9, 60 / (b * Math.max(1, t0))));
-      m.globalAlpha = a;
-      for (let th = t0; th < t1; th += span) {
-        const e = Math.min(t1, th + span);
-        m.lineWidth = wAt((th + e) / 2) * wk;
-        m.beginPath();
-        let p = P(th);
-        m.moveTo(p[0], p[1]);
-        for (let u = th + step; u <= e + 1e-6; u += step) { p = P(u); m.lineTo(p[0], p[1]); }
-        m.stroke();
-      }
-    };
-    run(0, lead, 1, 1);
-    run(lead, thMax, 0.82, 0.6);
-    m.globalAlpha = 1;
-    m.globalCompositeOperation = 'destination-out';
-    // the seams, inside the turns already rubbed
-    if (lead > TAU * 0.5) {
-      m.save();
-      const R = b * lead + SPIRAL.pitch * 0.45;
-      m.beginPath();
-      m.arc(SPIRAL.cx, SPIRAL.cy, R, 0, TAU);
-      m.clip();
-      m.setTransform(1, 0, 0, 1, 0, 0);
-      const tex = seamTexture(maskCv.width, maskCv.height);
-      const x0 = Math.max(0, Math.floor((SPIRAL.cx - R) * k)), y0 = Math.max(0, Math.floor((SPIRAL.cy - R) * k));
-      const x1 = Math.min(tex.width, Math.ceil((SPIRAL.cx + R) * k)), y1 = Math.min(tex.height, Math.ceil((SPIRAL.cy + R) * k));
-      if (x1 > x0 && y1 > y0) m.drawImage(tex, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
-      m.restore();
+    path.moveTo(outer[0][0], outer[0][1]);
+    for (let k = 1; k < outer.length; k++) path.lineTo(outer[k][0], outer[k][1]);
+    if (cap) {
+      const r = b * th1, h = (wAt(th1) * hk) / 2, c = spiralPt(th1, r), a = th1 + SPIRAL.rot;
+      path.arc(c[0], c[1], h, a, a + Math.PI, false);
+      grow([c[0] - h, c[1] - h]); grow([c[0] + h, c[1] + h]);
     }
-    // the rubbed, not cut, outer edge of the leading turn
-    const edge = new Path2D();
-    for (let i = Math.ceil(lead / 0.01); i * 0.01 < thMax; i++) {
-      const th = i * 0.01, rr = U.hash(i * 3 + 1), off = U.hash(i * 3 + 2), sz = U.hash(i * 3 + 3);
-      if (rr > 0.45) continue;
-      const rad = b * th + wAt(th) * 0.82 / 2 - off * 12;
-      edge.rect(SPIRAL.cx + Math.cos(th) * rad, SPIRAL.cy + Math.sin(th) * rad, 1 + sz, 1 + sz * 0.6);
+    for (let k = inner.length - 1; k >= 0; k--) { path.lineTo(inner[k][0], inner[k][1]); grow(inner[k]); }
+    path.closePath();
+    if (th0 <= 0) {
+      // the first press, at the house: a full disc under the pad (same winding: the union fills)
+      const h = wAt(0) / 2;
+      path.moveTo(SPIRAL.cx + h, SPIRAL.cy);
+      path.arc(SPIRAL.cx, SPIRAL.cy, h, 0, TAU, false);
+      grow([SPIRAL.cx - h, SPIRAL.cy - h]); grow([SPIRAL.cx + h, SPIRAL.cy + h]);
     }
-    m.fillStyle = 'rgba(0,0,0,0.9)';
-    m.fill(edge);
-    return maskCv;
+    return { path, box: [x0 - 2, y0 - 2, x1 + 2, y1 + 2] };
   }
 
-  // the whole key block of Shot A, flattened once into one sheet (the K plates do not move in 序)
-  let keySheet = null;
-  function keySheetFor(ctx, T) {
-    const cv = ctx.canvas;
-    if (keySheet && keySheet.width === cv.width && keySheet.height === cv.height) return keySheet;
-    keySheet = B.canvas(cv.width, cv.height);
-    const s = keySheet.getContext('2d');
-    s.setTransform(cv.width / W, 0, 0, cv.width / W, 0, 0);
-    s.imageSmoothingEnabled = false;
-    const bare = Object.assign({}, PRINT.state(3), { keyReveal: null });
-    for (const l of ['far', 'grove', 'house', 'field', 'pond', 'banks', 'still']) PRINT.drawLayer(s, 'A', l, T, { state: bare, only: ['K'] });
-    return keySheet;
+  // the whole key block of Shot A, flattened once (the K plates do not move in 序),
+  // in two impressions: rubbed hard, its seams between the turns left a little
+  // starved (goma-zuri); and the leading first pass, its outer edge rubbed, not cut
+  let keys = null;
+  function keySheets(cw, ch) {
+    if (keys && keys.cw === cw && keys.ch === ch) return keys;
+    releaseKeys();
+    const k = cw / W, b = spiralB();
+    const sheet = () => {
+      const cv = B.canvas(cw, ch), s = cv.getContext('2d');
+      s.setTransform(k, 0, 0, k, 0, 0);
+      s.imageSmoothingEnabled = false;
+      const bare = Object.assign({}, PRINT.state(3), { keyReveal: null });
+      for (const l of ['far', 'grove', 'house', 'field', 'pond', 'banks', 'still']) PRINT.drawLayer(s, 'A', l, 3, { state: bare, only: ['K'] });
+      s.globalCompositeOperation = 'destination-out';
+      return { cv, s };
+    };
+    // the seams: goma-zuri dots fixed to the spiral, between one turn and the next
+    const hard = sheet();
+    {
+      const r = U.rng(606), p1 = new Path2D(), p2 = new Path2D();
+      for (let th = TAU * 0.5; th < 60; th += 0.004) {
+        const rr = r(), rr2 = r();
+        if (rr > 0.3) continue;
+        const [x, y] = spiralPt(th, b * th + SPIRAL.pitch / 2 + U.lerp(-5, 5, rr2));
+        if (x < -20 || x > W + 20 || y < -20 || y > H + 20) { r(); r(); continue; }
+        (rr < 0.12 ? p1 : p2).rect(x, y, U.lerp(1, 2, r()), U.lerp(1, 2, r()));
+      }
+      hard.s.fillStyle = 'rgba(0,0,0,0.85)'; hard.s.fill(p1);
+      hard.s.fillStyle = 'rgba(0,0,0,0.55)'; hard.s.fill(p2);
+    }
+    // the rubbed edge of the leading pass (only ever seen inside that band)
+    const lead = sheet();
+    {
+      const edge = new Path2D();
+      for (let i = 0; i * 0.01 < 60; i++) {
+        const th = i * 0.01, rr = U.hash(i * 3 + 1), off = U.hash(i * 3 + 2), sz = U.hash(i * 3 + 3);
+        if (rr > 0.45) continue;
+        const [x, y] = spiralPt(th, b * th + (wAt(th) * 0.82) / 2 - off * 12);
+        if (x < -10 || x > W + 10 || y < -10 || y > H + 10) continue;
+        edge.rect(x, y, 1 + sz, 1 + sz * 0.6);
+      }
+      lead.s.fillStyle = 'rgba(0,0,0,0.9)';
+      lead.s.fill(edge);
+    }
+    keys = { cw, ch, hard: hard.cv, lead: lead.cv };
+    return keys;
+  }
+  function releaseKeys() {
+    if (!keys) return;
+    for (const cv of [keys.hard, keys.lead]) { cv.width = 0; cv.height = 0; }
+    keys = null;
+  }
+  /** blit sheet cv through the clip `path`, only over the band's box (device px) */
+  function printThrough(ctx, cv, bd, alpha) {
+    const k = ctx.canvas.width / W;
+    const x0 = Math.max(0, Math.floor(bd.box[0] * k)), y0 = Math.max(0, Math.floor(bd.box[1] * k));
+    const x1 = Math.min(cv.width, Math.ceil(bd.box[2] * k)), y1 = Math.min(cv.height, Math.ceil(bd.box[3] * k));
+    if (x1 <= x0 || y1 <= y0) return;
+    ctx.save();
+    ctx.clip(bd.path);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha *= alpha;
+    ctx.drawImage(cv, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    ctx.restore();
   }
   function keyBlockOnly(ctx, T) {
-    const st = PRINT.state(T);
-    const kr = st.keyReveal;
-    if (!kr || kr.reach <= 1) return;
-    // the baren: an Archimedean spiral out of the house (same law as PRINT's),
-    // rubbed by hand — its pressure breathes along the stroke, the seams where
-    // one turn meets the next stay a little starved (goma-zuri), the leading
-    // turn is a lighter first pass and its outer edge is rubbed, not cut
-    const m = barenMask(ctx, kr).getContext('2d');
-    m.save();
-    m.setTransform(1, 0, 0, 1, 0, 0);
-    m.globalAlpha = 1;
-    m.globalCompositeOperation = 'source-in';
-    m.drawImage(keySheetFor(ctx, T), 0, 0);
-    m.restore();
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(maskCv, 0, 0);
-    ctx.restore();
+    const kr = PRINT.state(T).keyReveal;
+    if (!kr) return;
+    const reach = reachAt(T);
+    if (reach <= 1) return;
+    // the baren: the full pressure out to one turn and a quarter behind the
+    // front; the leading turn and a quarter a lighter, narrower first pass
+    const thMax = reach / spiralB();
+    const lead = Math.max(0, thMax - 1.25 * TAU);
+    const K = keySheets(ctx.canvas.width, ctx.canvas.height);
+    if (lead > 0) printThrough(ctx, K.hard, band(0, lead, 1, false), 1);
+    printThrough(ctx, K.lead, band(lead, thMax, 0.82, true), 0.6);
   }
 
   /* ------------------------------------------------------------------ */
@@ -421,13 +451,20 @@
 
   TSUKI.scene('jo-surizome', {
     init(S) {
-      glowSprite(Math.min(2, Math.max(0.5, S.k || 1)));
-      seamTexture(Math.round(W * (S.k || 1)), Math.round(H * (S.k || 1)));
+      // everything 序 needs, built before the first frame (released again once 一 has begun: A.releaseJo)
+      const k = S.k || 1, kk = Math.min(2, Math.max(0.5, k));
+      const cw = Math.round(W * k), ch = Math.round((cw * H) / W);
+      glowSprite(kk);
+      deckleSprite(Math.min(1.5, kk));
+      panels(Math.max(1, Math.min(2, k)));
+      try { keySheets(cw, ch); } catch (e) { /* built on demand */ }
+      if (A.warmWipe) A.warmWipe(cw, ch);
     },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
       const k = Math.min(2, Math.max(0.5, S.k || 1));
       const st = PRINT.state(T);
+      joDrawn = true;
       // the warmth arrives with the spiral (2 → 3.4) at ×0.3 and grows as the colour lands;
       // until the sky block lands (9.0) it lies on the bare paper, then the sky carries it
       const warm = T < 2 ? 0 : T < 6 ? 0.38 * U.seg(T, 2, 3.4, U.ease.inOutSine) : U.lerp(0.38, 1, U.seg(T, 6, 9.6, U.ease.inOutSine));

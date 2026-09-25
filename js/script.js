@@ -63,7 +63,7 @@
         shot: "A (後摺), A′ inserts, 月に雁 crop",
         transition: {"type":"cut","dur":0},
         text: [
-          {"t":13.6,"dur":8,"kind":"kanshi","ja":["三五夜中新月色","二千里外故人心"],"author":"白居易","seal":"月","seal_style":"朱文","zh":"白居易《八月十五日夜禁中独直对月忆元九》","position":"left","x":440,"y":120,"ink":"dark","size":44,"chirashi":[0,0]},
+          {"t":13.6,"dur":8,"kind":"kanshi","ja":["三五夜中新月色","二千里外故人心"],"author":"白居易","seal":"月","seal_style":"朱文","zh":"白居易《八月十五日夜禁中独直对月忆元九》","position":"left","x":440,"y":120,"ink":"dark","size":44,"chirashi":[0,0],"sub_ink":"dark"},
         ],
       },
       {
@@ -80,7 +80,7 @@
         transition: {"type":"cut","dur":0},
         text: [
           {"t":1.3,"dur":6.7,"kind":"narration","ja":["その煙、いまだ雲の中へ","立ち昇るとぞ、言ひ伝へたる。"],"author":"竹取物語","seal":"月","seal_style":"朱文","zh":"据说，那烟至今仍向云中升腾。","position":"upper-left","x":120,"y":70,"ink":"dark","size":32},
-          {"t":20.8,"dur":10.8,"kind":"haiku","ja":["影ひとつ","格子をのぼる","良夜かな"],"author":"小夜","seal":false,"zh":"一道影子，攀上窗格——好一个良宵。","position":"upper-right","x":1180,"y":170,"ink":"dark","size":52},
+          {"t":20.8,"dur":10.8,"kind":"haiku","ja":["影ひとつ","格子をのぼる","良夜かな"],"author":"小夜","seal":false,"zh":"一道影子，攀上窗格——好一个良宵。","position":"upper-right","x":1180,"y":170,"ink":"dark","size":52,"sub_ink":"dark"},
         ],
       },
     ],

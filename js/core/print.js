@@ -157,6 +157,7 @@
   /* ------------------------------------------------------------------ */
   const defs = {};
   const built = {};
+  const lastUsed = {};       // performance.now() of each shot's last print (rebuild order only)
   let quality = 1;
 
   /**
@@ -169,14 +170,45 @@
    */
   PRINT.defineShot = (id, def) => { defs[id] = def; delete built[id]; };
 
-  /** Choose cache resolution (backing px per logical px); rebuilds lazily. */
+  /**
+   * Choose the cache resolution (backing px per logical px, 0.5…1.0: the
+   * stage never needs more than 1920 px). Shots not yet carved use it
+   * exactly (so plates blit 1:1). Shots already carved are kept — drawn
+   * scaled — unless they would now be enlarged by > 8 % (soft) or are
+   * oversampled by > 1.5×; those are re-carved in the background, one shot
+   * per idle task, and swapped in when done — but never while
+   * PRINT.deferWhile() is true (the engine: while the film plays, since a
+   * carve blocks the main thread for up to a second). Nothing is rebuilt
+   * in render.
+   */
   PRINT.setQuality = (k) => {
-    const q = U.clamp(k, 0.5, 1.34);
-    if (Math.abs(q - quality) / quality > 0.05) {
-      quality = q;
-      for (const id of Object.keys(built)) delete built[id];
-    }
+    quality = U.clamp(k, 0.5, 1.0);
+    const stale = Object.keys(built).filter((id) => quality > built[id].q * 1.08 || quality < built[id].q / 1.5);
+    if (stale.length) recarve(stale);
   };
+  PRINT.quality = () => quality;
+  PRINT.deferWhile = null;
+
+  let recarveGen = 0;
+  const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 60));
+  function recarve(ids) {
+    const gen = ++recarveGen;
+    const queue = ids.slice();
+    const step = () => {
+      if (gen !== recarveGen) return;                  // superseded by a newer size
+      if (PRINT.deferWhile && PRINT.deferWhile()) { setTimeout(() => idle(step), 400); return; }
+      // the shots printed most recently first
+      queue.sort((a, b) => (lastUsed[b] || 0) - (lastUsed[a] || 0));
+      const id = queue.shift();
+      if (id == null) return;
+      const sh = built[id];
+      if (sh && (quality > sh.q * 1.08 || quality < sh.q / 1.5)) {
+        try { build(id); } catch (e) { console.error('[print] recarve', id, e); }
+      }
+      if (queue.length) idle(step);
+    };
+    idle(step);
+  }
 
   /** Trim a full-frame plate canvas to its ink. Returns {c,x,y,w,h} in logical px, or null. */
   function trim(cv, q) {
@@ -245,7 +277,9 @@
     if (!def) throw new Error(`PRINT: unknown shot ${id}`);
     const q = quality;
     const raw = {};
+    let done = false;
     const P = (layer, plate) => {
+      if (done) throw new Error(`PRINT: the blocks of shot ${id} are already carved (P called after build)`);
       const key = `${layer}|${plate}`;
       if (!raw[key]) {
         const cv = B.canvas(W * q, H * q);
@@ -256,7 +290,8 @@
       }
       return raw[key].cx;
     };
-    def.build(P, q);
+    try { def.build(P, q); } catch (e) { release(raw); done = true; throw e; }
+    done = true;
     const shot = { id, layers: {}, q };
     for (const l of def.layers) shot.layers[l] = {};
     for (const key of Object.keys(raw)) {
@@ -264,6 +299,10 @@
       if (!shot.layers[layer]) shot.layers[layer] = {};
       const [pid, variant] = plate.split('~');
       const t = trim(cv, q);
+      // the full-frame raw plate is no longer needed: free its backing store
+      // now, even if a shot kept a reference to P or to this context
+      cv.width = 0; cv.height = 0;
+      raw[key] = null;
       if (!t) continue;
       const slot = shot.layers[layer][pid] || (shot.layers[layer][pid] = {});
       if (variant === 'worn') slot.worn = t; else slot.orig = t;
@@ -278,11 +317,17 @@
     built[id] = shot;
     return shot;
   }
+  function release(raw) {
+    for (const key of Object.keys(raw)) if (raw[key]) { raw[key].cv.width = 0; raw[key].cv.height = 0; raw[key] = null; }
+  }
 
   PRINT.shot = (id) => built[id] || build(id);
   /** Build every registered shot now (call during loading, not mid-film). */
   PRINT.buildAll = () => { for (const id of Object.keys(defs)) PRINT.shot(id); };
   PRINT.has = (id) => !!defs[id];
+  /** Registered shot ids, and whether one is carved (for a loader that builds one per task). */
+  PRINT.ids = () => Object.keys(defs);
+  PRINT.isBuilt = (id) => !!built[id];
 
   let scratch = null;
   function scratchFor(ctx) {
@@ -297,10 +342,29 @@
     return s;
   }
 
-  function blit(ctx, pl, dx, dy, a) {
+  /**
+   * Print one plate. When the plate is cached at exactly the resolution it
+   * is drawn at (axis-aligned, scale = its q), it is copied 1:1 at a whole
+   * device pixel — no resampling — so a misregistering block moves in 1-px
+   * steps, as a real block would. Otherwise it is drawn scaled.
+   */
+  function blit(ctx, pl, dx, dy, a, m) {
     if (!pl || a <= 0.001) return;
     ctx.globalAlpha = a;
-    ctx.drawImage(pl.c, pl.x + dx, pl.y + dy, pl.w, pl.h);
+    if (m && m.b === 0 && m.c === 0 && Math.abs(m.a * pl.w - pl.c.width) < 0.5 && Math.abs(m.d * pl.h - pl.c.height) < 0.5) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(pl.c, Math.round(m.a * (pl.x + dx) + m.e), Math.round(m.d * (pl.y + dy) + m.f));
+      ctx.restore();
+    } else if (m && Math.abs(m.a) * pl.w < pl.c.width * 0.7) {
+      // a strong reduction (a camera pulling back): keep the filtered path
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(pl.c, pl.x + dx, pl.y + dy, pl.w, pl.h);
+      ctx.imageSmoothingQuality = 'low';
+    } else {
+      ctx.drawImage(pl.c, pl.x + dx, pl.y + dy, pl.w, pl.h);
+    }
   }
 
   function spiralMask(s, kr) {
@@ -338,7 +402,10 @@
     if (!L) return;
     const st = opts.state || PRINT.state(T);
     const wear = opts.wear == null ? st.wear : opts.wear;
+    lastUsed[id] = performance.now();
     ctx.save();
+    ctx.imageSmoothingQuality = 'low';
+    const m = ctx.getTransform();
     for (const pid of PRINT.ORDER) {
       const slot = L[pid];
       if (!slot) continue;
@@ -349,11 +416,12 @@
       const [dx, dy] = st.off[pid] || [0, 0];
       ctx.globalCompositeOperation = pid === 'P8' ? 'lighter' : 'source-over';
       const drawSlot = (c) => {
-        if (wear > 0 && slot.worn && wear < 1) { blit(c, slot.orig, dx, dy, a * (1 - wear)); blit(c, slot.worn, dx, dy, a * wear); }
-        else blit(c, wear >= 1 && slot.worn ? slot.worn : slot.orig || slot.worn, dx, dy, a);
+        if (wear > 0 && slot.worn && wear < 1) { blit(c, slot.orig, dx, dy, a * (1 - wear), m); blit(c, slot.worn, dx, dy, a * wear, m); }
+        else blit(c, wear >= 1 && slot.worn ? slot.worn : slot.orig || slot.worn, dx, dy, a, m);
       };
       if (pid === 'K' && st.keyReveal) {
         const s = scratchFor(ctx);
+        s.imageSmoothingQuality = 'low';
         drawSlot(s);
         s.globalAlpha = 1;
         spiralMask(s, st.keyReveal);
@@ -449,7 +517,27 @@
     ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = amt;
-    ctx.drawImage(foxingSprite(), 0, 0, W, H);
+    const m = ctx.getTransform();
+    if (m.b === 0 && m.c === 0 && m.a === m.d && m.a > 0) {
+      // the foxing resampled once to this scale, then copied 1:1 (a half-res
+      // → full-frame 'high' resample costs 20–50 ms per call)
+      const f = foxingAt(m.a);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(f, Math.round(m.e), Math.round(m.f));
+    } else {
+      ctx.imageSmoothingQuality = 'low';
+      ctx.drawImage(foxingSprite(), 0, 0, W, H);
+    }
     ctx.restore();
   };
+  let foxFit = null;
+  function foxingAt(k) {
+    const w = Math.round(W * k), h = Math.round(H * k);
+    if (foxFit && foxFit.width === w && foxFit.height === h) return foxFit;
+    foxFit = B.canvas(w, h);
+    const x = foxFit.getContext('2d');
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(foxingSprite(), 0, 0, w, h);
+    return foxFit;
+  }
 })(window.TSUKI = window.TSUKI || {});

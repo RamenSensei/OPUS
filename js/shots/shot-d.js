@@ -380,7 +380,9 @@
   ];
   function fireLevel(T) {
     const flare = U.env(T, J.into - 0.05, J.into + 0.08, J.flash + 0.1, J.rise + 0.2) * 0.4;
-    const die = 1 - U.smoothstep(J.rise, 103.2, T);
+    // the flames go out inside the stop (99.0–100.2), with the fire's sound;
+    // only the embers (to 106.6) and the smoke (from 100.0) outlive them
+    const die = 1 - U.smoothstep(J.flash, J.flash + 1.2, T);
     return Math.max(0, die + flare * die);
   }
   /**
@@ -668,7 +670,12 @@
   /* ------------------------------------------------------------------ */
   /* smoke → maria                                                       */
   /* ------------------------------------------------------------------ */
-  /** The 杵's swing (radians, + toward the mortar): ぺったん every 1.6 s from 106.4. */
+  /**
+   * The 杵's swing (radians, + toward the mortar): ぺったん every 1.6 s from
+   * 106.4, on the score's pestle cues. The picture never stops pounding: the
+   * SOUND fades to nothing over 108–112 (CUES.pestleFade) while the rabbit
+   * keeps striking through the tilt and over the garden until the cut at 118.
+   */
   SD.pestle = (T) => {
     if (T < 106.0) return 0;
     const A = U.deg(18);
@@ -681,8 +688,7 @@
       else if (ph < 0.76) a = -A;
       else a = U.lerp(-A, A, E.inQuad((ph - 0.76) / 0.24));
     }
-    // the tilt takes it away: the motion fades out to the rest pose by 111
-    return a * (1 - E.inOutSine(U.seg(T, 108, 111)));
+    return a;
   };
 
   /**

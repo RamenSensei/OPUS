@@ -43,6 +43,8 @@
   const KAG_END_S = 1.0;                               // puppet scale (woman 190·s px)
   const KAG_END = [ENGAWA.x + 8, ENGAWA.y - 16];
   const TAKE = { x: 1552, y: 968, s: 1.95 };            // たけ's body shadow (anchor = knees on the floor)
+  // たけ's hands move a puppet on each paper rustle of the score (TSUKI.CUES, AUDIO_API.md)
+  const rustle = () => (TSUKI.CUES && TSUKI.CUES.puppetRustle) || [40.7, 42.7, 49.8, 54.2, 59.8];
 
   /** where the oval card (her feet) is, its scale and growth, at T */
   function kaguyaCarry(T, node) {
@@ -68,12 +70,17 @@
     return { pos, s, grow };
   }
 
-  /** the paper moon: centre, and how far it has come (0..1) */
+  /**
+   * the paper moon: centre, and how far it has come (0..1). It is lifted on the last
+   * rustle (59.8) from fully beyond panel 4's right edge (1620 + r + 20), so its shadow
+   * slides in from the right over the 60.0 beat, and aligns with the glow at 63.0.
+   */
   function paperMoon(T) {
     const gl = SB.glow(T);
-    const u = E.outCubic(U.seg(T, 60, 63));
-    const start = [1548, 548];
-    return { x: U.lerp(start[0], gl.x, u), y: U.lerp(start[1], gl.y, u), r: 150, u, on: T >= 59.9 };
+    const t0 = rustle()[4];
+    const u = E.outCubic(U.seg(T, t0, 63));
+    const start = [1790, 548];
+    return { x: U.lerp(start[0], gl.x, u), y: U.lerp(start[1], gl.y, u), r: 150, u, on: T >= t0 };
   }
 
   /* ------------------------------------------------------------------ */
@@ -318,7 +325,8 @@
 
   function shadows(c, T) {
     // ---------- たけ: body and arm, far from the paper (soft, lighter) ----------
-    const liftBamboo = U.env(T, 40.9, 41.7, 42.1, 42.9) * 0.34;
+    const R = rustle();
+    const liftBamboo = U.env(T, R[0], R[0] + 1.0, 42.1, 42.9) * 0.34;   // the arm moves on the rustle; the culms rise on the biwa (41.0)
     const reach = U.seg(T, 59.6, 60.4, E.inOutSine) * 0.22;         // her arm goes out low, off the paper, to the moon
     const lift = Math.max(liftBamboo, reach);
     const breath = Math.sin(T * 1.3) * 0.6;
@@ -342,7 +350,7 @@
     if (pm.on) moonHand = moonGrip(pm);
     // one soft layer for both hands and たけ: they never compound
     const pushFade = 1 - U.seg(T, 64.1, 65.3, E.inOutSine);
-    if (moonHand && pushFade > 0.01) {
+    if (moonHand && pushFade > 0.01 && moonHand[0] - 70 < G.panels[3][1]) {
       const hl2 = SB.softLayer(c, 'mhand', [moonHand[0] - 70, moonHand[1] - 60, Math.min(G.panels[3][1], moonHand[0] + 300), G.bottom + 40], 0.34);
       hl2.fill(fistPath(moonHand[0], moonHand[1], 1.3, 1.12, false));
       SB.softPrint(c, T, 'mhand', { alpha: 0.6 * pushFade });
@@ -376,12 +384,13 @@
       S.fill(pb.path, pb.rule);
       if (pb.sticks) S.fill(pb.sticks);
     }
-    // the bamboo-cutter (43: walks in along the bottom rail; no axe — the tale has none)
-    if (T >= 42.9) {
-      const u = U.seg(T, 43.0, 45.8);
+    // the bamboo-cutter (43: walks in along the bottom rail; no axe — the tale has none).
+    // He starts on the rustle (42.7), so on the biwa (43.0) he is already ≈22 px into panel 4.
+    if (T >= R[1]) {
+      const u = U.seg(T, R[1], 45.8);
       const x = U.lerp(OKINA.x0, OKINA.x1, E.outSine(u));
       const walking = u < 1;
-      const phase = walking ? (T - 43) * 0.9 : 2.52 + U.seg(T, 45.8, 46.3) * 0.2;
+      const phase = walking ? (T - R[1]) * (2.52 / (45.8 - R[1])) : 2.52 + U.seg(T, 45.8, 46.3) * 0.2;
       const bow = U.seg(T, 48.2, 49.4, E.inOutSine);   // he bends to the shining culm
       const ok = CAST.puppet('okina', null, x, OKINA.y + bow * 2, OKINA.s, { pose: 'walk', phase, facing: -1, t: T, stickAngle: 0.1, stickLen: 70 });
       const O = SB.sharpLayer(c, 'okina', [x - 200, OKINA.y - 260, x + 200, G.bottom]);
@@ -566,22 +575,24 @@
       ctx.lineDashOffset = 0;
       ctx.miterLimit = 10;
       // the push-in on the ring (64–66): scale 1 → 1.5, ring centre → (960,610)
+      // (the stage is printed 1:1 into a buffer and the impression scaled once: SB.withCamera)
       const e = E.inOutSine(U.seg(T, 64, 66));
+      let cam = null;
       if (e > 0) {
         const gl = SB.glow(T);
-        const s = U.lerp(1, 1.5, e);
-        const to = [U.lerp(gl.x, 960, e), U.lerp(gl.y, 610, e)];
-        ctx.translate(to[0], to[1]);
-        ctx.scale(s, s);
-        ctx.translate(-gl.x, -gl.y);
+        cam = { s: U.lerp(1, 1.5, e), about: [gl.x, gl.y], to: [U.lerp(gl.x, 960, e), U.lerp(gl.y, 610, e)] };
       }
       // as the paper moon covers the glow the room sinks: only the ring of real light remains
       const ecl = E.inOutSine(U.seg(T, 61.0, 63.2));
-      SB.draw(ctx, T, {
-        between: {
-          base: (c) => { SB.moonInWindow(c, T); SB.light(c, T, { eclipse: ecl }); nodeGlow(c, T); shadows(c, T); },
-          ink: (c) => { SB.tokonomaShade(c, T, 0.7 + 0.2 * ecl); sayo(c, T); },
-        },
+      SB.withCamera(ctx, cam, (cx) => {
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'low';
+        SB.draw(cx, T, {
+          between: {
+            base: (c) => { SB.moonInWindow(c, T); SB.light(c, T, { eclipse: ecl }); nodeGlow(c, T); shadows(c, T); },
+            ink: (c) => { SB.tokonomaShade(c, T, 0.7 + 0.2 * ecl); sayo(c, T); },
+          },
+        });
       });
     },
   });

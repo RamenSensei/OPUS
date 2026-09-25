@@ -66,12 +66,17 @@
     // 二: the biwa narrates each shadow beat; kagura-suzu as the culm shines / the girl appears
     biwa: [41.0, 43.0, 46.0, 48.0, 50.5, 52.5, 54.5, 57.0],
     kaguraSuzu: [46.0, 48.0],
-    puppetRustle: [40.7, 42.7, 49.8, 54.2, 59.8],
+    // たけ's hands move a puppet: the bamboo lifted, the cutter set walking, Kaguya's stick taken (49.8),
+    // the carry across panel 2 (54.5, on the biwa: the morph has come to rest, the card moves off again),
+    // the paper moon lifted in (59.8)
+    puppetRustle: [40.7, 42.7, 49.8, 54.5, 59.8],
     // 三: spout drops (every 2.3 s from 72.0, stopping for the 間 82.2–86.0) and the
     //     fifteen beads that leak from the child's palms (75.4 → 82.2, evenly)
     spoutDrops: every(72.0, 2.3, 82.0),
     palmBeads: Array.from({ length: 15 }, (_, k) => r3(75.4 + (k * 6.8) / 14)),
     splash: [67.9],
+    // 四: the leap — the rabbit leaves the ground (its parabola starts here, no crouch): the biwa's bachi strike
+    leap: [98.0],
     // 四: every insect stops for the leap; the bowl sounds alone; they return one by one
     insectsStop: [99.0, 100.2],
     bowl: [99.0],
@@ -322,7 +327,8 @@
     { t: 95.8, inst: 'koto', note: 'Eb3', vel: 0.46, pan: 0.05, rev: 0.34 },                   // the rabbit, empty-handed …
     { t: 96.35, inst: 'koto', note: 'D3', vel: 0.4, pan: 0.05, rev: 0.34, dur: 2.5 },          // … its ears droop
     { t: 97.0, inst: 'koto', note: 'Eb6', harm: true, vel: 0.4, pan: 0, rev: 0.45, dur: 1.9 }, // it looks up, at us
-    { t: 97.9, inst: 'biwa', note: ['D2', 'A2', 'D3', 'G3'], vel: 0.8, strike: 1, strum: 18, dur: 0.95, pan: 0 }, // the leap
+    // the leap: struck as it leaves the ground, damped at 98.85 as it reaches the fire (the gap at 99.0 stays clean)
+    { t: CUES.leap[0], inst: 'biwa', note: ['D2', 'A2', 'D3', 'G3'], vel: 0.8, strike: 1, strum: 18, dur: 0.85, pan: 0 },
   ]);
   // 99.0 every insect on earth stops for 1.2 s: in the gap only one small struck bowl (鏧 ≈ 1.1 kHz, 6 s);
   // even the air holds its breath — the room (reverb) is cut until the insects return (see `room`)

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>月の名残</title>
-<meta name="description" content="浮世絵風の中秋アニメーション短編。">
+<title>月の出でたらむ夜は　〜十五夜摺〜</title>
+<meta name="description" content="月の出でたらむ夜は　〜十五夜摺〜 — 十五夜の一枚の木版画として摺られる、かぐや姫と月の兎の浮世絵風アニメーション短編（236秒）。月出之夜 · 十五夜摺。">
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="css/film.css">
 </head>
@@ -12,17 +12,11 @@
 <div id="theatre">
   <div id="stage">
     <canvas id="film" aria-label="animated film"></canvas>
+    <!-- the washi finish, composited by the browser over the film -->
+    <canvas id="paper-grain" aria-hidden="true"></canvas>
+    <canvas id="paper-light" aria-hidden="true"></canvas>
     <div id="overlay">
       <div id="subs" aria-live="off"></div>
-    </div>
-
-    <div id="curtain">
-      <div class="curtain-inner">
-        <div class="curtain-title" id="curtain-title"></div>
-        <div class="curtain-zh" id="curtain-zh"></div>
-        <button id="btn-start" type="button"><span class="seal">月</span><span id="start-label">開演　开始观看</span></button>
-        <div class="curtain-hint" id="curtain-hint">建议开启声音 · 全屏观看　　空格 暂停 · ← → 跳段</div>
-      </div>
     </div>
 
     <div id="end">
@@ -45,6 +39,15 @@
         <button class="btn" id="btn-sound" type="button" aria-pressed="true" title="声音 (M)">音</button>
         <button class="btn" id="btn-full" type="button" title="全屏 (F)">全屏</button>
       </div>
+    </div>
+  </div>
+
+  <div id="curtain">
+    <div class="curtain-inner">
+      <div class="curtain-title" id="curtain-title"></div>
+      <div class="curtain-zh" id="curtain-zh"></div>
+      <button id="btn-start" type="button"><span class="seal">月</span><span id="start-label">開演　开始观看</span></button>
+      <div class="curtain-hint" id="curtain-hint">建议开启声音 · 全屏观看　　空格 暂停 · ← → 跳段</div>
     </div>
   </div>
 </div>

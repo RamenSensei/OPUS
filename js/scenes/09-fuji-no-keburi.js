@@ -3,8 +3,10 @@
    Shot E at dawn (後摺 + a fresh 東雲 block): the moon comes down to Fuji's
    summit at a steady (5,16) px/s; at 214.0 the undying smoke — the burned
    elixir and, burned with it, the emperor's poem — touches her rim, the only
-   contact between earth and moon in the film; pearl Fuji; the fox turns its
-   head; 小夜's long shadow reaches toward the mountain. From 222 the print
+   contact between earth and moon in the film (the view leans in to 1.3×
+   for it, 210.5–214.0, and is home on the whole sheet by 221.5); pearl
+   Fuji; the fox turns its head; 小夜's long shadow reaches toward the
+   mountain. From 222 the print
    unprints itself in fugitive-pigment order (TSUKI.PRINT), down to clean
    washi: the 見当 notch, a karazuri moon carrying only the rabbit's carbon,
    小夜's last haiku (DOM), the 朱 seal 忘れじ and a tiny colophon.
@@ -22,14 +24,16 @@
   /* the last paper (screenplay: segments[結].layers['the last paper']) */
   const KARA = { x: 960, y: 360, r: 150 };
   const NOTCH = { x: 1840, y: 1040, arm: 46 };
-  const SEAL = { cx: 1300, cy: 820, size: 90 };       // centre, like the karazuri circle
+  const SEAL = { cx: 1300, cy: 820, w: 46 };          // centre, like the karazuri circle; a tall 長方印 (≈46 × 120)
 
   /* ------------------------------------------------------------------ */
   /* the seal 忘れじ — 白文: the characters are cut out of the 朱 to the   */
   /* paper (like the moon, they are absence). The characters are the     */
   /* outlines of Shippori Mincho B1 ExtraBold (SIL OFL, the film's own   */
-  /* mincho), embedded so the stamp never waits on a font subset: 忘 in  */
-  /* the right column, れ over じ in the left, as a seal is laid out.    */
+  /* mincho), embedded so the stamp never waits on a font subset. A     */
+  /* tall 長方印, one column read top to bottom — 忘 / れ / じ — each     */
+  /* character whole in its own near-square cell (a two-column layout    */
+  /* would stretch 忘 until 亡 and 心 read as two characters).           */
   /* Coordinates: font units, y down (baseline at 880); [bbox], path.    */
   /* ------------------------------------------------------------------ */
   const GLYPHS = {
@@ -78,17 +82,19 @@
       '11 530 204Q523 198 523 196Q523 191 532 191Q556 191 605 207Q654 223 693 254Q732 284 732 327Q732 357 716 3' +
       '70Q700 384 679 384Q633 384 618 341Z'],
   };
-  // cells in a 100-unit stone, 8.5 units of margin all round
-  const CELLS = { '忘': [52.5, 8.5, 39, 83], 'れ': [8.5, 8.5, 38, 39], 'じ': [8.5, 53, 38, 38.5] };
+  // cells [x, y, w, h] in a 100 × 262-unit stone: 9 units of margin, 5 between
+  // characters; each glyph is scaled (almost) uniformly into its cell
+  const STONE = { w: 100, h: 262 };
+  const CELLS = { '忘': [9, 9, 82, 84], 'れ': [9, 98, 82, 74], 'じ': [14, 177, 72, 76] };
 
   let sealSprite = null;
   function buildSeal() {
-    const N = 320, sc = N / 100;
-    const cv = TSUKI.B.canvas(N, N);
+    const sc = 2.4, SW = STONE.w, SH = STONE.h;
+    const cv = TSUKI.B.canvas(Math.ceil(SW * sc), Math.ceil(SH * sc));
     const c = cv.getContext('2d');
     c.scale(sc, sc);
     const r = U.rng(1230);
-    // the stone's face: a square whose edge has been chipped by age
+    // the stone's face: an upright oblong whose edge has been chipped by age
     c.beginPath();
     const edge = [];
     const side = (x0, y0, x1, y1, n) => {
@@ -100,9 +106,9 @@
       }
     };
     side(2.2, 2.6, 97.6, 2.0, 30);
-    side(97.6, 2.0, 98.0, 97.4, 30);
-    side(98.0, 97.4, 2.4, 97.8, 30);
-    side(2.4, 97.8, 2.2, 2.6, 30);
+    side(97.6, 2.0, 98.0, SH - 2.6, 78);
+    side(98.0, SH - 2.6, 2.4, SH - 2.2, 30);
+    side(2.4, SH - 2.2, 2.2, 2.6, 78);
     c.moveTo(edge[0][0], edge[0][1]);
     for (const p of edge) c.lineTo(p[0], p[1]);
     c.closePath();
@@ -111,8 +117,8 @@
     // 印泥: the paste lies a little unevenly — denser and deeper in places
     c.save();
     c.globalCompositeOperation = 'source-atop';
-    for (let i = 0; i < 70; i++) {
-      const x = r() * 100, y = r() * 100, rr = U.lerp(4, 16, r());
+    for (let i = 0; i < 180; i++) {
+      const x = r() * SW, y = r() * SH, rr = U.lerp(4, 16, r());
       const g = c.createRadialGradient(x, y, 0, x, y, rr);
       const deep = r() < 0.55;
       const col = deep ? U.mix(C.shu, C.akane, 0.55) : U.mix(C.shu, C.yamabuki, 0.22);
@@ -140,14 +146,14 @@
       c.scale(sx, sy);
       c.translate(-a, -b);
       c.fill(p);
-      c.lineWidth = 1.25 / Math.sqrt(sx * sy);
+      c.lineWidth = 1.6 / Math.sqrt(sx * sy);
       c.stroke(p);
       c.restore();
     }
     // a pressed stamp never inks perfectly: small voids, more toward the rim
-    for (let i = 0; i < 300; i++) {
-      const x = r() * 100, y = r() * 100;
-      const dEdge = Math.min(x, y, 100 - x, 100 - y);
+    for (let i = 0; i < 780; i++) {
+      const x = r() * SW, y = r() * SH;
+      const dEdge = Math.min(x, y, SW - x, SH - y);
       if (r() > 0.22 + 0.78 * Math.exp(-dEdge / 7)) continue;
       c.globalAlpha = U.lerp(0.35, 1, r());
       const s = U.lerp(0.3, 1.2, r());
@@ -159,8 +165,8 @@
     c.globalAlpha = 0.9;
     c.lineWidth = 0.6;
     c.beginPath();
-    c.moveTo(2, 61); c.lineTo(5.5, 60.3); c.lineTo(8, 61.2);
-    c.moveTo(98, 30); c.lineTo(95, 31);
+    c.moveTo(2, 170); c.lineTo(5.5, 169.3); c.lineTo(8, 170.2);
+    c.moveTo(98, 52); c.lineTo(95, 53);
     c.stroke();
     c.restore();
     sealSprite = cv;
@@ -174,14 +180,15 @@
     const a = 0.92 * U.ease.outCubic(p);
     const s = U.lerp(1.06, 1.0, U.ease.outCubic(p));
     const spr = sealSprite || buildSeal();
-    const { cx, cy, size } = SEAL;
+    const { cx, cy, w } = SEAL;
+    const h = (w * STONE.h) / STONE.w;
     ctx.save();
     ctx.imageSmoothingQuality = 'high';       // a small, heavily reduced sprite: resample well
     ctx.globalAlpha = a;
     ctx.translate(cx, cy);
     ctx.scale(s, s);
     ctx.rotate(-0.012);                       // stamped by hand, never quite square
-    ctx.drawImage(spr, -size / 2, -size / 2, size, size);
+    ctx.drawImage(spr, -w / 2, -h / 2, w, h);
     ctx.restore();
   }
 
@@ -331,6 +338,51 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* the camera: one slow push toward the contact, and back to the sheet */
+  /* ------------------------------------------------------------------ */
+  /**
+   * 210.5 (the koto's four notes) → 214.0 the view leans in to 1.3× so the
+   * smoke meeting her rim reads; it holds through the first bell, 小夜's
+   * shadow (215), the fox's turn (216.5) and pearl Fuji (216.6) — the push is
+   * about a point low in the frame, so the house, 小夜 and the fox all stay in
+   * shot — and eases back to the whole sheet by 221.5, before the unprinting.
+   * About (823, 780) at 1.3 the view is x 190–1667, y 180–1011 of the stage.
+   */
+  const CAM = { fx: 823, fy: 780, s: 1.3 };
+  const camScale = (T) => {
+    const k = U.seg(T, 210.5, 214.0, U.ease.inOutSine) * (1 - U.seg(T, 217.0, 221.5, U.ease.inOutSine));
+    return U.lerp(1, CAM.s, k);
+  };
+  const camApply = (ctx, s) => { ctx.translate(CAM.fx, CAM.fy); ctx.scale(s, s); ctx.translate(-CAM.fx, -CAM.fy); };
+  /**
+   * While the camera is in, the carved print is laid 1:1 into a buffer and
+   * the buffer is scaled once (a scaled blit of every plate costs twice the
+   * frame); the smoke thread and the rim's flash are then drawn live over it,
+   * sharp. The buffer is let go whenever the camera is home.
+   */
+  let camBuf = null;
+  function pushedPrint(ctx, T, S, s) {
+    const E = TSUKI.SHOTS.E;
+    const bw = Math.max(1, Math.round(S.W * S.k)), bh = Math.max(1, Math.round(S.H * S.k));
+    if (!camBuf || camBuf.width !== bw || camBuf.height !== bh) camBuf = TSUKI.B.canvas(bw, bh);
+    const b = camBuf.getContext('2d');
+    b.setTransform(S.k, 0, 0, S.k, 0, 0);
+    b.globalAlpha = 1;
+    b.globalCompositeOperation = 'source-over';
+    b.imageSmoothingEnabled = true;
+    b.imageSmoothingQuality = 'low';
+    b.fillStyle = C.kinari;                    // the bare washi, as the engine lays it
+    b.fillRect(0, 0, S.W, S.H);
+    E.age(b, T);
+    E.draw(b, T, { age: false, live: false });
+    ctx.save();
+    camApply(ctx, s);
+    ctx.drawImage(camBuf, 0, 0, S.W, S.H);
+    E.drawLive(ctx, T);
+    ctx.restore();
+  }
+
+  /* ------------------------------------------------------------------ */
   TSUKI.scene('fuji-no-keburi', {
     init() {
       buildSeal();
@@ -347,6 +399,13 @@
       // every sprite and plate here is carved at (or near) the stage resolution:
       // bilinear is indistinguishable, and avoids the slow high-quality resampler
       ctx.imageSmoothingQuality = 'low';
+      // the push toward the contact (210.5–221.5); home, on the whole sheet, before the unprinting
+      const cs = camScale(T);
+      if (cs > 1) {                            // (at 1 exactly the buffer would be a plain copy: no seam either way)
+        pushedPrint(ctx, T, S, cs);
+        return;
+      }
+      camBuf = null;
       // the sheet: yellowed and foxed in the late impression, clean again at the end
       E.age(ctx, T);
       // the paper remembers what was pressed into it: relief under the ink,

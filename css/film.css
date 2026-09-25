@@ -44,11 +44,19 @@ body {
 #stage {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   background: var(--paper);
   box-shadow: 0 0 0 1px rgba(201, 164, 92, 0.12), 0 30px 80px rgba(0, 0, 0, 0.65);
   cursor: pointer;
 }
 #film { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* the washi finish: two static textures blended by the compositor over the
+   film (fibres & mottling multiplied, gofun flecks screened); text stays
+   above it, unpapered. Opacity comes from script.paperStrength. */
+#paper-grain, #paper-light { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+#paper-grain { mix-blend-mode: multiply; opacity: 0.9; }
+#paper-light { mix-blend-mode: screen; opacity: 0.8; }
+body.nopaper #paper-grain, body.nopaper #paper-light { display: none; }
 
 /* logical 1920×1080 layer, scaled by the engine */
 #overlay {
@@ -170,40 +178,49 @@ body {
   left: 50%;
   bottom: 54px;
   transform: translateX(-50%);
-  width: 1500px;
+  width: 1800px;
   text-align: center;
   opacity: 0;
   pointer-events: none;
+  transition: bottom 0.35s ease;
 }
+/* lift the subtitle above the controls while they are shown (the engine
+   sets --bar-lift in logical px from the bar's real height) */
+body.started.ui #subs, body.started.paused #subs { bottom: var(--bar-lift, 150px); }
+body.ended #subs { visibility: hidden; }
 #subs.off { visibility: hidden; }
 .sub-zh {
   font-family: var(--f-zh);
-  font-size: 34px;
+  font-size: calc(34px * var(--sub-k, 1));
   line-height: 1.5;
   letter-spacing: 0.12em;
   color: var(--gofun);
   text-shadow: 0 0 10px rgba(8, 10, 20, 0.85), 0 0 2px rgba(8, 10, 20, 0.9), 0 2px 18px rgba(8, 10, 20, 0.6);
   text-wrap: balance;
 }
-.sub-en { font-size: 20px; letter-spacing: 0.1em; opacity: 0.7; margin-top: 4px; }
+.sub-en { font-size: calc(20px * var(--sub-k, 1)); letter-spacing: 0.1em; opacity: 0.7; margin-top: 4px; }
+/* sumi subtitle over pale paper (cue.sub_ink = 'dark') */
+#subs.dark .sub-zh, #subs.dark .sub-en { color: var(--sumi); text-shadow: 0 0 10px rgba(243, 237, 224, 0.85), 0 0 2px rgba(243, 237, 224, 0.9); }
+#subs.dark .sub-zh { opacity: 0.9; }
 .sub-en:empty { display: none; }
 
 /* -------------------------------------------------------------- curtain */
 #curtain {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 5;
   display: grid;
   place-items: center;
   background:
     radial-gradient(ellipse at 50% 45%, rgba(13, 12, 11, 0.25), rgba(13, 12, 11, 0.82) 72%),
     linear-gradient(180deg, rgba(13, 12, 11, 0.2), rgba(13, 12, 11, 0.6));
   transition: opacity 1.6s ease, visibility 1.6s;
-  cursor: default;
+  cursor: pointer;
 }
-body.started #curtain { opacity: 0; visibility: hidden; }
+body.started #curtain { opacity: 0; visibility: hidden; pointer-events: none; }
 .curtain-inner { display: grid; justify-items: center; gap: clamp(10px, 2.2vmin, 26px); text-align: center; padding: 16px; }
 .curtain-title { display: flex; flex-direction: row-reverse; gap: clamp(8px, 1.4vmin, 18px); align-items: flex-start; }
-.curtain-title .v { writing-mode: vertical-rl; font-family: var(--f-brush); font-size: clamp(34px, 9vmin, 104px); line-height: 1; letter-spacing: 0.06em; color: var(--gofun); text-shadow: 0 0 30px rgba(0, 0, 0, 0.6); }
+.curtain-title .v { writing-mode: vertical-rl; font-family: var(--f-brush); font-size: max(22px, min(104px, 9vmin, calc((100vh - 260px) / 10.4))); line-height: 1; letter-spacing: 0.06em; color: var(--gofun); text-shadow: 0 0 30px rgba(0, 0, 0, 0.6); }
 .curtain-title .v.small { font-family: var(--f-mincho); font-size: clamp(14px, 2.4vmin, 26px); letter-spacing: 0.4em; opacity: 0.8; margin-top: 1.2em; }
 .curtain-zh { font-family: var(--f-zh); font-size: clamp(14px, 2.4vmin, 24px); letter-spacing: 0.5em; padding-left: 0.5em; color: var(--gofun); opacity: 0.9; }
 #btn-start {
@@ -223,8 +240,18 @@ body.started #curtain { opacity: 0; visibility: hidden; }
 }
 #btn-start:hover, #btn-start:focus-visible { background: rgba(201, 164, 92, 0.18); border-color: #e8cf94; outline: none; }
 #btn-start .seal { width: 1.6em; height: 1.6em; font-size: 1em; letter-spacing: 0; }
-body.loading #btn-start { opacity: 0.45; pointer-events: none; }
+/* while the blocks are being carved the button fills like a progress bar;
+   a press is remembered and the film starts as soon as it is ready */
+body.loading #btn-start { background: linear-gradient(90deg, rgba(201, 164, 92, 0.22) var(--load, 0%), rgba(13, 12, 11, 0.55) var(--load, 0%)); border-color: rgba(201, 164, 92, 0.55); }
+body.loading #btn-start > span:last-child { opacity: 0.6; }
 .curtain-hint { font-family: var(--f-zh); font-size: clamp(11px, 1.5vmin, 14px); letter-spacing: 0.2em; color: var(--muted); }
+/* short landscape screens (phones): title beside the button */
+@media (max-height: 560px) {
+  .curtain-inner { grid-template-columns: auto auto; column-gap: 6vw; align-items: center; }
+  .curtain-title { grid-column: 2; grid-row: 1 / span 3; }
+  .curtain-zh, #btn-start, .curtain-hint { grid-column: 1; }
+  .curtain-title .v { font-size: min(9vmin, calc((100vh - 40px) / 10.4)); }
+}
 
 /* -------------------------------------------------------------- the end */
 #end {
@@ -232,7 +259,7 @@ body.loading #btn-start { opacity: 0.45; pointer-events: none; }
   inset: 0;
   display: grid;
   place-items: end center;
-  padding-bottom: 7%;
+  padding-bottom: calc(7% + 100px);
   opacity: 0;
   visibility: hidden;
   transition: opacity 1.4s ease 0.4s;
@@ -260,13 +287,16 @@ body.ended #end { opacity: 1; visibility: visible; }
   display: grid;
   gap: 8px;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0s linear 0.5s;
   cursor: default;
 }
-body.started.ui #bar, body.started.paused #bar { opacity: 1; }
+body.started.ui #bar, body.started.paused #bar { opacity: 1; visibility: visible; transition-delay: 0s; }
+body.ended:not(.ui) #bar { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0s linear 0.5s; }
 body.still #bar, body.still #curtain, body.still #end { display: none !important; }
-.track { position: relative; height: 18px; }
-#ticks { position: absolute; inset: 7px 0; display: flex; }
+.track { position: relative; height: 28px; }
+/* the segment ticks are their own thin clickable row above the range */
+#ticks { position: absolute; left: 0; right: 0; top: 0; height: 9px; z-index: 2; display: flex; }
 .tick {
   position: absolute; top: 0; bottom: 0;
   appearance: none; border: 0; padding: 0; margin: 0;
@@ -276,7 +306,7 @@ body.still #bar, body.still #curtain, body.still #end { display: none !important
 }
 .tick.on { background: rgba(201, 164, 92, 0.42); }
 #scrub {
-  position: absolute; inset: 0; width: 100%; margin: 0;
+  position: absolute; left: 0; right: 0; bottom: 0; top: auto; height: 18px; width: 100%; margin: 0;
   appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer;
 }
 #scrub::-webkit-slider-runnable-track { height: 18px; background: transparent; }
@@ -284,8 +314,8 @@ body.still #bar, body.still #curtain, body.still #end { display: none !important
 #scrub::-webkit-slider-thumb { -webkit-appearance: none; width: 4px; height: 18px; background: var(--shu); border: 0; }
 #scrub::-moz-range-thumb { width: 4px; height: 18px; background: var(--shu); border: 0; border-radius: 0; }
 #scrub:focus-visible { outline: 1px solid var(--kin); outline-offset: 2px; }
-.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 15px; }
-.row .grow { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; font-size: 15px; }
+.row .grow { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #seg-name { font-family: var(--f-mincho); letter-spacing: 0.2em; color: var(--gofun); }
 #time { font-variant-numeric: tabular-nums; color: var(--muted); letter-spacing: 0.05em; font-family: var(--f-zh); }
 .btn {
@@ -313,7 +343,15 @@ body.playing #btn-play .i-play { display: none; }
   .btn { height: 30px; min-width: 34px; font-size: 13px; padding: 0 7px; }
   #seg-name { letter-spacing: 0.08em; }
 }
+@media (max-width: 480px) { #seg-name { display: none; } }
+/* phone portrait: the controls sit in the letterbox under the picture */
+body.portrait #stage { overflow: visible; }
+body.portrait #bar { top: 100%; bottom: auto; background: none; transition: none; }
+body.portrait.started #bar { opacity: 1; visibility: visible; }
+body.portrait #subs, body.portrait.started.ui #subs, body.portrait.started.paused #subs { bottom: 54px; }
 
 @media (prefers-reduced-motion: reduce) {
   #curtain, #end, #bar { transition: none; }
 }
+/* start pressed while the blocks are still being carved: remembered */
+body.pending #btn-start { border-color: #e8cf94; }

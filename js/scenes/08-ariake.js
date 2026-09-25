@@ -24,20 +24,21 @@
    The paper is aged with TSUKI.SHOTS.age (foxing multiplied: it darkens the
    dark wood instead of glittering on it); the moon is painted after it —
    the moon is never old.
-   Drawn here (not CAST): old 小夜 from behind (the haori's 波兎 tile, the
-   white bun and its comb; her nods and her turn to the moon exaggerated for
-   the scale), the fox's head in shadow and its paw, the offerings.
+   old 小夜 is CAST.oldSayo — たけ's own paths (seiza, view 'back': the 波兎
+   haori, the bun and its comb; look = her turn, nod = her doze), hair in
+   銀鼠×鼠. Drawn here (not CAST): the fox's head in shadow and its paw, the
+   offerings.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
-  const { U, B, C, PRINT, MOON } = TSUKI;
+  const { U, B, C, CAST, PRINT, MOON } = TSUKI;
   const SB = TSUKI.SHOTS.B;
   const G = SB.GEOM;
   const E = U.ease;
   const AINEZU = SB.INK.AINEZU;
   const TAIKO = C.toki;                               // 退紅: the faded heko-obi
 
-  const SAYO = { x: 1094, y: 942, s: 1.0 };
+  const SAYO = { x: 1094, y: 944, s: 1.07 };            // CAST.oldSayo back view: ≈160 px kneeling
   const BURNER = { x: 1180, y: 905 };
   const STAND = { x: 1218, y: 934 };                  // the 三方 (the jug stands just right of it)
   const JUG = { x: 1252, y: 934 };
@@ -47,40 +48,6 @@
   function moon(T) {
     const u = U.clamp((T - 190) / 16);
     return { x: U.lerp(1160, 1195, u), y: U.lerp(360, 470, u), r: 56 };
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* the 波兎 haori tile (藍 ground, 胡粉 seigaiha and leaping rabbits)   */
-  /* ------------------------------------------------------------------ */
-  let haoriTile = null;
-  function buildTile() {
-    const S = 64;
-    const cv = B.canvas(S, S), c = cv.getContext('2d');
-    c.fillStyle = U.mix(C.ai, C.kon, 0.15);
-    c.fillRect(0, 0, S, S);
-    c.strokeStyle = U.rgba(C.gofun, 0.8);
-    c.lineWidth = 1.1;
-    for (const [cy, xs] of [[0.62, [0, 0.5, 1]], [0.74, [0.25, 0.75]]]) {
-      for (const ox of [-S, 0, S]) for (const cx of xs) for (const k of [1, 0.66, 0.33]) {
-        c.beginPath(); c.arc(cx * S + ox, cy * S, S * 0.25 * k, Math.PI, 0);
-        if (k === 1) { c.fillStyle = U.mix(C.ai, C.kon, 0.15); c.fill(); }
-        c.stroke();
-      }
-    }
-    c.fillStyle = C.gofun;
-    const rabbit = (x, y, s) => {
-      c.save(); c.translate(x, y); c.scale(s, s); c.rotate(-0.28);
-      c.beginPath();
-      c.ellipse(0, 0, 0.5, 0.26, 0, 0, U.TAU);
-      c.moveTo(0.62, -0.1); c.ellipse(0.5, -0.12, 0.22, 0.19, 0, 0, U.TAU);
-      c.moveTo(0.48, -0.26); c.ellipse(0.28, -0.4, 0.26, 0.07, 0.55, 0, U.TAU);
-      c.moveTo(-0.3, 0.1); c.ellipse(-0.62, 0.22, 0.34, 0.08, 0.35, 0, U.TAU);
-      c.fill(); c.restore();
-    };
-    rabbit(0.3 * S, 0.28 * S, S * 0.24);
-    rabbit(0.8 * S, 0.06 * S, S * 0.19);
-    rabbit(0.8 * S + -S, 0.06 * S, S * 0.19);
-    haoriTile = cv;
   }
 
   /* ------------------------------------------------------------------ */
@@ -299,7 +266,7 @@
   }
 
   /* ------------------------------------------------------------------ */
-  /* 小夜 at sixty-six, from behind: the haori, the white bun             */
+  /* 小夜 at sixty-six, from behind: CAST.oldSayo — たけ's own paths      */
   /* ------------------------------------------------------------------ */
   function sayoPose(T) {
     const light = U.env(T, 190.6, 190.95, 191.2, 191.8);
@@ -309,109 +276,38 @@
     const toMoon = U.seg(T, 197.5, 198.4, E.inOutSine);
     return {
       nod: Math.max(light * 0.5, nod1 * 0.85, nod2), // head forward and down
-      turn: 0.55 * toStand + 0.9 * toMoon,          // toward +x (the stand, then the moon)
-      tilt: 0.16 * toMoon,                          // the head tipped up and aside: she smiles
-      wake: U.seg(T, 196.4, 196.7),
+      turn: U.clamp(0.55 * toStand + 0.9 * toMoon, -1, 1),   // toward +x (the stand, then the moon)
+      lift: toMoon,                                  // the head raised a little to the moon: she smiles
     };
   }
+  // her hair: 銀鼠 toward 鼠, so the back of the head reads as hair (not a pale face) against
+  // the cream nape and the 半襟; the 煤竹 comb across the bun
+  const OLD_HAIR = U.mix(C.ginnezu, C.nezumi, 0.3);
   function drawSayo(L, T) {
     const q = sayoPose(T);
-    const { x: X, y: Y } = SAYO;
-    const br = Math.sin(T * 1.1) * 0.6;
-    const sh = -96 + br;                                  // shoulder line (rounded with age)
-    // kimono skirt spreading on the boards
-    const skirt = new Path2D();
-    skirt.moveTo(X - 40, Y - 26); skirt.bezierCurveTo(X - 48, Y - 12, X - 47, Y - 2, X - 44, Y + 2);
-    skirt.lineTo(X + 44, Y + 2); skirt.bezierCurveTo(X + 47, Y - 2, X + 48, Y - 12, X + 40, Y - 26); skirt.closePath();
-    // the haori's back: narrow sloping shoulders, bowed, broad at the seat
-    const back = new Path2D();
-    // (the bent back rises round the head, which sinks between the shoulders)
-    back.moveTo(X - 9, Y + sh - 3);
-    back.bezierCurveTo(X - 20, Y + sh - 5, X - 31, Y + sh + 2, X - 34, Y + sh + 20);
-    back.bezierCurveTo(X - 37, Y + sh + 44, X - 39, Y - 36, X - 41, Y - 10);
-    back.lineTo(X + 41, Y - 10);
-    back.bezierCurveTo(X + 39, Y - 36, X + 37, Y + sh + 44, X + 34, Y + sh + 20);
-    back.bezierCurveTo(X + 31, Y + sh + 2, X + 20, Y + sh - 5, X + 9, Y + sh - 3);
-    back.closePath();
-    // sleeves at her sides, hanging to the boards
-    const sleeves = [-1, 1].map((s) => {
-      const p = new Path2D();
-      p.moveTo(X + s * 26, Y + sh + 16); p.bezierCurveTo(X + s * 38, Y + sh + 30, X + s * 44, Y - 40, X + s * 44, Y - 16);
-      p.lineTo(X + s * 33, Y - 14); p.bezierCurveTo(X + s * 31, Y - 40, X + s * 29, Y + sh + 40, X + s * 24, Y + sh + 24); p.closePath();
-      return p;
-    });
-    // head: forward and down in her doze, turned (+x) to the stand and to the moon, tipped up at the last
-    const hx = X + 8 * q.turn, hy = Y + sh - 12 + 10 * q.nod - 4 * q.tilt;
-    const rot = 0.1 * q.turn - q.tilt;
-    // the collar V at the nape (the haori's lapels round a narrow white 半襟)
-    const collar = new Path2D();
-    collar.moveTo(X - 11, Y + sh - 7); collar.lineTo(X, Y + sh + 8); collar.lineTo(X + 11, Y + sh - 7);
-    collar.lineTo(X + 7, Y + sh - 9); collar.lineTo(X, Y + sh + 1); collar.lineTo(X - 7, Y + sh - 9); collar.closePath();
-    if (!haoriTile) buildTile();
-    // the nape and — as she turns — a sliver of cheek and ear on the moon side
-    PRINT.with(L, 'P7', T, (k) => {
-      k.save();
-      k.translate(hx, hy); k.rotate(rot);
-      k.fillStyle = U.mix(C.gofun, C.kitsune, 0.18);
-      k.beginPath(); k.ellipse(0, 10 + 2 * q.nod, 6, 6 + 3 * q.nod, 0, 0, U.TAU); k.fill();   // nape
-      const t = Math.min(1, q.turn);
-      if (t > 0.05) {
-        k.beginPath(); k.ellipse(10 + 3 * t, 2, 3 + 3.5 * t, 9, 0.15, 0, U.TAU); k.fill();      // cheek
-        k.beginPath(); k.ellipse(7 + 2 * t, -1, 2.6, 4, 0, 0, U.TAU); k.fill();                   // ear
-      }
-      k.restore();
-    });
-    PRINT.with(L, 'P4', T, (k) => {
-      k.save();
-      k.translate(hx, hy); k.rotate(rot);
-      // the white hair drawn back from the brow; the bun sits at the back of the head, its comb across it
-      k.fillStyle = U.mix(C.gofun, C.ginnezu, 0.28);
-      k.beginPath(); k.ellipse(-2.5 * q.turn, -2, 13.5, 13, 0, 0, U.TAU); k.fill();
-      k.fillStyle = U.mix(C.gofun, C.ginnezu, 0.4);
-      k.beginPath(); k.ellipse(-4 * q.turn, -3 - 3 * q.nod, 7.5, 6.6, 0, 0, U.TAU); k.fill();
-      k.restore();
-    });
+    // the same figure as たけ (CAST.oldSayo = たけ's paths and poses, white bun): seiza, back view,
+    // ≈160 px (x 1043–1145, y 790–950). The head never drops behind the collar: CAST draws it last.
     PRINT.with(L, 'K', T, (k) => {
-      k.save();
-      k.translate(hx, hy); k.rotate(rot);
-      k.strokeStyle = U.rgba(C.sumi, 0.7); k.lineWidth = 1;
-      k.beginPath(); k.ellipse(-2.5 * q.turn, -2, 13.5, 13, 0, 0, U.TAU); k.stroke();
-      k.beginPath(); k.ellipse(-4 * q.turn, -3 - 3 * q.nod, 7.5, 6.6, 0, 0, U.TAU); k.stroke();
-      // hair strands combed to the bun
-      k.strokeStyle = U.rgba(C.sumi, 0.22); k.lineWidth = 0.7;
-      for (const a of [-0.9, -0.45, 0.45, 0.9]) { k.beginPath(); k.moveTo(-2.5 * q.turn + Math.sin(a) * 12, -2 - Math.cos(a) * 11); k.quadraticCurveTo(-3 * q.turn + Math.sin(a) * 7, -4, -4 * q.turn + Math.sin(a) * 5, -2 - 3 * q.nod); k.stroke(); }
-      // the 煤竹 comb across the top of the bun
-      k.strokeStyle = U.rgba(U.mix(C.odo, C.sumi, 0.55), 0.95); k.lineWidth = 2.4; k.lineCap = 'round';
-      k.beginPath(); k.moveTo(-4 * q.turn - 7, -8 - 3 * q.nod); k.quadraticCurveTo(-4 * q.turn, -10.5 - 3 * q.nod, -4 * q.turn + 7, -8 - 3 * q.nod); k.stroke();
-      k.restore();
+      CAST.oldSayo(k, SAYO.x, SAYO.y, SAYO.s, {
+        pose: 'seiza', view: 'back', t: T,
+        look: q.turn, nod: 1.6 * q.nod - 0.5 * q.lift,     // (the doze exaggerated for the scale: the head sinks ≈10 px)
+        palette: { hair: OLD_HAIR },
+      });
     });
-    // print: skirt (紺 stripes), haori (藍 波兎), key lines, hair, skin
-    PRINT.with(L, 'P5', T, (k) => {
-      k.fillStyle = U.mix(C.kon, C.sumi, 0.2);
-      k.fill(skirt);
-      k.strokeStyle = U.rgba(C.nezumi, 0.7); k.lineWidth = 0.8;
-      k.save(); k.clip(skirt);
-      for (let x = X - 46; x < X + 46; x += 4.5) { k.beginPath(); k.moveTo(x, Y - 30); k.lineTo(x + 1, Y + 4); k.stroke(); }
-      k.restore();
-      const pat = k.createPattern(haoriTile, 'repeat');
-      pat.setTransform(new DOMMatrix().translate(X - 3, Y - 7).scale(0.36, 0.36));
-      k.fillStyle = pat;
-      k.fill(back); for (const s2 of sleeves) k.fill(s2);
-    });
-    PRINT.with(L, 'K', T, (k) => {
-      k.strokeStyle = U.rgba(C.sumi, 0.8); k.lineWidth = 1.2; k.lineJoin = 'round';
-      k.stroke(skirt); k.stroke(back); for (const s2 of sleeves) k.stroke(s2);
-      // the centre back seam
-      k.strokeStyle = U.rgba(C.sumi, 0.4); k.lineWidth = 0.8;
-      k.beginPath(); k.moveTo(X, Y + sh + 6); k.quadraticCurveTo(X + 0.5, Y - 50, X, Y - 12); k.stroke();
-    });
-    PRINT.with(L, 'P7', T, (k) => { k.fillStyle = U.mix(C.gofun, C.ginnezu, 0.15); k.fill(collar); });
-    PRINT.with(L, 'K', T, (k) => { k.strokeStyle = U.rgba(C.sumi, 0.7); k.lineWidth = 0.9; k.stroke(collar); });
   }
 
   /* ------------------------------------------------------------------ */
   TSUKI.scene('ariake', {
-    init(S) { buildTile(); TSUKI.SHOTS.warmFlat('B7', 195, S.k || 1); },
+    init(S) {
+      const k = S.k || 1;
+      TSUKI.SHOTS.warmFlat('B7', 195, k);
+      // the late paper is resampled once to the backing size: do it now, not on the cut at 190
+      try {
+        const cv = B.canvas(Math.round(1920 * k), Math.round(1080 * k)), c = cv.getContext('2d');
+        c.setTransform(k, 0, 0, k, 0, 0);
+        TSUKI.SHOTS.age(c, 199);
+      } catch (e) { /* warming is only an optimisation */ }
+    },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
       // a clean context whatever the previous scene left behind (the engine resets only some state)
@@ -420,53 +316,57 @@
       ctx.setLineDash([]);
       ctx.lineDashOffset = 0;
       ctx.miterLimit = 10;
+      // 204–206: a slow push-in on the thread (1.00 → 1.04 about (1180,700)); the stage is
+      // printed 1:1 into a buffer and the finished impression scaled once (SB.withCamera)
       const e = E.inOutSine(U.seg(T, 204, 206));
-      if (e > 0) {
-        const s = 1 + 0.04 * e;
-        ctx.translate(1180, 700); ctx.scale(s, s); ctx.translate(-1180, -700);
-      }
+      const cam = e > 0 ? { s: 1 + 0.04 * e, about: [1180, 700], to: [1180, 700] } : null;
       const m = moon(T);
-      SB.draw(ctx, T, {
-        id: 'B7',
-        between: {
-          base: (c) => {
-            // the paper of the closed panels: the dim pre-dawn light from the low moon beyond the opening
-            SB.light(c, T, { x: m.x, y: m.y + 150, r: 250, falloff: 0.6, core: 0.3, ranges: [[G.panels[0][0], G.opening.x0], [G.opening.x1, G.panels[3][1]]] });
-            PRINT.with(c, 'P4', T, (k) => { k.fillStyle = U.rgba(AINEZU, 0.3); k.fillRect(G.panels[0][0], G.top, G.panels[0][1] - G.panels[0][0], G.bottom - G.top); });
-            foxShadow(c, T);
+      SB.withCamera(ctx, cam, (cx) => {
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'low';
+        SB.draw(cx, T, {
+          id: 'B7',
+          between: {
+            base: (c) => {
+              // the paper of the closed panels: the dim pre-dawn light from the low moon beyond the opening
+              SB.light(c, T, { x: m.x, y: m.y + 150, r: 250, falloff: 0.6, core: 0.3, ranges: [[G.panels[0][0], G.opening.x0], [G.opening.x1, G.panels[3][1]]] });
+              PRINT.with(c, 'P4', T, (k) => { k.fillStyle = U.rgba(AINEZU, 0.3); k.fillRect(G.panels[0][0], G.top, G.panels[0][1] - G.panels[0][0], G.bottom - G.top); });
+              foxShadow(c, T);
+            },
+            ink: (c) => {
+              SB.tokonomaShade(c, T, 0.55);
+              // on the engawa, inside the opening (never over the stiles)
+              c.save();
+              c.beginPath(); c.rect(OPEN.x0, G.top, OPEN.x1 - OPEN.x0, G.bottom - G.top); c.clip();
+              incense(c, T);
+              offerings(c, T);
+              drawSayo(c, T);
+              c.restore();
+              foxPaw(c, T);
+              foxGlints(c, T);
+              // the coin of moonlight through the torn cell, fallen down-left on the tatami
+              PRINT.with(c, 'P7', T, (k) => {
+                const g = k.createRadialGradient(650, 1010, 0, 650, 1010, 40);
+                g.addColorStop(0, U.rgba(C.gofun, 0.5));
+                g.addColorStop(0.75, U.rgba(C.gofun, 0.38));
+                g.addColorStop(1, U.rgba(C.gofun, 0));
+                k.fillStyle = g;
+                k.save(); k.translate(650, 1010); k.scale(1, 0.3); k.translate(-650, -1010);
+                k.beginPath(); k.arc(650, 1010, 40, 0, U.TAU); k.fill();
+                k.restore();
+              });
+            },
           },
-          ink: (c) => {
-            SB.tokonomaShade(c, T, 0.55);
-            // on the engawa, inside the opening (never over the stiles)
-            c.save();
-            c.beginPath(); c.rect(OPEN.x0, G.top, OPEN.x1 - OPEN.x0, G.bottom - G.top); c.clip();
-            incense(c, T);
-            offerings(c, T);
-            drawSayo(c, T);
-            c.restore();
-            foxPaw(c, T);
-            foxGlints(c, T);
-            // the coin of moonlight through the torn cell, fallen down-left on the tatami
-            PRINT.with(c, 'P7', T, (k) => {
-              const g = k.createRadialGradient(650, 1010, 0, 650, 1010, 40);
-              g.addColorStop(0, U.rgba(C.gofun, 0.5));
-              g.addColorStop(0.75, U.rgba(C.gofun, 0.38));
-              g.addColorStop(1, U.rgba(C.gofun, 0));
-              k.fillStyle = g;
-              k.save(); k.translate(650, 1010); k.scale(1, 0.3); k.translate(-650, -1010);
-              k.beginPath(); k.arc(650, 1010, 40, 0, U.TAU); k.fill();
-              k.restore();
-            });
-          },
-        },
+        });
+        // the late impression's paper: yellowed and foxed everywhere …
+        TSUKI.SHOTS.age(cx, T);
+        // … but the moon, a hole to the fresh paper, painted after the aging: it is never old
+        cx.save();
+        cx.beginPath(); cx.rect(OPEN.x0, G.top + 30, OPEN.x1 - OPEN.x0, G.bottom - G.top - 30); cx.clip();
+        // (the rabbit fades monotonically across the late moons: 0.22 → 0.2 here, Shot E 0.2 → 0.15, karazuri 0.1)
+        MOON.draw(cx, m.x, m.y, m.r, T, { halo: 0.35, haloR: m.r * 1.8, maria: U.lerp(0.22, 0.2, U.clamp((T - 190) / 16)), fringe: false });
+        cx.restore();
       });
-      // the late impression's paper: yellowed and foxed everywhere …
-      TSUKI.SHOTS.age(ctx, T);
-      // … but the moon, a hole to the fresh paper, painted after the aging: it is never old
-      ctx.save();
-      ctx.beginPath(); ctx.rect(OPEN.x0, G.top + 30, OPEN.x1 - OPEN.x0, G.bottom - G.top - 30); ctx.clip();
-      MOON.draw(ctx, m.x, m.y, m.r, T, { halo: 0.35, haloR: m.r * 1.8, maria: 0.12, fringe: false });
-      ctx.restore();
     },
   });
 })(window.TSUKI);

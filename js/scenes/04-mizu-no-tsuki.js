@@ -181,13 +181,24 @@
     return list;
   }
 
-  /* ---------------- scratch (the grab's underwater tint, the window rim) */
+  /* ---------------- scratch (the settle's stretch, the grab's underwater  */
+  /* tint, the window's wipe): ONE stage-size canvas, allocated in init().  */
+  /* Its three users never overlap: the settle ends at 67.2, the grab      */
+  /* starts at 67.4, the wipe runs 87.2–88.0.                              */
   let scratch = null;
   let sbox = null;   // device-pixel rect of the current scratch pass (immediate, not carried between frames)
+  function stageScratch(w, h) {
+    if (!scratch || scratch.width !== w || scratch.height !== h) scratch = B.canvas(w, h);
+    const s = scratch.getContext('2d');
+    s.restore(); s.restore();                                  // drop any clip left from the last pass
+    s.setTransform(1, 0, 0, 1, 0, 0);
+    s.globalCompositeOperation = 'source-over';
+    s.globalAlpha = 1;
+    return s;
+  }
   function scratchFor(ctx, box) {
     const cv = ctx.canvas;
-    if (!scratch || scratch.width !== cv.width || scratch.height !== cv.height) scratch = B.canvas(cv.width, cv.height);
-    const s = scratch.getContext('2d');
+    const s = stageScratch(cv.width, cv.height);
     const M = ctx.getTransform();
     const bx = box || [0, 0, 1920, 1080];
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -198,10 +209,6 @@
     x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
     x1 = Math.min(cv.width, Math.ceil(x1)); y1 = Math.min(cv.height, Math.ceil(y1));
     sbox = x1 > x0 && y1 > y0 ? [x0, y0, x1 - x0, y1 - y0] : null;
-    s.setTransform(1, 0, 0, 1, 0, 0);
-    s.globalCompositeOperation = 'source-over';
-    s.globalAlpha = 1;
-    s.restore(); s.restore();                                  // drop any clip left from the last pass
     s.save();
     if (sbox) {
       s.clearRect(sbox[0], sbox[1], sbox[2], sbox[3]);
@@ -574,18 +581,17 @@
   }
 
   /**
-   * Beads leaking from the cupped hands every 0.5 s (75.85–81.85, then the
-   * last at 82.2). Seen from above, only drops that leave the hands' outer
+   * The fifteen beads leaking from the cupped hands — one per plink of the
+   * score (TSUKI.CUES.palmBeads: 75.4 + k·6.8/14, the last at 82.2 as the
+   * hands go empty). Each lets go BEAD_FALL s before its plink so that its
+   * ring lands ON it. Seen from above, only drops that leave the hands' outer
    * edges can be seen falling: they slip off the sides of the palms and ring
    * the water just beside them.
    */
   const DRIPS = [[-60, 6], [62, 0], [-57, -22], [60, 22], [-55, 28], [58, -16]];
-  const BEAD_TIMES = (() => {
-    const out = [];
-    for (let t = BT.sit + 0.45; t < BT.last - 0.2; t += 0.5) out.push(t);
-    out.push(BT.last);                                   // the last drop, 82.2
-    return out;
-  })();
+  const BEAD_FALL = 0.32;
+  const BEAD_TIMES = ((TSUKI.CUES && TSUKI.CUES.palmBeads) || Array.from({ length: 15 }, (_, k) => Math.round((75.4 + (k * 6.8) / 14) * 1000) / 1000))
+    .map((t) => t - BEAD_FALL);
   function palmBeads(T) {
     const out = [];
     BEAD_TIMES.forEach((t0, i) => {
@@ -596,7 +602,7 @@
       if (!st) return;
       const q = rot([d[0] * CUP.s, d[1] * CUP.s]), out1 = rot([Math.sign(d[0]) * 9, 0]);
       const x = st.x + q[0], y = st.y + q[1];
-      out.push({ i, t0, age, x, y, lx: x + out1[0], ly: y + out1[1] + 54, tl: t0 + 0.32, landed: age > 0.32 });
+      out.push({ i, t0, age, x, y, lx: x + out1[0], ly: y + out1[1] + 54, tl: t0 + BEAD_FALL, landed: age >= BEAD_FALL });
     });
     return out;
   }
@@ -604,16 +610,18 @@
     ctx.save();
     for (const b of palmBeads(T)) {
       if (b.age < 0) {
-        // swelling at the edge of the palm
-        const k = 1 + b.age / 0.3;
+        // swelling at the edge of the palm (never before the water is poured in)
+        const sw = Math.min(0.3, b.t0 - BT.tip);
+        if (sw <= 0 || b.age < -sw) continue;
+        const k = 1 + b.age / sw;
         ctx.fillStyle = U.rgba(C.gofun, 0.9 * k);
         ctx.beginPath();
         ctx.arc(b.x, b.y, 1 + 2.6 * k, 0, TAU);
         ctx.fill();
         continue;
       }
-      if (b.age > 0.32) continue;
-      const f = E.inQuad(b.age / 0.32);
+      if (b.age > BEAD_FALL) continue;
+      const f = E.inQuad(b.age / BEAD_FALL);
       const x = U.lerp(b.x, b.lx, f), y = U.lerp(b.y, b.ly, f);
       ctx.strokeStyle = U.rgba(C.geppaku, 0.45 * f);
       ctx.lineWidth = 2.2;
@@ -637,14 +645,21 @@
    * たけ holds it up to the child's eye from her side of the basin, so we see
    * it from the far side: CAST's anatomical window turned over (180°), her
    * forearms leaving the top of the frame, one 波兎 sleeve edge at the top
-   * right. The hands are a near-foreground 墨 silhouette (Hiroshige's huge
-   * foreground crop) with their creases cut out of the block in pale lines,
-   * and a 1.5 px 胡粉 rim of moonlight on the upper edges. The diamond hole
-   * is also the clip through which Shot D is seen.
+   * right. The hands are the same old hands that held the ladle, lit by the
+   * same moon but nearer the eye and more in shadow: moonlit skin glazed
+   * toward 藍, a 墨 key line round the whole pose, 墨 creases and knuckles,
+   * and a 2 px 胡粉 rim of moonlight on the upper-left (moon-side) edges.
+   * As the window opens toward the eye (88.2–90) the hands pass out of the
+   * light into a flat 墨藍 silhouette. The diamond hole is also the clip
+   * through which Shot D is seen.
    */
   const WIN_INK = U.mix(C.sumi, C.ai, 0.2);
-  const WIN_PAL = { skin: WIN_INK, skinOld: WIN_INK, spot: WIN_INK, vein: WIN_INK, nail: U.mix(WIN_INK, C.ginnezu, 0.12), crease: U.mix(C.ginnezu, WIN_INK, 0.25) };
-  const WIN_OPTS = { pose: 'fox-window', age: 1, interlace: 1, sleeve: false, palette: WIN_PAL, ink: WIN_INK, outline: 1 };
+  const WIN_SKIN = U.mix(HANDS.skinOld, NIGHT, 0.38);        // the ladle hand's skin (NIGHT .24), deeper in shadow
+  const WIN_PAL = {
+    skin: WIN_SKIN, skinOld: WIN_SKIN, spot: U.mix(WIN_SKIN, C.kitsune, 0.3), vein: U.mix(C.ai, WIN_SKIN, 0.45),
+    nail: U.mix(C.gofun, NIGHT, 0.3), crease: C.sumi,
+  };
+  const WIN_OPTS = { pose: 'fox-window', age: 1, interlace: 1, sleeve: false, palette: WIN_PAL, ink: C.sumi, outline: 0.9 };
   // forearms (world orientation, scale-1 px from the diamond's centre): wrist → off the top
   const ARMS = [
     { pts: [[284, -60], [336, -150], [398, -258], [470, -382], [556, -522], [660, -690]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.52 },
@@ -737,7 +752,8 @@
     c.rotate(Math.PI);
     CAST.hands(c, 0, 0, 1, mask ? { ...WIN_OPTS, silhouette: mask, t: T } : { ...WIN_OPTS, t: T });
     c.restore();
-    c.fillStyle = mask || WIN_INK;
+    // the forearms, filled over the hands' wrist lines so the pose reads as one shape
+    c.fillStyle = mask || WIN_SKIN;
     c.fill(armPath);
     if (withSleeve) {
       // the sleeve's edge: 藍, with one 胡粉 rabbit leaping on it
@@ -762,47 +778,79 @@
     c.restore();
   }
 
-  // near scale 1 the pose is printed from baked sprites: the plain silhouette
-  // (with its sleeve), the creases cut out of it, and the rim of moonlight
+  // near scale 1 the pose is printed from baked sprites: the lit pose with its
+  // key line and creases, the rim of moonlight, and the same pose in the near
+  // dark (the opening)
   let winSpr = null;
   const WIN_BOX = [-400, -448, 604, 300];            // what can be on screen at scale ≤ 1.15
+  const WIN_KEY = 1.6;                               // the key line round the whole pose (px at scale 1)
+  const WIN_RIM = 2;                                 // the 胡粉 rim (px at scale 1), on the upper-left edges
   function bakeWindow(k) {
     if (winSpr && Math.abs(winSpr.k - k) / k < 0.1) return winSpr;
     const q = k;                                          // device resolution at scale 1
     const W = Math.ceil((WIN_BOX[2] - WIN_BOX[0]) * q), H = Math.ceil((WIN_BOX[3] - WIN_BOX[1]) * q);
     const mk = () => { const cv = B.canvas(W, H), c = cv.getContext('2d'); c.setTransform(q, 0, 0, q, -WIN_BOX[0] * q, -WIN_BOX[1] * q); return { cv, c }; };
-    const plain = mk();
-    paintWindow(plain.c, 1, 0, WIN_INK, true);
+    // the key line: the whole pose's silhouette in 墨, blotted outward, under the lit pose
     const detail = mk();
+    const sil = mk();
+    paintWindow(sil.c, 1, 0, C.sumi, true);
+    sil.c.setTransform(1, 0, 0, 1, 0, 0);
+    sil.c.globalCompositeOperation = 'source-in';                 // the sleeve too
+    sil.c.fillStyle = C.sumi;
+    sil.c.fillRect(0, 0, W, H);
+    detail.c.save();
+    detail.c.setTransform(1, 0, 0, 1, 0, 0);
+    detail.c.globalAlpha = 0.85;
+    const o = WIN_KEY * q;
+    for (let j = 0; j < 8; j++) {
+      const a = (j / 8) * TAU;
+      detail.c.drawImage(sil.cv, Math.cos(a) * o, Math.sin(a) * o);
+    }
+    detail.c.restore();
     paintWindow(detail.c, 1, 0, null, true);
+    // the rim: the hands and forearms (not the sleeve) minus themselves moved down-right
     const rim = mk();
     paintWindow(rim.c, 1, 0, C.gofun, false);
     rim.c.setTransform(1, 0, 0, 1, 0, 0);
     rim.c.globalCompositeOperation = 'destination-out';
-    rim.c.drawImage(rim.cv, 0, Math.round(1.6 * q));
-    winSpr = { k, q, W, H, plain: plain.cv, detail: detail.cv, rim: rim.cv };
+    rim.c.drawImage(rim.cv, Math.round(WIN_RIM * 0.75 * q), Math.round(WIN_RIM * q));
+    // the same pose in the near dark (the opening), for the cross-fade into the vectors
+    const ink = mk();
+    paintWindow(ink.c, 1, 0, WIN_INK, true);
+    winSpr = { k, q, W, H, detail: detail.cv, rim: rim.cv, ink: ink.cv };
     return winSpr;
   }
 
+  // the opening (88.2–90): coming toward the eye, the hands leave the
+  // moonlight — the lines and the rim go, the skin sinks into 墨藍 — and past
+  // ×SPR_MAX they are printed as vectors so they stay sharp at ×12
+  const SPR_MAX = 1.6;
   function drawWindowHands(ctx, T, st) {
     if (st.scale >= FOX.zoom - 0.02) return;
-    const lineA = 1 - U.smoothstep(1.02, 1.15, st.scale);
+    const dark = E.inOutSine(U.seg(st.scale, 1.0, 1.45));
+    const keyA = 1 - U.smoothstep(1.45, SPR_MAX, st.scale);   // the outer key line goes last
     const spr = bakeWindow(ctx.getTransform().a);
-    if (st.scale < 1.15) {
+    if (st.scale < SPR_MAX) {
       const w = (WIN_BOX[2] - WIN_BOX[0]) * st.scale, h = (WIN_BOX[3] - WIN_BOX[1]) * st.scale;
       const x0 = st.x + WIN_BOX[0] * st.scale, y0 = st.y + WIN_BOX[1] * st.scale;
-      if (lineA < 0.999) ctx.drawImage(spr.plain, x0, y0, w, h);
-      if (lineA > 0.01) {
+      ctx.save();
+      ctx.globalAlpha *= keyA;
+      ctx.drawImage(spr.detail, x0, y0, w, h);
+      ctx.restore();
+      if (dark < 0.999) {
         ctx.save();
-        ctx.globalAlpha *= lineA;
-        ctx.drawImage(spr.detail, x0, y0, w, h);
-        ctx.globalAlpha *= 0.35;
+        ctx.globalAlpha *= 0.55 * (1 - dark);
         ctx.drawImage(spr.rim, x0, y0, w, h);
+        ctx.restore();
+      }
+      if (dark > 0.001) {
+        ctx.save();
+        ctx.globalAlpha *= dark;
+        ctx.drawImage(spr.ink, x0, y0, w, h);
         ctx.restore();
       }
       return;
     }
-    // opening: the plain silhouette, drawn as vectors so it stays sharp at ×12
     ctx.save();
     ctx.translate(st.x, st.y);
     paintWindow(ctx, st.scale, T, WIN_INK, true);
@@ -829,7 +877,10 @@
           // while the moon is in the ladle and the palms, the water gives it up;
           // when the empty hands withdraw it is there again, untouched
           const held = U.smoothstep(73.75, 74.5, T) * (1 - U.smoothstep(84.9, 86.0, T));
-          if (!shattered) SC.reflection(c2, T, { wobble: wob, alpha: 1 - 0.92 * held });
+          // …until たけ's window comes over the basin: her hands and sleeve shade
+          // the water and the moon leaves it for the diamond (one moon per frame)
+          const shade = 1 - U.smoothstep(86.5, BT.reveal, T);
+          if (!shattered) SC.reflection(c2, T, { wobble: wob, alpha: (1 - 0.92 * held) * shade });
           else {
             // the shards regather; the whole disc returns over 71.55–71.8
             const whole = U.smoothstep(BT.whole - 0.25, BT.whole, T);
@@ -855,11 +906,11 @@
   }
 
   /* ---------------- the scene ------------------------------------------ */
-  let frameCv = null;
   TSUKI.scene('mizu-no-tsuki', {
     init(S) {
       ladleOffset();
       const w = Math.round(1920 * S.k), h = Math.round(1080 * S.k);
+      stageScratch(w, h);                                  // not mid-film
       TSUKI.SHOTS.C.warm(70, w, h);
       if (TSUKI.SHOTS.D.warm) TSUKI.SHOTS.D.warm(w, h);
       bakeCup(S.k);
@@ -878,15 +929,15 @@
     // settle out of the match-cut: the basin eases its y-scale 1.3 → 1.0
     const squash = 1 + 0.3 * (1 - E.inOutSine(U.seg(T, 66.0, 67.2)));
     if (squash > 1.0001) {
-      // print the frame once at identity, then stretch the finished image
+      // print the frame once at identity (into the scratch), then stretch the finished image
       const cv = ctx.canvas;
-      if (!frameCv || frameCv.width !== cv.width || frameCv.height !== cv.height) frameCv = B.canvas(cv.width, cv.height);
-      const f = frameCv.getContext('2d');
+      const f = stageScratch(cv.width, cv.height);
       const M = ctx.getTransform();
-      f.setTransform(1, 0, 0, 1, 0, 0);
       f.clearRect(0, 0, cv.width, cv.height);
+      f.save();
       f.setTransform(M);
       drawC(f, T);
+      f.restore();
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.imageSmoothingQuality = 'low';
@@ -894,7 +945,7 @@
       ctx.translate(0, cy);
       ctx.scale(1, squash);
       ctx.translate(0, -cy);
-      ctx.drawImage(frameCv, 0, 0);
+      ctx.drawImage(scratch, 0, 0);
       ctx.restore();
     } else drawC(ctx, T);
     PRINT.with(ctx, 'K', T, (c2) => drawFoxWindow(c2, T, S));

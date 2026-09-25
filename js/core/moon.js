@@ -4,7 +4,8 @@
    φ(T) is a monotone cubic through the screenplay's keypoints; each master
    shot projects φ with its own mapping. The disc is never inked: it is the
    bare washi showing through a hole in every plate, glazed a little by the
-   hour, swept by a band of mica — and, from T 106 on, carrying the rabbit.
+   hour, dusted with mica that glints as a soft window passes every 7 s —
+   and, from T 106 on, carrying the rabbit.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -26,7 +27,9 @@
     const xs = MOON.KEYS.map((k) => k[0]), ys = MOON.KEYS.map((k) => k[1]);
     const n = xs.length, d = [], m = new Array(n);
     for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
-    m[0] = d[0]; m[n - 1] = d[n - 2];
+    // the moon rests below the horizon until KEYS[0]: ease out of the hold
+    // (zero start slope) so there is no velocity step at the 序→一 hand-off
+    m[0] = 0; m[n - 1] = d[n - 2];
     for (let i = 1; i < n - 1; i++) {
       if (d[i - 1] * d[i] <= 0) m[i] = 0;
       else {
@@ -87,7 +90,8 @@
         ? { color: U.mix(C.yamabuki, C.geppaku, w), alpha: U.lerp(0.55 * (1 - Math.sin(0.3)), 0.2, w) }
         : { color: C.geppaku, alpha: 0.2 };
     }
-    return { color: C.ginnezu, alpha: U.lerp(0.2, 0.5, U.smoothstep(2.7, 3.14, p)) };
+    // toward dawn the glaze greys: colour and alpha both continuous at φ 2.7
+    return { color: U.mix(C.geppaku, C.ginnezu, U.smoothstep(2.7, 2.95, p)), alpha: U.lerp(0.2, 0.5, U.smoothstep(2.7, 3.14, p)) };
   };
 
   /** Kira strength (fades toward dawn). */
@@ -412,29 +416,48 @@
     }
     // the rabbit
     const ma = opts.maria != null ? opts.maria : T >= MOON.MARIA_BORN ? 0.22 : 0;
-    MOON.maria(ctx, x, y, r, ma);
-    // kira-zuri: a soft mica band sweeping across the disc every 7 s
+    MOON.maria(ctx, x, y, r, ma, C.sumi, opts.pestle ? { pestle: opts.pestle } : undefined);
+    // kira-zuri: mica dusted onto the block — fixed flecks that catch the
+    // light a little more as a wide, soft window passes every 7 s
     const kira = (opts.kira == null ? 1 : opts.kira) * MOON.kira(T);
-    if (kira > 0.01) {
-      const ph = U.fract(T / 7);
-      const s = U.lerp(-1.6, 1.6, U.ease.inOutSine(U.clamp(ph / 0.55)));
-      if (ph < 0.55) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, U.TAU);
-        ctx.clip();
-        ctx.translate(x, y);
-        ctx.rotate(U.deg(30));
-        const bw = Math.max(12, r * 0.25);
-        const g = ctx.createLinearGradient(s * r - bw, 0, s * r + bw, 0);
-        g.addColorStop(0, 'rgba(255,255,255,0)');
-        g.addColorStop(0.5, `rgba(255,253,244,${0.32 * kira})`);
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = g;
-        ctx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
-        ctx.restore();
-      }
+    if (kira > 0.01) MOON.mica(ctx, x, y, r, T, kira);
+    ctx.restore();
+  };
+
+  /* ---------------- kira-zuri: the mica flecks ------------------------- */
+  // ~80 tiny flecks in unit-disc coordinates, the same on every moon (one block)
+  const FLECKS = (() => {
+    const out = [];
+    for (let i = 0; i < 80; i++) {
+      const a = U.hash(i * 3 + 811) * U.TAU, d = Math.sqrt(U.hash(i * 3 + 812)) * 0.92;
+      out.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, s: U.lerp(0.45, 1.15, Math.pow(U.hash(i * 3 + 813), 1.6)), a: U.lerp(0.14, 0.32, U.hash(i * 7 + 814)) });
+    }
+    return out;
+  })();
+  const KIRA_DIR = [Math.cos(U.deg(30)), Math.sin(U.deg(30))];
+  /** Paint the mica flecks on the disc (x, y, r); k = strength 0..1. */
+  MOON.mica = (ctx, x, y, r, T, k) => {
+    const ph = U.fract(T / 7);
+    // the window centre along the 30° axis, in disc radii (off the disc when idle)
+    const s = ph < 0.55 ? U.lerp(-1.9, 1.9, U.ease.inOutSine(ph / 0.55)) : 9;
+    const fr = U.clamp(Math.sqrt(r / 128), 0.6, 1.3);    // fleck size: grains, not snow
+    const groups = new Map();
+    for (const f of FLECKS) {
+      const u = f.x * KIRA_DIR[0] + f.y * KIRA_DIR[1];
+      const w = Math.max(0, 1 - Math.pow((u - s) / 0.6, 2));   // soft window, width 1.2 r
+      const a = Math.round(Math.min(1, f.a * k * (1 + 0.8 * w * w)) * 25) / 25;
+      if (a <= 0) continue;
+      let p = groups.get(a);
+      if (!p) { p = new Path2D(); groups.set(a, p); }
+      const px = x + f.x * r, py = y + f.y * r, rr = f.s * fr;
+      p.moveTo(px + rr, py);
+      p.arc(px, py, rr, 0, U.TAU);
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [a, p] of groups) {
+      ctx.fillStyle = `rgba(255,253,244,${a})`;
+      ctx.fill(p);
     }
     ctx.restore();
   };

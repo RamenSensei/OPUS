@@ -8,7 +8,8 @@
    Cue shape (see js/script.js):
      { t, dur, kind: 'haiku'|'waka'|'narration'|'title'|'caption'|'cartouche',
        ja: [col, col, ...], author, zh, en, position, x, y, ink: 'light'|'dark',
-       size, chirashi: [offsets px], seal }
+       size, chirashi: [offsets px], seal,
+       sub_ink: 'dark' — the Chinese subtitle in sumi (over pale paper) }
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -62,6 +63,7 @@
     }
     if (cue.size) root.style.setProperty('--fs', cue.size + 'px');
     const spans = [];
+    let author = null, seal = null;
     if (cue.kind === 'caption') {
       const line = el('div', 'cap-line', root);
       spans.push(...charSpans(line, (cue.ja || []).join(' ')));
@@ -94,12 +96,14 @@
         if (cue.author) {
           const a = el('div', 'author', sig);
           a.textContent = cue.author;
+          author = a;
         }
         if (cue.seal !== false) {
           const s = el('div', 'seal' + (cue.seal_style === '朱文' ? ' shubun' : ' hakubun') + (cue.start >= 160 ? ' seal-faded' : ''), sig);
           const txt = cue.seal || '月';
           s.textContent = txt;
           if ([...txt].length > 1) s.classList.add('multi');
+          seal = s;
         }
       }
       if (cue.kind === 'title' && (cue.zh || cue.en)) {
@@ -108,7 +112,12 @@
         if (cue.en) el('div', 'title-en', sub).textContent = cue.en;
       }
     }
-    return { root, spans, d };
+    // 落款 comes after the text: the signature and the seal are animated
+    // (except on the title card, which is signed from the start)
+    if (cue.kind === 'title') author = seal = null;
+    if (author) author.style.opacity = '0';
+    if (seal) seal.style.opacity = '0';
+    return { root, spans, d, author, seal };
   }
 
   // Default 散らし書き: poems step down column by column like a hand-written
@@ -152,9 +161,9 @@
 
   /** Update every cue for global time T. */
   TEXT.update = (T) => {
-    let subZh = '', subEn = '', subA = 0;
+    let subZh = '', subEn = '', subA = 0, subInk = false;
     for (const cue of cues) {
-      const { root, spans, d } = cue.dom;
+      const { root, spans, d, author, seal } = cue.dom;
       const visible = T >= cue.start && T <= cue.end;
       if (setIf(root, 'vis', visible)) root.style.display = visible ? '' : 'none';
       if (!visible) continue;
@@ -181,13 +190,30 @@
           s.style.translate = p < 0.999 ? `0 ${((1 - p) * -8).toFixed(1)}px` : '0 0';
         }
       }
+      // the signature soaks in as the last characters land; the seal is
+      // stamped half a second after the poem is complete
+      const R = Math.max(0, n - 1) * stagger + charDur;
+      if (author) {
+        const a = U.seg(lt, R * 0.9, R * 0.9 + 0.6, U.ease.outCubic).toFixed(3);
+        if (setIf(author, 'p', a)) author.style.opacity = a;
+      }
+      if (seal) {
+        const p = U.seg(lt, R + 0.5, R + 0.62);
+        const a = p.toFixed(3);
+        if (setIf(seal, 'p', a)) {
+          seal.style.opacity = a;
+          seal.style.scale = p < 0.999 ? (1.12 - 0.12 * p).toFixed(3) : '';
+        }
+      }
       if (cue.kind !== 'title' && (cue.zh || cue.en)) {
         const a = U.env(lt, 0.8, 2.0, cue.dur - d.out, cue.dur);
-        if (a > subA) { subA = a; subZh = cue.zh || ''; subEn = cue.en || ''; }
+        if (a > subA) { subA = a; subZh = cue.zh || ''; subEn = cue.en || ''; subInk = cue.sub_ink === 'dark'; }
       }
     }
     if (setIf(subsZh, 'txt', subZh)) subsZh.textContent = subZh;
     if (setIf(subsEn, 'txt', subEn)) subsEn.textContent = subEn;
+    // dark subtitle ink for cues whose band is pale paper (cue.sub_ink)
+    if (setIf(subs, 'dark', subInk)) subs.classList.toggle('dark', subInk);
     const sa = subA.toFixed(3);
     if (setIf(subs, 'op', sa)) subs.style.opacity = sa;
   };

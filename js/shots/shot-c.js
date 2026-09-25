@@ -29,8 +29,12 @@
      rings(ctx, T, list, o)  seigaiha ripple rings: list of
                              {x, y, t0, speed, life, amp, n, gap, r0, w};
                              o.refl → rings read dark across the reflection
-     dropTimes(T) / dropRings(T)   the spout's drops (72.0 + k·2.3) and rings
+     dropTimes(T) / dropRings(T)   the spout's drops — the score's list
+                             (TSUKI.CUES.spoutDrops: 72.0 … 81.2, none in the
+                             間 82.2–86.0) — and their rings; a drop lands on its plink
      spout(ctx, T)           the bead swelling at the spout's lip + falling drop
+                             (falls DROP_FALL s before its plink; after the last
+                             drop the next bead swells and hangs through the 間)
      petals(ctx, T, rings)   six floating 萩 petals, nudged by rings
      dew(ctx, T)             dew on the moss twinkling (kira)
    TSUKI.SHOTS.flatPrint(ctx, id, layers, T, opts)
@@ -100,7 +104,7 @@
     water: { x: 960, y: 620, rx: 280, ry: 190 },       // water surface
     refl: { x: 1000, y: 600, rx: 70, ry: 52 },         // the reflected moon
     spout: { x0: -30, y0: 466, x1: 690, y1: 560, w: 34 },
-    drop: { x: 700, y: 580, first: 72.0, every: 2.3 },
+    drop: { x: 700, y: 580, every: 2.3 },              // where drops land; `every` = one bead's swell
     gravel: { x: 960, y: 650, rx: 610, ry: 405 },
     persp: 190 / 280,                                   // ry/rx of circles lying on the water
   });
@@ -925,13 +929,17 @@
   /* ------------------------------------------------------------------ */
   /* live water                                                          */
   /* ------------------------------------------------------------------ */
-  /** Drops from the spout: the first lands at 72.0, then every 2.3 s. */
+  /**
+   * Drops from the spout: the score's list (one plink each), no extrapolation —
+   * the spout stops for the 間 (82.2–86.0) and holds a bead instead.
+   */
+  const DROPS = () => (TSUKI.CUES && TSUKI.CUES.spoutDrops) || [72.0, 74.3, 76.6, 78.9, 81.2];
+  const DROP_FALL = 0.18;                                // lip → water; the drop lands ON its plink
+  /** The last two drops that have landed by T (their rings may still be spreading). */
   SC.dropTimes = (T) => {
-    const d = G.drop, out = [];
-    if (T < d.first) return out;
-    const n = Math.floor((T - d.first) / d.every);
-    for (let i = Math.max(0, n - 1); i <= n; i++) out.push(d.first + i * d.every);
-    return out;
+    const L = DROPS(), out = [];
+    for (let i = 0; i < L.length && L[i] <= T; i++) out.push(L[i]);
+    return out.slice(-2);
   };
   SC.dropRings = (T) => SC.dropTimes(T).map((t0) => ({ x: G.drop.x, y: G.drop.y, t0, speed: 60, life: 2.0, amp: 0.4, n: 3, gap: 7 }));
 
@@ -1019,20 +1027,30 @@
     ctx.restore();
   };
 
-  /** The bead swelling at the spout's lip, and the falling drop (72.0 + k·2.3). */
+  /**
+   * The bead swelling at the spout's lip, and the falling drop: each of the
+   * score's drops lets go DROP_FALL s before its plink and touches the water
+   * on it (the same frame its ring starts). After the last drop (81.2) the
+   * next bead swells and hangs at the lip through the 間.
+   */
   SC.spout = (ctx, T, opts = {}) => {
     const d = G.drop;
     const s = spoutGeom();
     const lip = [s.x1 + s.nx * (s.w * 0.36), s.y1 + s.ny * (s.w * 0.36)];
-    // bead phase: swelling from 66.0 until the first drop, then per period
+    const L = DROPS();
+    let i = 0;
+    while (i < L.length && L[i] < T) i++;                 // L[i]: the next drop to land (≥ T)
+    const prev = i > 0 ? L[i - 1] : null, next = i < L.length ? L[i] : null;
     let grow, fall = -1;
-    if (T < d.first) grow = U.seg(T, 66.0, d.first, U.ease.inSine);
-    else {
-      const ph = (T - d.first) / d.every;
-      const f = ph - Math.floor(ph);
-      const age = f * d.every;
-      fall = age < 0.18 ? age / 0.18 : -1;
-      grow = U.seg(age, 0.2, d.every, U.ease.inSine);
+    if (next != null && T >= next - DROP_FALL) {
+      fall = (T - (next - DROP_FALL)) / DROP_FALL;       // falling: 0 at the lip … 1 on the water
+      grow = 0;
+    } else {
+      // a fresh bead forms 0.2 s after the last one let go and swells until it
+      // lets go in turn; after the last drop it swells once more and hangs
+      const from = prev == null ? 66.0 : prev + 0.2 - DROP_FALL;
+      const to = next != null ? next - DROP_FALL : prev + d.every - DROP_FALL;
+      grow = U.seg(T, from, to, U.ease.inSine);
     }
     const a = opts.alpha == null ? 1 : opts.alpha;
     ctx.save();
