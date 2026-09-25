@@ -15,8 +15,8 @@
   /* ---------------- the clock (design/screenplay.json → moon_clock) ------- */
   MOON.KEYS = [
     [14, -0.22], [16, -0.14], [20, -0.02], [24, 0.08], [32, 0.26], [40, 0.4],
-    [66, 0.74], [90, 1.02], [118, 1.32], [140, Math.PI / 2], [160, 1.96],
-    [190, 2.46], [206, 2.8], [214, 3.02], [219, Math.PI],
+    [66, 0.74], [90, 1.02], [118, 1.32], [140, Math.PI / 2], [148, 1.64], [160, 1.96],
+    [190, 2.46], [206, 2.8], [214, 3.02], [222.6, Math.PI],
   ];
   MOON.CULMINATION = 140;
   MOON.MARIA_BORN = 106;       // the rabbit's smoke settles into the maria
@@ -36,8 +36,9 @@
       }
     }
     return (x) => {
-      if (x <= xs[0]) return ys[0] + m[0] * (x - xs[0]);
-      if (x >= xs[n - 1]) return ys[n - 1] + m[n - 1] * (x - xs[n - 1]);
+      // held, not extrapolated, outside the keypoints
+      if (x <= xs[0]) return ys[0];
+      if (x >= xs[n - 1]) return ys[n - 1];
       let i = 0;
       while (x > xs[i + 1]) i++;
       const h = xs[i + 1] - xs[i], s = (x - xs[i]) / h;
@@ -66,13 +67,12 @@
   };
   /** Shot D (looking straight up): fixed. */
   MOON.D = () => ({ x: 960, y: 430, r: 260, haloR: 420 });
-  /** Shot E (dawn, art-directed): descends onto Fuji's summit. */
+  /** Shot E (dawn, art-directed): linear, never easing — (5,16) px/s from
+   *  (1140,202) at 206 → (1180,330) at 214 (rim meets the smoke) → hidden
+   *  behind the summit plateau at 222.6. */
   MOON.E = (T) => {
-    const a = U.seg(T, 206, 214, U.ease.inOutSine);
-    const b = U.seg(T, 214, 218.5, U.ease.inSine);
-    const x = U.lerp(1110, 1180, a);
-    const y = U.lerp(250, 330, a) + b * 150;
-    return { x, y, r: 48 };
+    const u = Math.max(0, T - 206);
+    return { x: 1140 + 5 * u, y: 202 + 16 * u, r: 48, hidden: T >= 222.6 };
   };
 
   /* ---------------- colour law ----------------------------------------- */

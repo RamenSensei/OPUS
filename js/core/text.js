@@ -41,9 +41,9 @@
 
   const DEFAULTS = {
     haiku:     { reveal: 2.6, out: 1.6, stagger: 0.11, cls: 'poem haiku' },
-    waka:      { reveal: 4.2, out: 1.8, stagger: 0.085, cls: 'poem waka' },
-    kanshi:    { reveal: 3.6, out: 1.8, stagger: 0.12, cls: 'poem waka kanshi' },
-    letter:    { reveal: 4.0, out: 1.8, stagger: 0.07, cls: 'poem narration letter' },
+    waka:      { reveal: 3.0, out: 1.5, stagger: 0.085, cls: 'poem waka' },
+    kanshi:    { reveal: 2.6, out: 1.5, stagger: 0.11, cls: 'poem waka kanshi' },
+    letter:    { reveal: 3.0, out: 1.4, stagger: 0.09, cls: 'poem narration letter' },
     narration: { reveal: 1.8, out: 1.2, stagger: 0.05, cls: 'poem narration' },
     title:     { reveal: 3.2, out: 2.0, stagger: 0.22, cls: 'title-card' },
     caption:   { reveal: 1.2, out: 1.0, stagger: 0.03, cls: 'caption' },
@@ -57,7 +57,7 @@
     if (cue.layout) {
       root.style.left = '0px'; root.style.top = '0px'; root.style.right = 'auto'; root.style.bottom = 'auto';
     } else {
-      if (cue.x != null) { root.style.left = cue.x + 'px'; root.style.right = 'auto'; }
+      if (cue.x != null) { root.style.left = cue.x + 'px'; root.style.right = 'auto'; root.style.transform = 'none'; }
       if (cue.y != null) { root.style.top = cue.y + 'px'; root.style.bottom = 'auto'; }
     }
     if (cue.size) root.style.setProperty('--fs', cue.size + 'px');
@@ -96,7 +96,7 @@
           a.textContent = cue.author;
         }
         if (cue.seal !== false) {
-          const s = el('div', 'seal' + (cue.seal_style === '朱文' ? ' shubun' : ''), sig);
+          const s = el('div', 'seal' + (cue.seal_style === '朱文' ? ' shubun' : ' hakubun') + (cue.start >= 160 ? ' seal-faded' : ''), sig);
           const txt = cue.seal || '月';
           s.textContent = txt;
           if ([...txt].length > 1) s.classList.add('multi');

@@ -18,7 +18,8 @@ function cueOut(c) {
   const kind = KIND[c.kind] || 'narration';
   const o = { t: c.t, dur: c.dur, kind, ja: c.ja };
   if (c.author) o.author = c.author;
-  if (c.seal) o.seal = c.seal;
+  if (c.seal || c.seal === false) o.seal = c.seal;
+  if (c.en) o.en = c.en;
   if (c.seal_style) o.seal_style = c.seal_style;
   if (c.zh) o.zh = c.zh;
   if (c.position) o.position = c.position;
@@ -26,12 +27,12 @@ function cueOut(c) {
   if (c.y != null) o.y = c.y;
   if (c.ink) o.ink = c.ink;
   if (c.size) o.size = c.size;
-  if (c.font) o.font = c.font;
+  if (c.font) o.font = /brush|yuji/i.test(c.font) ? 'brush' : /mincho/i.test(c.font) ? 'mincho' : c.font;
   if (c.layout) o.layout = c.layout;
   if (c.sigAt) o.sigAt = c.sigAt;
   if (c.chirashi) o.chirashi = c.chirashi;
   // Kaguya's letter and the title are brushed (text_style.fonts)
-  if (!o.font && (kind === 'title' || /かぐや姫の文/.test(c.author || ''))) o.font = 'brush';
+  if (!o.font && (kind === 'title' || kind === 'letter' || /かぐや姫の文/.test(c.author || ''))) o.font = 'brush';
   return o;
 }
 

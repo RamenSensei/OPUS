@@ -9,14 +9,14 @@
   "logline_zh": "十五夜，祖母以初升的明月为灯，把《竹取物语》化作纸门上的影绘；当月亮走进圆窗，她自己的影子离开身体，攀着窗格升入月中，只回头望了一眼。六十个秋天之后，当年的孩子白发苍苍，披着祖母留下的羽织独坐同一条檐廊，在一轮丝毫未老的月亮下把那一夜看完——正如辉夜姬所托：“有月亮出来的夜晚，请望向我。”",
   "logline_en": "On the fifteenth night a grandmother turns the Tale of the Bamboo Cutter into shadows on the shoji, with the rising moon as her lantern; when the moon reaches the round window, her own shadow leaves her body, climbs the lattice into it, and looks back once. Sixty autumns later the child, now old, sits alone on the same veranda in her grandmother's haori and finishes the night under a moon that has not aged — doing what Kaguya asked: on nights when the moon comes out, look toward me.",
   "runtime_seconds": 236,
-  "time_convention": "Segment 'start'/'end' and every 't_abs' are absolute film seconds. In beats and text_cues, 't' is LOCAL seconds from the segment's start (this is what js/script.js and TSUKI.TEXT consume). Inside layer/moon prose, times are written as local seconds followed by absolute film time in brackets, e.g. '6.5s [124.5]'. In 'audio', 'summary', 'negative_space' and 'transition_out', all times are absolute film seconds.",
-  "device": "The whole film is ONE woodblock print pulled on the Fifteenth Night, and its printing is the story. (1) 序 teaches the grammar: blank washi, a baren spiral reveals the sumi key block, each colour block lands a few px out of register and settles with a wooden kentō CLICK, and one round patch stays dry — the moon, which is never printed. (2) The grandmother's night (t 14–160) is the 初摺, the first impression: every block, crisp bokashi, fresh pigment. At the moon's culmination (140.0, exactly centred in the round window) the night hinges. (3) On the sōzu's KON at 160.0 the same master shot is pulled again from the worn blocks sixty years later — the 後摺: warm blocks gone, sky flat, key lines broken, registration drifted, paper yellowed and foxed. Only the moon is identical, because an absence cannot wear out. The second half of the moon's arc (culmination → set) belongs to this later night; the join is invisible because the moon does not change. (4) Renderer = plates: every master shot is cached as a key block + colour plates, each drawn per frame with a (dx, dy, alpha) from one table. The same table performs the printing (序), the tears — every colour plate drifting ±6–12 px while the key block holds — and the cold CLICK back into register at 147.8 (五), the jolt into the late impression (六) and the final unprinting in fugitive-pigment order (結). (5) Transitions between segments are never print-pulls: a seamless hand-off (序→一), sōzu-KON hard cuts (40.0, 160.0), a match-cut ring→basin (66.0), a fox-window iris (90–92), a suyari-gasumi wipe (118–121), a cut on falling hands (190.0) and a match-cut incense→Fuji smoke at the same x (206.0). (6) Three lenses show the myths without close faces: shoji shadow-play (影絵), water (水鏡), and the fox window (狐の窓), whose diamond clip in 六 re-renders the first-impression scene function at t − 150. (7) Six cached master shots (A wide garden, A′ engawa profile, B shoji wall with round window, C tsukubai, D straight up, E dawn Fuji); たけ and old 小夜 share one figure path. Thesis: お月見 is humanity doing what Kaguya asked — 月の出でたらむ夜は、見おこせたまへ — and those left behind remember on behalf of the one who was made to forget.",
+  "time_convention": "Segment 'start'/'end' and every 't_abs' are absolute film seconds. In beats and text_cues, 't' is LOCAL seconds from the segment's start (this is what js/script.js and TSUKI.TEXT consume). Inside layer/moon prose, times are written as local seconds followed by absolute film time in brackets, e.g. '6.5s [124.5]'. In 'audio', 'summary', 'negative_space' and 'transition_out', all times are absolute film seconds. All ambient motion (susuki sway and gusts, kasumi drift, the 7 s kira sweep, glow breathing, insect beds) reads t_abs, never segment-local t, so the seamless hand-offs (序→一, 三→四) continue without a restart.",
+  "device": "The whole film is ONE woodblock print pulled on the Fifteenth Night, and its printing is the story. (1) 序 teaches the grammar: blank washi, a baren spiral reveals the sumi key block, each colour block lands a few px out of register and settles with a wooden kentō CLICK, and one round patch stays dry — the moon, which is never printed. (2) The grandmother's night (t 14–160) is the 初摺, the first impression: every block, crisp bokashi, fresh pigment. At the moon's culmination (140.0, exactly centred in the round window) the night hinges. (3) On the sōzu's KON at 160.0 the same master shot is pulled again from the worn blocks sixty years later — the 後摺: warm blocks gone, sky flat, key lines broken, registration drifted, paper yellowed and foxed. Only the moon is identical, because an absence cannot wear out. The second half of the moon's arc (culmination → set) belongs to this later night; the join is invisible because the moon does not change. (4) Renderer = plates: every master shot is cached as a key block + colour plates, each drawn per frame with a (dx, dy, alpha) from one table. The same table performs the printing (序), the tears — every colour plate drifting ±6–12 px while the key block holds — and the cold CLICK back into register at 147.8 (五), the jolt into the late impression (六) and the final unprinting in approximately the order pigments fade (結). (5) Transitions between segments are never print-pulls: a seamless hand-off (序→一), sōzu-KON hard cuts (40.0, 160.0), a push-in and match-cut ring→basin (64.0–66.0), the fox window opening inside 三 until it becomes Shot D (88.2–90.0, then a cut), a suyari-gasumi wipe (118–121), a silent cut to A′ (155.0), a cut on falling hands (190.0) and a match-cut incense→Fuji snow gully and smoke on the same axis x 1180 (206.0). (6) Three lenses show the myths without close faces: shoji shadow-play (影絵), water (水鏡), and the fox window (狐の窓), whose diamond clip in 六 re-renders the first-impression scene function at t − 150. (7) Six cached master shots (A wide garden, A′ engawa profile, B shoji wall with round window, C tsukubai, D straight up, E dawn Fuji); たけ and old 小夜 share one figure path. Thesis: お月見 is humanity doing what Kaguya asked — 月の出でたらむ夜は、見おこせたまへ — and those left behind remember on behalf of the one who was made to forget.",
   "palette": [
     {
       "name_ja": "生成",
       "key": "kinari",
       "hex": "#EDE3CC",
-      "use": "Washi ground of the 初摺 (first impression). The moon IS this paper: it is never printed, only left bare (a hole through every ink plate)."
+      "use": "Washi ground of the 初摺 (first impression). The moon IS this paper: it is never printed, only left bare (a hole through the sky plates: the disc ∩ the shot's sky mask)."
     },
     {
       "name_ja": "鳥の子",
@@ -106,7 +106,7 @@
       "name_ja": "山吹",
       "key": "yamabuki",
       "hex": "#E8A93A",
-      "use": "The rising moon's glaze and horizon glow; andon-lit shoji; the fire's core; 女郎花; the 金 of mica (kira) palace in the fox window (at low alpha + sparkle)."
+      "use": "The rising moon's glaze and horizon glow; andon-lit shoji; the fire's core; 女郎花; plant-yellow accents."
     },
     {
       "name_ja": "萩",
@@ -118,68 +118,74 @@
       "name_ja": "紅",
       "key": "beni",
       "hex": "#C0283A",
-      "use": "小夜's obi-age (the one colour that survives the drain); the title tanzaku border."
+      "use": "小夜's 紅絞りの兵児帯 (soft red shibori heko-obi — the one colour that survives the drain); the title tanzaku border."
     },
     {
       "name_ja": "朱",
       "key": "shu",
       "hex": "#D9512C",
-      "use": "Fire tongues (the only warm colour ever drawn inside the moon); 朱文 seals and the final seal 忘れじ; 金木犀 florets; たけ's obijime cord."
+      "use": "Fire tongues (the only warm colour ever drawn inside the moon); 金木犀 florets; the title seal 縁 (canvas) and the 朱文 seals before 160; the final seal 忘れじ — the first saturated red after 160."
+    },
+    {
+      "name_ja": "海老茶",
+      "key": "mix(shu,sumi,0.45)",
+      "hex": "#843823",
+      "use": "たけ's obijime: a subdued red-brown, right for a woman of 78 (a bright 朱 cord belongs to a young woman). Still warm, so the drain at 155.4 visibly takes it. A mix on plate P2, not a new ink."
     },
     {
       "name_ja": "鴇（退紅・東雲）",
       "key": "toki",
       "hex": "#EAA79A",
-      "use": "ONE ink with two names: the 退紅 of the child's obi-age faded over sixty years (the single warm spot in the 後摺), and the 東雲 of the final dawn. The dawn is printed in the colour of the faded sash."
+      "use": "ONE ink with two names: the 退紅 of the child's heko-obi faded over sixty years (a strip of it ties the susuki: the single warm spot in the 後摺), and the 東雲 of the final dawn. The dawn is printed in the colour of the faded sash. Every DOM seal after 160 is printed in this faded tone, so 忘れじ is the only fresh 朱."
     }
   ],
   "global_motifs": [
-    "THE UNBROKEN MOON: one celestial arc for 236 s, never cut or reprinted, culminating exactly in the round window at 140.0 and sinking into Fuji's peak at dawn; it falls faster in old age.",
-    "THE MOON IS PAPER: never inked — a hole through every plate to the washi — except the rabbit's maria, printed from smoke at 106.0 and kept by every later moon. The rabbit earned it.",
+    "THE UNBROKEN MOON: one celestial arc for 236 s, never cut, never reprinted, never drawn twice in one frame (the 四 tilt carries one moon from Shot D into Shot A); culminating exactly in the round window at 140.0 and sinking behind Fuji's summit at dawn (hidden 222.6); it falls faster in old age.",
+    "THE MOON IS PAPER: never inked — a hole through the sky plates to the washi (the disc ∩ the shot's sky mask, so susuki plumes, mist, lattice and mountain print over it) — except the rabbit's maria, printed from smoke at 106.0 and kept by every later moon. The rabbit earned it.",
     "初摺 / 後摺: the grandmother's night is the first impression (all blocks, bokashi, fresh pigment); sixty years later is a late impression from the worn blocks (warm blocks gone, flat sky, broken lines, drift, foxing). The moon alone is identical in both, because an absence cannot wear out.",
     "MISREGISTRATION = TEARS, CLICK = FORGETTING: the kentō click learned in 序 returns once, at 147.8, when perfect register means the robe has erased her grief.",
-    "COLOUR STAYS ON EARTH: the drain turns たけ to 胡粉/銀鼠 while the haori and the child's 紅 obi-age keep their colour; in the 後摺 the only warm colour left is that obi-age faded to 退紅, tying the susuki — and the dawn is printed in the same ink.",
+    "COLOUR STAYS ON EARTH: the drain turns たけ to 胡粉/銀鼠 while the haori and the child's 紅絞りの兵児帯 keep their colour; in the 後摺 the only warm colour left is a strip of that heko-obi faded to 退紅, tying the susuki (the seals fade to 退紅 with it) — and the dawn is printed in the same ink. The one fresh red after 160 is the final seal 忘れじ.",
     "SHADOW = SOUL, LIGHT = ABSENCE: Kaguya in the shadow-play is a hole cut in paper; the celestials are shadows cast by nothing; たけ's shadow leaves her body; afterwards she casts no shadow while the child does.",
-    "ONLY SMOKE REACHES THE MOON, and only once: the smoke chain — 衣かつぎ steam → the rabbit's pyre → 叢雲 → incense → Fuji's undying smoke, which touches the moon at 214.0.",
+    "ONLY SMOKE REACHES THE MOON, and only once: the smoke chain — 衣かつぎ steam → the rabbit's pyre → 叢雲 → incense → Fuji's undying smoke (the elixir and, burned with it, the emperor's poem), which touches the moon at 214.0.",
     "THE 縁 MOTIF broken on its fifth note at the CLICK and completed sixty years later by the shakuhachi — the one left behind finishes the phrase.",
     "INSECTS ARE THE EARTH'S HEARTBEAT: silent at the leap and under the cloud, returning one by one; the film ends on a single suzumushi.",
-    "PRETENDING NOT TO SEE: お月見泥棒 at 33.0 (たけ turns to the moon) is inherited at 198.5 (小夜 turns to the moon) — the fox is the thief the second time.",
-    "THE FOX WINDOW: たけ shows the child the moon's true face (三); sixty years later the old hands show the old woman her own first night, still playing in colour (六).",
+    "PRETENDING NOT TO SEE: お月見泥棒 at 33.0 (たけ turns to the moon) is inherited at 197.5 (小夜 turns to the moon) — the fox is the thief the second time.",
+    "THE FOX WINDOW: たけ shows the child the moon's true face — enormous, blank, waiting — and the window opens into it (三 → 四); sixty years later the old hands show the old woman her own first night, still playing in colour (六).",
     "THE SECOND TEACUP: two cups poured, one untouched with a tiny moon in it — rhyming with the ladle-moon of 三 and with the scroll 掬水月在手. Never explained.",
-    "THE 形見: Kaguya's letter asks that the robe she leaves be kept as a keepsake; on screen it is たけ's 波兎 haori, laid over the sleeping child, worn by her for sixty years. 羽織 quietly rhymes with 羽衣.",
-    "THE HELD-BACK BELL: no 梵鐘 until dawn; its hum is tuned to the note the shakuhachi finally supplies.",
-    "金木犀 florets (桂花 / 月中桂) drift through the first night — a wordless bridge for the Chinese viewer, alongside 掬水月在手, 邵雍's 月到天心処 behind Buson, and Bai Juyi's 故人."
+    "THE 形見: Kaguya's letter asks that the robe she leaves be kept as a keepsake; on screen it is たけ's 波兎 haori, laid over the sleeping child, worn by her for sixty years (羽織 visually rhymes with 羽衣). 小夜's haiku 「形見着て」 in 七 answers the letter: she did what Kaguya asked.",
+    "THE HELD-BACK BELL: no 梵鐘 until dawn, and then only the three 捨て鐘 that precede 明け六つ — the hour itself is never struck; their hum is tuned to the note the shakuhachi finally supplies.",
+    "金木犀 florets (桂花 / 月中桂) drift through the first night — a wordless bridge for the Chinese viewer, alongside 掬水月在手, 邵雍's 月到天心処 behind Buson (the subtitle simply reads 月到天心) and Bai Juyi's couplet, which the Chinese viewer reads in the 画賛 itself."
   ],
   "characters": [
     {
       "name": "たけ（祖母・Take）",
       "age": "≈78 on the first night",
-      "look": "Bent, small 銀鼠 bun with a 煤竹 comb; kimono 紺 with 鼠 stripes, 黄土 obi, 朱 obijime; the 波兎 haori (藍 ground, 胡粉 rabbits leaping over seigaiha waves). Never a face beyond a closed-eye line in profile.",
+      "look": "Bent, small 銀鼠 bun with a 煤竹 comb; kimono 紺 with 鼠 stripes, 黄土 obi, a subdued 海老茶 obijime (right for her age); the 波兎 haori (藍 ground, 胡粉 rabbits leaping over seigaiha waves). Never a face beyond a closed-eye line in profile.",
       "build": "CAST.elder (poses stand/kneel/weep/point) as a cut-out rig; her shadow is the same path filled 藍鼠."
     },
     {
       "name": "小夜（Sayo）, 6",
-      "look": "墨 okappa bob, 紺 kasuri kimono with 胡粉 flecks, 紅 obi-age. Back views, silhouettes, a tiny figure against the moon.",
+      "look": "墨 okappa bob, 紺 kasuri kimono with 胡粉 flecks, a soft 紅絞りの兵児帯 (red shibori heko-obi tied in a loose bow at the back — everyday wear for a six-year-old at a Shōwa home tsukimi; no 帯揚げ). Back views, silhouettes, a tiny figure against the moon. Only in the 六 fox-window inset (gazeOut) does she turn: a 3-key silhouette swap back → profile → three-quarter with 0.25 s crossfades, the three-quarter face a flat 胡粉 oval under the okappa fringe with two 5 px 墨 Harunobu slit-eyes and no mouth.",
       "build": "CAST.child (reach/stand/sit)."
     },
     {
       "name": "小夜, 66",
-      "look": "Drawn on たけ's EXACT path and pose table (same silhouette, same haori), white bun. The audience must mistake her for たけ until the faded 退紅 cord gives her away.",
+      "look": "Drawn on たけ's EXACT path and pose table (same silhouette, same haori), white bun. The audience must mistake her for たけ until the faded 退紅 strip of her old heko-obi gives her away (171.0) — no text on screen before then.",
       "build": "CAST.elder, identical parameters to たけ — the reuse is the point of the film."
     },
     {
       "name": "狐（the fox, witness）",
-      "look": "Almost never seen: two eye-glints in the susuki at moonrise (20–22), the Jataka fox with its fish on the moon's face (93.5–103), a paw-shadow that steals a dango (196–197), a small sitting silhouette in the dawn susuki (206–236). The only creature present on both nights, sixty years apart.",
+      "look": "Almost never seen: two eye-glints in the susuki at moonrise (20–22, α 0.6), the Jataka fox with its fish on the moon's face (93.4–103), a 藍鼠 shadow on the closed shoji and a 墨 paw that steals a dango (195.0–196.2), a small sitting silhouette in the dawn susuki (206–236). The only creature present on both nights, sixty years apart.",
       "build": "CAST.fox (sit/walk) as a 墨 silhouette; glints are two 胡粉 points."
     },
     {
       "name": "月の兎",
-      "look": "In the Jataka on the moon's face (sumi silhouette); then the maria — a rabbit with pestle and mortar in 薄墨.",
+      "look": "In the Jataka on the moon's face (sumi silhouette); then the maria — a rabbit with pestle and mortar in 薄墨, settled from fourteen brush strokes of smoke.",
       "build": "CAST.rabbit (hop/leap/pound) silhouettes clipped to the disc."
     }
   ],
   "moon_clock": {
-    "rule": "The moon is ONE unbroken celestial arc for the whole film, never cut, never re-printed. Its angle φ(t) is a monotone cubic (PCHIP) through the keypoints; each master shot projects φ with its own mapping, so the moon may sit in different screen places in different shots but its sky position, size law and colour are continuous. Rise (t 16) → culmination inside the round window (t 140.0) takes 124 s; culmination → set into Fuji's peak (≈t 218.5) takes only ≈78 s: the moon falls faster in old age (time dilation, cf. 「月はやし」).",
+    "rule": "The moon is ONE unbroken celestial arc for the whole film, never cut, never re-printed, never drawn twice in one frame. Its angle φ(t) is a monotone cubic (PCHIP, Fritsch–Carlson) through the keypoints and HELD — not extrapolated — outside them: φ = −0.22 for t ≤ 14 (so 序's dry disc is exactly 一's first moon) and φ = π for t ≥ 222.6. Each master shot projects φ with its own mapping, so the moon may sit in different screen places in different shots but its sky position, size law and colour are continuous. Rise (t 16) → culmination inside the round window (t 140.0) takes 124 s; culmination → set behind Fuji's summit (t 222.6) takes only 82.6 s: the moon falls faster in old age (time dilation, cf. 「月はやし」). The keypoint [148, 1.64] lets the moon linger near the window's centre while she climbs (≤ 31 px off-centre through her entry at 148.4) and fall faster once she is gone.",
     "phi_keypoints_t_rad": [
       [
         14,
@@ -222,6 +228,10 @@
         1.5708
       ],
       [
+        148,
+        1.64
+      ],
+      [
         160,
         1.96
       ],
@@ -238,29 +248,29 @@
         3.02
       ],
       [
-        219,
+        222.6,
         3.1416
       ]
     ],
     "mappings": {
-      "A": "x = 960 − 800·cosφ ; y = 700 − 560·sinφ ; r = 72 + 38·(1 − sinφ)²  (horizon illusion: r≈121 at rise, 72 at culmination)",
+      "A": "x = 960 − 800·cosφ ; y = 700 − 560·sinφ ; r = 72 + 38·(1 − sinφ)²  (horizon illusion: r≈128 at 序, 72 at culmination). The hole is the disc ∩ skyMask(A): at x 0–760 the sky continues behind the susuki down to the far pond bank y 820 (far hills only at x 760–1500), so the rising moon sits in sky with the far and mid susuki plumes printed over it and the near live susuki drawn on top. Checkpoints: 序 (t ≤ 14) (179,822) r 128 — a dry half-disc x 51–307, y 694–820; 16 (168,778) r 121; 21 (160,696) r 110 (poster); 35 (200,526) r 90; 40 (223,482) r 86; after the 四 tilt 111 (703,170) r 72 → 118 (762,158); 六 160 (1264,182) r 72 → 190 (1581,347) r 77.",
       "A_prime": "Moon off-frame (upper right); only its light direction matters: shadows fall to the lower left.",
-      "B": "Moon glow behind the shoji paper: centre x = 960 − 420·cosφ, y = 960 − 810·sinφ, radial bokashi r 220. The disc itself (r 64) is visible only through the round window (centre (960,150), r 110): fully inside for ≈t 131–146, exactly centred at t 140.0.",
-      "C": "Reflection only (art-directed): ellipse rx 70 ry 40 at (1000,600) in the tsukubai.",
-      "D": "Looking straight up: fixed at (960,430), r 260, 月暈 halo ring r 420.",
-      "E": "Dawn (art-directed): r 48, from (1110,250) at t 206 straight down to (1180,330) at t 214.0 (lower rim y 378 meets the smoke tip), resting on the summit ≈t 216 (パール富士), sunk into the peak by t 218.5."
+      "B": "Moon glow behind the shoji paper: centre x = 960 − 420·cosφ, y = 960 − 810·sinφ, radial bokashi r 220. The disc itself (r 64) is visible only through the round window (centre (960,150), r 110; the disc is fully inside while its centre is ≤ 46 px off): fully inside t 131–150, exactly centred at 140.0 (16.5 px right at 145, 24 at 147, 29 at 148, 31 at 148.4, 44 at 150); from 151 its right rim is cut by the window's edge (79 px off at 153, 106 at 155).",
+      "C": "Reflection only (art-directed): ellipse rx 70 ry 52 at (1000,600) in the tsukubai (Shot C is more overhead, so the eclipse ring lands on the basin rim).",
+      "D": "Looking straight up: fixed at (960,430), r 260, 月暈 halo ring r 420. During the 四 tilt (108.0–111.0) the moon is drawn ONCE, on top of both masters: e = inOutSine((t−108)/3); centre = lerp((960,430),(703,170),e); r = lerp(260,72.1,e); maria scaled with the disc; halo α × (1−e). From 111.0 mapping A.",
+      "E": "Dawn (art-directed, linear in t, no easing — the moon must never appear to drop): r 48, velocity (5,16) px/s. (1140,202) at 206.0 → (1180,330) at 214.0 (lower rim y 378 meets the smoke tip on the axis x 1180) → rim resting on the summit plateau ≈216.6 (パール富士) → half sunk (1210,426) at 220.0 → hidden (1223,468) behind the plateau at 222.6, just as the warm plates lift."
     },
     "colour": "φ < 0.3: 山吹 glaze α = 0.55·(1 − sinφ) over the bare paper; 0.3–2.7: bare 生成 with a 月白 glaze α 0.2; φ > 2.7: 銀鼠 glaze rising to α 0.5, kira fading.",
-    "rendering": "Destination-out hole through every ink plate down to the washi, plus a kira band (soft 胡粉 'lighter' stripe, 30 px, 30°) sweeping across the disc every 7 s. The face is BLANK until t 106.0; from then on the rabbit's maria (墨 α 0.22, a separate 'rabbit plate') are the only ink ever laid on the moon. In the 後摺 the moon's disc is exempt from yellowing and wear: it is the one fresh thing in the late impression. After the final unprinting it survives as a karazuri (blind-embossed) circle carrying the rabbit's faint carbon (α 0.10).",
-    "law_of_contact": "Nothing touches the moon except once: Fuji's smoke at t 214.0. Clouds may pass in front of it; the incense (七) and every other smoke must stop short."
+    "rendering": "moonHole = disc ∩ skyMask(shot): a destination-out hole through the sky plates only, down to the washi. Whatever the shot places in front of the sky — far/mid susuki plume silhouettes, hills, kasumi bands, the reed lattice of the round window, Fuji's summit — prints over the moon; near live susuki draws on top. A kira band (soft 胡粉 'lighter' stripe, 30 px, 30°) sweeps the disc every 7 s (on t_abs). The face is BLANK until t 106.0; from then on the rabbit's maria (墨 α 0.22, a separate 'rabbit plate' R) are the only ink ever laid on the moon. In the 後摺 the disc is exempt from yellowing and wear: it is the one fresh thing in the late impression. After the final unprinting it survives as a karazuri (blind-embossed) circle carrying the rabbit's faint carbon (α 0.10).",
+    "law_of_contact": "Nothing touches the moon except once: Fuji's smoke at t 214.0, after which the moon slides down the thread (烟中月) until it is hidden at 222.6. Clouds may pass in front of it; the incense (七) points at it and stops 114–224 px short."
   },
   "shots": {
-    "A": "Wide garden (Hiroshige scale). Sky y 0–640 with an ichimonji band y 0–130 (ベロ藍+墨35%). Far 紺 hills y 580–640. Fuji small, peak (1720,500), base y 620 across x 1500–1940, first-snow line. Kasumi bands y 585–625 and y 780–805. Thatched house x 900–1460 (ridge y 430, eaves y 560; four shoji x 980–1380, y 575–690; engawa y 690–705 across x 940–1420). Offerings at the engawa's left end (1000–1040, 690). Susuki field y 620–820 in three parallax layers, densest at x 0–760. Pond y 820–1080, x 200–1500, Hiroshige moon-road dashes. Sōzu (320,880), tsukubai (420,930). Drooping 萩 branch top-left x 0–380, y 0–260. Figures on the engawa ≈52 px seated, ≈70 px standing. TEXT POCKET: sky x 500–860, y 60–580 (between the 萩 branch and the house).",
-    "A_prime": "Engawa in profile, medium (Harunobu idiom): post at x 1180 (墨/煤竹), eave across the top (y 0–120), boards y 820–1080 (煤竹 with 墨 grain), 月白 shoji behind (y 120–820). Figures ≤ 260 px, flat bijin-ga profiles, faces only as a closed-eye line. Used for inserts (hands, cups, cord) and the colour drain. TEXT POCKET: keep x 500–860, y 60–480 plain whenever a Shot A cue is still on screen.",
+    "A": "Wide garden (Hiroshige scale). Sky y 0–640 with an ichimonji band y 0–130 (ベロ藍+墨35%); at x 0–760 the sky continues down behind the susuki to the far pond bank y 820 — the moon rises there. Far 紺 hills y 580–640 at x 760–1500 only. Fuji small, peak (1720,500), base y 620 across x 1500–1940, first-snow line. Kasumi bands y 585–625 and y 780–805. Thatched house x 900–1460 (ridge y 430, eaves y 560; four shoji x 980–1380, y 575–690; engawa y 690–705 across x 940–1420). Offerings at the engawa's left end (1000–1040, 690). Susuki field y 620–820 in three parallax layers, densest at x 0–760. Pond y 820–1080, x 200–1500, Hiroshige moon-road dashes. Sōzu (320,880), tsukubai (420,930). Drooping 萩 branch top-left x 0–380, y 0–260. Figures on the engawa ≈52 px seated, ≈70 px standing. TEXT POCKET: sky x 500–860, y 60–580 (between the 萩 branch and the house).",
+    "A_prime": "Engawa in profile, medium (Harunobu idiom): post at x 1180 (墨/煤竹), eave across the top (y 0–120), boards y 820–1080 (煤竹 with 墨 grain), 月白 shoji behind (y 120–820). Figures ≤ 260 px, flat bijin-ga profiles, faces only as a closed-eye line. Used for inserts (hands, cups, the heko-obi strip) and the colour drain. TEXT POCKET: keep x 500–860, y 60–480 plain whenever a Shot A cue is still on screen.",
     "B": "Interior shoji wall (the theatre). Darkness 墨→煤竹. Upper wall (小壁) y 40–260 in 聚楽 plaster with a round window (丸窓) centred (960,150), r 110, 葭 reed lattice. Four shoji x 300–630, 630–960, 960–1290, 1290–1620, y 270–960, kumiko 3×6 cells (≈110×115) per panel, central stile x 960. Tatami y 960–1080, heri lines converging on (960,540) (uki-e). Tokonoma at the left edge x 40–250 with a scroll 「掬水月在手」 (x 110–180, y 300–820). All shadows 藍鼠, penumbra ∝ distance from the paper. TEXT POCKETS: dark right wall x 1640–1900, y 100–820; tokonoma x 60–300 only when it has fallen into shadow (五).",
-    "C": "Tsukubai close-up, three-quarter overhead. Stone basin ellipse 720×420 at (960,620); water ellipse 560×300 in 藍→ベロ藍; bamboo spout from (0,470) to (690,560), a drop every 2.3 s landing at (700,580); moss and gravel; 墨 vignette. TEXT POCKET: x 110–460, y 50–450.",
+    "C": "Tsukubai close-up, more overhead than three-quarter (optionally the whole shot eases its y-scale 1.3→1.0 about (960,620) over 66.0–67.2, settling out of the match-cut). Stone basin ellipse 720×520 at (960,620) (rx 360 ≈ the eclipse ring's outer radius on screen at 66.0); water ellipse 560×380 in 藍→ベロ藍; reflection ellipse rx 70 ry 52 at (1000,600); bamboo spout from (0,470) to (690,560) — a bead swells at its tip from 66.0, the first drop falls at 72.0 and then every 2.3 s, landing at (700,580); moss and gravel; 墨 vignette. TEXT POCKET: x 110–460, y 50–460.",
     "D": "Looking straight up. Moon (960,430) r 260, halo r 420; ベロ藍 sky with a near-black ichimonji; susuki plume silhouettes along the bottom edge y 900–1080. TEXT POCKET: x 110–470, y 90–800.",
-    "E": "Dawn wide. Fuji peak (1180,420), crater notch, base x 700–1700 at y 820, snow to y 520; kasumi y 640 and 780; susuki y 820–1080; tiny house x 200–420 (base y 830); 東雲 bokashi from the left horizon. TEXT POCKETS: x 100–520, y 50–470 and x 1560–1860, y 60–520."
+    "E": "Dawn wide. Fuji peak (1180,420): a flat Hokusai summit plateau x 1140–1250 at y ≈420 with the crater notch at its centre; base x 700–1700 at y 820, snow to y 520, and a tapered 胡粉 snow gully on the axis x 1174–1186, y 425–640 (it carries the incense line across the 206.0 cut); kasumi y 640 and 780; susuki y 820–1080; tiny house x 200–420 (base y 830); 東雲 bokashi from the left horizon. TEXT POCKETS: x 100–520, y 50–470 and x 1560–1860, y 60–520."
   },
   "plates": {
     "order": [
@@ -285,9 +295,10 @@
           "紅",
           "萩",
           "山吹",
-          "朱"
+          "朱",
+          "海老茶 (朱×墨)"
         ],
-        "carries": "the small warm blocks: andon light, flowers, obi-age, fire, 金木犀"
+        "carries": "the small warm blocks: andon light, flowers, the child's heko-obi, fire, 金木犀, たけ's obijime"
       },
       {
         "id": "P3",
@@ -354,27 +365,37 @@
     ],
     "state": "Every plate is drawn from its per-shot cache with a per-t (dx, dy, alpha). The moon's disc is cut out of every plate (destination-out). One table drives: the printing in 序, the tears and CLICK in 五, the 後摺 state and its jolt in 六, and the unprinting in 結.",
     "shozuri": "初摺 (first impression, t 0–160): all plates on, registration within ±0.5 px, crisp bokashi, fresh pigments, 生成 paper.",
-    "atozuri": "後摺 (late impression, t 160–236): P2 alpha 0 (except the single hand-applied 鴇/退紅 spot on the cord); P6 printed flat with NO bokashi and NO ichimonji at α 0.55 and offset (+5,−3); P5 offset (+5,−3); K with seeded dash-gaps (≤ 8% of length) and a few cracks; stronger goma-zuri speckle; paper 生成 × 鳥の子 multiply + ~60 foxing dots (煤竹 α 0.12–0.25). Restraint: it must read as an old print, not a broken render.",
+    "atozuri": "後摺 (late impression, t 160–236): P2 alpha 0 (except the single hand-applied 鴇/退紅 spot: the strip of faded heko-obi tying the susuki); P6 printed flat with NO bokashi and NO ichimonji at α 0.55 and offset (+5,−3); P5 offset (+5,−3); K with seeded dash-gaps (≤ 8% of length) and a few cracks; stronger goma-zuri speckle; paper 生成 × 鳥の子 multiply + ~60 foxing dots (煤竹 α 0.12–0.25). Restraint: it must read as an old print, not a broken render.",
     "jolt": "t 160.0–160.6: each plate performs a damped oscillation of amplitude 4–8 px (seeded direction, 3 cycles), P2 rises 4 px as its alpha falls to 0, key-line gaps and yellowing ramp 0→1.",
     "tears": "t 140.0–147.8: offsets P1 (0,+12), P2 (+10,+4), P5 (−12,−6), P6 (+6,−10), P7 (−4,+8), P4 (±3 only, so the climbing shadow stays legible), K holds at (0,0). Each is multiplied by ramp(140→142)·sin(2π(t−140)/3.1 + 1.3·i). The misaligned holes give the moon chromatic fringes (藍 on the left, 山吹 on the right, 1–4 px).",
     "click": "t 147.8: every plate snaps to (0,0) within 60 ms, no overshoot. Perfect register = the loss of feeling.",
-    "unprint": "t 222.0–228.0, in the real order fugitive pigments fade: D + P2 (鴇/東雲, 紅, 朱, 山吹, 萩) 222.0–223.5 → P5 + P6 (blues) 223.5–225.0 → P1 + P3 + P4 (earths, greens, greys) 225.0–226.5 → K last 226.5–228.0 (carbon never fades). Each group slips 2–4 px out of register and rises 4 px as its alpha falls to 0. The rabbit plate R stays at α 0.10."
+    "unprint": "t 222.0–228.0, in approximately the order ukiyo-e pigments fade — plant dyes first, mineral pigments later, carbon never: D + P2 (鴇/東雲 and any plant-dye pinks and yellows: 紅, 萩, 山吹) 222.0–223.5 → P5 + P6 (the blues) 223.5–225.0 → P1 + P3 + P4 (黄土, 松葉, 尾花, 鼠, 銀鼠; 朱, a stable mineral, would belong here — the 後摺 has none left) 225.0–226.5 → K last 226.5–228.0 (carbon never fades). Each group slips 2–4 px out of register and rises 4 px as its alpha falls to 0. The rabbit plate R stays at α 0.10."
   },
   "sound_bible": {
     "scale": "都節 (miyako-bushi / in) on D: D–E♭–G–A–B♭. Koto in 平調子 on D.",
     "en_motif": "The 縁 motif, A4–B♭4–D5–E♭5–D5 (the E♭ reached by oshide press from D). Stated WHOLE only once, at moonrise (t 16.5–19.9). During the climb (140–147.8) the koto forgets it in four passes; it breaks off at the CLICK on the rest where the fifth note (D5, 'home') should fall. At 210.5 the koto offers the first four notes again; at 214.0 the SHAKUHACHI — the voice of the one left behind — plays the missing D5 as the smoke touches the moon, and the dawn bell's hum (tuned to D) sustains it.",
     "earth_heartbeat": "Insects are mortal life. Suzumushi ('rīn': 4.2–4.6 kHz sine carriers, 30–40 Hz AM trill) and matsumushi ('chin-chirorin', ≈3.5 kHz, 3-note pattern). They stop for 1.2 s at the rabbit's leap (99.0–100.2), thin out as heaven arrives (132–140), vanish entirely under the cloud (148.0–152.0, absolute silence) and return one at a time (156.6, 158.2). In the 後摺 only three remain, then two, then one. The last sound of the film is a single suzumushi (233.0).",
     "heaven": "Shō aitake cluster A4 B4 E5 F♯5 A5 B5 (no semitones: heaven has none), breath-swelled; kagura-suzu shimmer (inharmonic 3–9 kHz); the fox-window glass cluster A6 B6 E7.",
-    "punctuation": "Sōzu KON (200 Hz sine thump + wood click, big room reverb) at 40.0 (cut to the theatre), 160.0 (sixty years pass) and 232.5 (the water has returned); a dry sōzu in 六 and a dew 'plink' at 201.5. The kentō CLICK (1.2 kHz woodblock tick, 12 ms + 180 Hz thunk) is taught in 序 as the sound of a block landing in register and returns once, at 147.8, as the sound of forgetting. The 梵鐘 is WITHHELD for the whole film until dawn: three strokes of 明け六つ at 215, 220, 225 (additive inharmonic partials 0.5, 1, 1.18, 1.5, 2.0, 2.74, 3.76 over a D hum, one pair detuned 0.7 Hz for 唸り, 12 s decay).",
+    "punctuation": "Sōzu KON (200 Hz sine thump + wood click, big room reverb) at 40.0 (cut to the theatre), 160.0 (sixty years pass) and 232.5 (the water has returned); a dry sōzu in 六 and a dew 'plink' at 201.5. The kentō CLICK (1.2 kHz woodblock tick, 12 ms + 180 Hz thunk) is taught in 序 as the sound of a block landing in register and returns once, at 147.8, as the sound of forgetting. The 梵鐘 is WITHHELD for the whole film until dawn: three strokes at 215, 220, 225 — the 捨て鐘 that precede 明け六つ (the hour's own six strokes are never heard; the film ends just before the hour) (additive inharmonic partials 0.5, 1, 1.18, 1.5, 2.0, 2.74, 3.76 over a D hum, one pair detuned 0.7 Hz for 唸り, 12 s decay).",
     "instruments": "Koto (Karplus-Strong; 後摺 = higher loss, shorter decays), shakuhachi (sine + band-passed breath, meri/kari bends, muraiki onsets), biwa (Karplus-Strong + sawari noise buzz) for the shadow-play, shō (additive cluster), kagura-suzu, soft taiko (55–90 Hz sine thumps), small 鏧 bowl (only at the rabbit's leap), wind in susuki (pink noise 0.8–2 kHz, seeded gusts), water (trickle, drops as gliding sine pings), geese (two-formant FM honks), paper (baren rub, brush swishes, peel swishes).",
     "silences": "0–2 (paper), 99.0–100.2 (the leap: only the bowl), 148.0–152.0 (absolute: master gain 0), 234.2–236.0 (end).",
     "scrubbing": "Continuous beds read their parameters from t; discrete events come from a sorted event list and are rescheduled from the current t on every seek."
   },
   "text_style": {
-    "fonts": "Japanese vertical (writing-mode: vertical-rl): Shippori Mincho B1 for poems and narration; Yuji Syuku for the title and for Kaguya's letter. Chinese: one small horizontal line in Noto Serif SC in the subtitle band y 960–1040.",
-    "seals": "Classical texts: a small 朱文 seal 「月」 (red characters). 小夜's original haiku: a 白文 seal 「小夜」 (white characters in red ground) — the film is quietly her 句集. Title: 「縁」. Final stamp on the paper (canvas, not DOM): 朱 「忘れじ」 ≈90 px at (1300,820), t 230.0.",
-    "rules": "14 text blocks in 236 s. Never two on screen at once; ≥ 1.5 s between cues; every haiku/waka/kanshi on screen ≥ 8 s. No text at all during the climb, the cloud and the colour drain (140–160). Text reveal and fade are computed from t (engine TEXT.update), never CSS animation. 'ink': light = 胡粉 on dark grounds, dark = 墨 on paper. When a cue sits on a painted cartouche (短冊/色紙), the SCENE draws the cartouche panel on canvas for the cue's exact interval; the DOM draws only the characters.",
-    "positions": "Engine positions (css/film.css): right / upper-right / left / upper-left / center; every cue here also gives explicit x,y (left/top of the text block in logical px) to land in the shot's text pocket."
+    "fonts": "Japanese vertical (writing-mode: vertical-rl): Shippori Mincho B1 for poems and narration; Yuji Syuku (font 'brush') for the title column and for Kaguya's letter (kind 'letter'). Chinese: one small horizontal line in Noto Serif SC in the subtitle band y 960–1040, at most 5 characters per second of fully-visible subtitle time (≤ 22 characters for an 8 s cue); bridges for the Chinese viewer stay wordless — no glosses in the subtitles.",
+    "seals": "Classical texts: a small 朱文 seal 「月」 (red characters on the paper ground, red outline). 小夜's haiku: a 白文 seal 「小夜」 (paper-white characters on red). Title: 「縁」 朱文, painted on canvas at the tanzaku's foot (1721,434)–(1749,462). From 160 on (the 後摺) every DOM seal is printed in faded 退紅 (#EAA79A) instead of 朱 — COLOUR STAYS ON EARTH — and the final haiku carries no seal, so the canvas stamp 朱 「忘れじ」 ≈90 px at (1300,820), t 230.0, is the first and only saturated red after 160.",
+    "rules": "11 text blocks in 236 s, ≈88 s on screen (37%). Never two on screen at once; ≥ 1.5 s between cues; every haiku/waka/kanshi on screen ≥ 8 s. No text at all from 131.5 to 160 (celestials, ribbon, climb, cloud, drain), from 160 to 173.6 ('she has come back' plays as pure image), and from 214.0 to 226.8 (the contact, the missing note, the bells, the moonset). Text reveal and fade are computed from t (engine TEXT.update), never CSS animation. 'ink': light = 胡粉 on dark grounds, dark = 墨 on paper. When a cue sits on a painted cartouche (短冊/色紙), the SCENE draws the cartouche panel on canvas for the cue's exact interval; the DOM draws only the characters.",
+    "positions": "Engine positions (css/film.css): right / upper-right / left / upper-left / center; every cue here also gives explicit x,y (left/top of the text block in logical px) to land in the shot's text pocket. When x is given the block's left edge is exactly x — no centring transform.",
+    "engine_requirements": [
+      "text.js DEFAULTS: waka {reveal 3.0, out 1.5, stagger 0.085}; kanshi {reveal 2.6, out 1.5, stagger 0.11} (the 2-column couplet writes like a haiku: fully written ≈2.5 s, ≈3.9 s fully legible in 8 s); letter {reveal 3.0, out 1.4, stagger 0.09, brush font, default 40 px, letter-spacing 0.12em}.",
+      "Seals by seal_style: 朱文 = paper ground, 朱 characters, 2 px inset 朱 outline; 白文 = 朱 ground, paper-white characters. Cues starting ≥ 160 add a 'seal-faded' class that swaps 朱 for 退紅 #EAA79A.",
+      "seal:false must reach text.js: tools/script-from-screenplay.js copies seal only when truthy, and text.js then defaults to 「月」. Pass `seal: false` through (used by the title and by 影ひとつ — a dry run of the generator confirms 影ひとつ currently loses it). The generator also drops `en`; pass it through for the title cue.",
+      "When cue.x != null set root.style.transform = 'none' (.pos-center's translateX(-50%) otherwise shifts an explicitly placed block).",
+      "Cue 'font' is a class token: use 'brush' (the letter previously carried the prose value 'Yuji Syuku (brush)', which would become a broken class name).",
+      "The title is a kind 'haiku' cue with font 'brush' and no seal; its 短冊, 色紙 「十五夜摺」 and 縁 seal are painted on canvas by 序 and carried by 一 until 16.0.",
+      "MOON: φ held at −0.22 for t ≤ 14 and at π for t ≥ 222.6 (no linear extrapolation); keypoints per moon_clock (add [148,1.64]; [219,π] → [222.6,π]); MOON.E linear per mappings.E; one moon during the 四 tilt per mappings.D; the hole is disc ∩ skyMask(shot).",
+      "三's engine transition is a plain cut: the scene itself opens the fox window over Shot D's first frame (88.2–90.0)."
+    ]
   },
   "segments": [
     {
@@ -387,14 +408,14 @@
       "end": 14,
       "shot": "A (being printed)",
       "print_state": "shozuri (in progress)",
-      "summary": "The film is pulled like a woodblock print. Blank washi; a baren spirals out from the thatched house and reveals Shot A in sumi only; the colour blocks drop in one by one, each landing a few px out of register and settling with a wooden kentō click. Before any colour is laid, one round patch above the susuki stays dry and glows 山吹: the moon exists before the world is printed. The title writes itself — a sentence that stops halfway.",
+      "summary": "The film is pulled like a woodblock print. Blank washi; a baren spirals out from the thatched house and reveals Shot A in sumi only; the colour blocks drop in one by one, each landing a few px out of register and settling with a wooden kentō click. One half-disc behind the susuki at the far left stays dry and glows 山吹: the moon exists before the world is printed. The title writes itself on a painted tanzaku — a sentence that stops halfway — while 十五夜摺 prints in the 色紙 beside it.",
       "time_of_night": "dusk before moonrise (宵, ≈17:50 on 十五夜)",
       "moon": {
-        "x": 168,
-        "y": 700,
-        "r": 121,
-        "phase_note": "full (十五夜) but not yet risen: only a dry, unprinted disc cut out of every plate and a 山吹 glow bokashi above the susuki mark where it will rise",
-        "motion": "none; the glow breathes ±6% on a 7 s period from 6s [6]"
+        "x": 179,
+        "y": 822,
+        "r": 128,
+        "phase_note": "full (十五夜) but not yet risen: only a dry, unprinted half-disc (x 51–307, y 694–820 — the disc ∩ Shot A's sky mask; the far and mid susuki plumes print over it) and a 山吹 glow bokashi behind the susuki. φ is held at −0.22 for t ≤ 14, so this is exactly 一's first moon.",
+        "motion": "none; the glow breathes ±6% on a 7 s period (on t_abs) from 6s [6]"
       },
       "layers": [
         {
@@ -412,26 +433,26 @@
         {
           "name": "colour plates",
           "depth": 2,
-          "description": "Shot A's plates in printing order (see plates): P1 黄土, P2 warm (紅/萩/山吹), P3 松葉+尾花, P4 greys, P5 藍 pond, P6 ベロ藍 sky with ichimonji and horizon bokashi, P7 胡粉/月白, P8 kira.",
-          "motion": "Plate i lands at 6s [6] + 0.55·i (i = 0…7): α 0→1 in 0.12 s from a seeded offset of 4–6 px, easing to (0,0) with outCubic over 0.45 s; the kentō click sounds as it touches. P6's ichimonji band is wiped left→right 8.9s [8.9]–9.5s [9.5]."
+          "description": "Shot A's plates in printing order (see plates): P1 黄土, P2 warm (紅/萩/山吹), P3 松葉+尾花, P4 greys, P5 藍 pond, P6 ベロ藍 sky with ichimonji and a 山吹 horizon bokashi at x 0–760, y 600–820 (α 0→0.25 downward), P7 胡粉/月白, P8 kira.",
+          "motion": "Plate i lands at 6s [6] + 0.6·i (i = 0…7: 6.0, 6.6, 7.2, 7.8, 8.4, 9.0, 9.6, 10.2): α 0→1 in 0.12 s from a seeded offset of 4–6 px, easing to (0,0) with outCubic over 0.45 s; the kentō click sounds as it touches. P6's ichimonji band is wiped left→right 9s [9.0]–9.6s [9.6]."
         },
         {
           "name": "the moon before the moon",
           "depth": 3,
-          "description": "A dry unprinted disc at (168,700), r 121, cut out of every colour plate (destination-out), and behind the susuki a 山吹 glow bokashi: radial, α 0.35 at r 60 → 0 at r 300, centred (170,690).",
-          "motion": "Appears with the first plate 6s [6] — colour arrives everywhere except here. Glow breathes ±6% (7 s)."
+          "description": "A dry unprinted half-disc: moonHole = disc (179,822) r 128 ∩ skyMask(A) — x 51–307, y 694–820 — cut out of the sky plates (destination-out); the far and mid susuki plume silhouettes and the low kasumi print over it. Behind the susuki a 山吹 glow bokashi: radial, α 0.35 at r 60 → 0 at r 300, centred (180,770).",
+          "motion": "A faint glow (×0.3) is there from 2s [2] as the spiral passes; the dry disc reads as a hole when the first plate lands 6s [6] — colour arrives everywhere except here. Glow breathes ±6% (7 s, on t_abs)."
         },
         {
           "name": "near susuki",
           "depth": 4,
           "description": "The live near-susuki layer of Shot A (≈150 plumes).",
-          "motion": "Frozen until 13s [13]; the first gust leans the plumes 4° and they begin their normal sway: the print starts to breathe."
+          "motion": "Frozen until 13s [13]; the first gust leans the plumes 4° and they begin their normal sway: the print starts to breathe. Sway and gusts read t_abs, so 一 continues this gust without a restart."
         },
         {
           "name": "title panels (canvas)",
           "depth": 5,
-          "description": "The 短冊 panel for the title: x 1680–1790, y 60–470, 生成 ground with a 1.5 px 紅 border and faint 山吹 砂子 specks; a square 色紙 x 1560–1660, y 60–160 for 十五夜摺. The DOM writes the characters.",
-          "motion": "Panels print in with P2 6.6s [6.6] (they are part of the print); hold to the end; lift with the title's fade 12.4s [12.4]–14s [14]."
+          "description": "The 短冊 panel for the title: x 1680–1790, y 60–470, 生成 ground with a 1.5 px 紅 border and faint 山吹 砂子 specks; the DOM writes only the single column 月の出でたらむ夜は (Yuji Syuku 36 px, y 74–443). The scene paints: the 縁 seal (朱文, 28 px) at (1721,434)–(1749,462) at the tanzaku's foot, and the square 色紙 x 1560–1660, y 60–160 carrying 「十五夜摺」 as a 2×2 block (right column 十五, left column 夜摺; Yuji Syuku 32 px, 墨) centred (1610,110).",
+          "motion": "Panels, seal and 十五夜摺 print in with P2 6.6s [6.6] — they are part of the print. They outlive 序: 一 keeps drawing them unchanged and fades them 14.4–16.0 together with the DOM title's fade-out (1.6 s ending at 16.0)."
         }
       ],
       "beats": [
@@ -448,22 +469,27 @@
         {
           "t": 2.0,
           "t_abs": 2.0,
-          "desc": "The baren begins: sumi lines spiral out from the house."
+          "desc": "The baren begins: sumi lines spiral out from the house; a faint warmth behind the far-left susuki."
         },
         {
           "t": 6.0,
           "t_abs": 6.0,
-          "desc": "The first colour block (黄土) lands 5 px out of register and settles — click. One circle above the susuki stays dry: the moon's place."
+          "desc": "The first colour block (黄土) lands 5 px out of register and settles — click. One half-disc behind the susuki stays dry: the moon's place."
+        },
+        {
+          "t": 6.6,
+          "t_abs": 6.6,
+          "desc": "The warm block lands: the tanzaku, the 色紙 with 十五夜摺 and the 縁 seal print in."
         },
         {
           "t": 7.0,
           "t_abs": 7.0,
-          "desc": "The title begins to write itself."
+          "desc": "The title begins to write itself in one brushed column."
         },
         {
-          "t": 8.9,
-          "t_abs": 8.9,
-          "desc": "The ベロ藍 sky lands; the ichimonji band is wiped across the top."
+          "t": 9.0,
+          "t_abs": 9.0,
+          "desc": "The ベロ藍 sky lands; the ichimonji band is wiped across the top (9.0–9.6)."
         },
         {
           "t": 10.2,
@@ -485,35 +511,34 @@
         {
           "t": 7.0,
           "t_abs": 7.0,
-          "dur": 7.0,
-          "kind": "title",
+          "dur": 9.0,
+          "kind": "haiku",
           "style": "tanzaku",
+          "font": "brush",
           "ja": [
-            "月の出でたらむ夜は",
-            "十五夜摺"
+            "月の出でたらむ夜は"
           ],
-          "reading": "つきのいでたらむよは　じゅうごやずり",
+          "reading": "つきのいでたらむよは",
           "author": "",
-          "seal": "縁",
-          "seal_style": "朱文",
+          "seal": false,
           "source": "Title taken from Kaguya-hime's farewell letter in 『竹取物語』 (「月の出でたらむ夜は、見おこせたまへ」), deliberately stopped halfway.",
           "zh": "月出之夜 · 十五夜摺",
           "en": "On Nights When the Moon Comes Out — A Fifteenth-Night Impression",
           "position": "upper-right",
-          "x": 1560,
-          "y": 60,
+          "x": 1716,
+          "y": 74,
           "ink": "dark",
-          "size": 96,
-          "note": "Column 1 (Yuji Syuku) sits on the 短冊 panel x 1680–1790; column 2 十五夜摺 is set small in the 色紙 x 1560–1660, y 60–160. Seal 「縁」 at the tanzaku's foot. The sentence is completed on screen at 122.5 s by the letter."
+          "size": 36,
+          "note": "Title. One brushed column (9 × 36 × 1.14 ≈ 369 px: y 74–443) on the 短冊 the scene paints at x 1680–1790, y 60–470. 十五夜摺 (2×2 in the 色紙) and the 縁 seal are painted on canvas, not DOM. kind 'haiku', so zh and en go to the subtitle band (no .title-sub overflow). The cue crosses the 序→一 hand-off and ends at 16.0 (fade 14.4–16.0): ≈4 s fully legible. The sentence is completed on screen at 122.5 s by the letter."
         }
       ],
-      "negative_space": "Upper-right x 1540–1830, y 50–480 (title tanzaku + 色紙) is flat ベロ藍 sky only; Fuji's peak (1720,500) sits just below it. The dry moon circle (x 40–300, y 580–820) must never be covered. Subtitle band y 960–1040 = pond: calm.",
-      "audio": "0–2: near silence (paper room tone, brown noise −50 dB). 2.0–6.0: baren rub — band-passed brown noise 300–1200 Hz whose gain follows the spiral's speed, in 0.7 s circular strokes. 6.0–10.2: eight kentō clicks, one per plate (1.2 kHz woodblock tick, 12 ms, plus a soft 180 Hz thunk). This exact click returns at 147.8 as the sound of forgetting, so it must be clean and memorable. 7.0: one koto 引き色 — D4 plucked, then pulled ~40 cents flat — as the title lands. 12.0: first suzumushi (single far voice). 13.0: first susuki gust (pink noise 0.8–2 kHz swell).",
-      "transition_out": "Seamless hand-off (0 s): the last frame of 序 is Shot A 初摺 fully printed and 一 begins on the identical frame. The title fades 12.4–14.0 (engine fade 2.0 s).",
+      "negative_space": "Upper-right x 1540–1830, y 50–480 (title tanzaku + 色紙) is flat ベロ藍 sky only, through 16.0; Fuji's peak (1720,500) sits just below it. The dry moon half-circle (x 51–307, y 694–820) must never be covered by anything but the susuki plumes and the low kasumi. Subtitle band y 960–1040 = pond: calm.",
+      "audio": "0–2: near silence (paper room tone, brown noise −50 dB). 2.0–6.0: baren rub — band-passed brown noise 300–1200 Hz whose gain follows the spiral's speed, in 0.7 s circular strokes. 6.0–10.2: eight kentō clicks, one per plate at 6.0, 6.6, 7.2, 7.8, 8.4, 9.0, 9.6, 10.2 (1.2 kHz woodblock tick, 12 ms, plus a soft 180 Hz thunk). This exact click returns at 147.8 as the sound of forgetting, so it must be clean and memorable. 7.0: one koto 引き色 — D4 plucked, then pulled ~40 cents flat — as the title lands. 12.0: first suzumushi (single far voice). 13.0: first susuki gust (pink noise 0.8–2 kHz swell).",
+      "transition_out": "Seamless hand-off (0 s): the last frame of 序 is Shot A 初摺 fully printed and 一 begins on the identical frame — the same moon (φ held at −0.22 → (179,822) r 128) and the same gust (sway on t_abs). The title and its painted panels carry across the cut and fade together 14.4–16.0.",
       "engine_transition_next": {
         "type": "cut"
       },
-      "hero_image": "4.2s [4.2] — Shot A half-born: sumi lines have spiralled out from the thatched house across half the sheet; the rest is blank washi with its deckle and registration notch; above the unprinted susuki a round patch of paper glows faintly 山吹 — the moon before the world.",
+      "hero_image": "4.2s [4.2] — Shot A half-born: sumi lines have spiralled out from the thatched house across half the sheet; the rest is blank washi with its deckle and registration notch; behind the unprinted susuki lines at the far left a half-disc of paper glows faintly 山吹 — the moon before the world.",
       "difficulty": "medium",
       "simplification": "Cache Shot A's key block and each colour plate once (they are reused by 一, 四 and 六). The reveal is a mask canvas (the spiral stroked with round caps, lineWidth 150) applied with destination-in; plate landings are drawImage with (dx,dy,alpha). No per-frame blur."
     },
@@ -527,20 +552,20 @@
       "end": 40,
       "shot": "A",
       "print_state": "shozuri",
-      "summary": "First impression. A huge 山吹 moon rises through the susuki with a blank face; six-year-old 小夜, carrying susuki taller than herself, crosses the disc — the poster frame. Two eye-glints in the grass: the fox. She runs the pond rim (Bashō's 'all night long', as delight) while grandmother たけ builds the 三方: fifteen dango, one per koto pluck, stacked 9-4-2; 衣かつぎ steam for 芋名月; the autumn grasses in a jug; a few 金木犀 florets drift past. お月見泥棒: a small arm steals a dango and たけ turns to the moon and pretends not to see. She blows out the andon; the shoji turn moon-white; the theatre opens. KON.",
+      "summary": "First impression. The dry half-disc that waited behind the susuki lifts: a huge 山吹 moon with a blank face; six-year-old 小夜, carrying susuki taller than herself, crosses the disc — the poster frame. Two eye-glints in the grass: the fox. She runs the pond rim (Bashō's 'all night long', as delight) while grandmother たけ builds the 三方: fifteen dango, one per koto pluck, stacked 9-4-2; 衣かつぎ steam for 芋名月; the autumn grasses in a jug; a few 金木犀 florets drift past. お月見泥棒: a small arm steals a dango and たけ turns to the moon and pretends not to see; the child climbs up beside her to eat it. たけ blows out the andon; the shoji turn moon-white; the theatre opens. KON.",
       "time_of_night": "moonrise (宵, ≈18:00–19:00)",
       "moon": {
         "x": 168,
         "y": 778,
         "r": 121,
         "phase_note": "full; blank uninked face; warm 山吹 glaze at the horizon cooling toward bare paper",
-        "motion": "Shot A mapping of φ(t): the rim shows through the susuki 2s [16]; (160,711) r 110 6s [20]; clears the susuki top ≈21s [35]; (223,482) r 86 26s [40]. Glaze α 0.55·(1−sinφ)."
+        "motion": "Shot A mapping of φ(t), continuing 序's dry half-disc (179,822) r 128: it begins to lift 2s [16] (168,778) r 121; (160,711) r 111 6s [20]; poster (160,696) r 110 7s [21]; clears the far susuki top (y 620) ≈21s [35] at (200,526) r 90; (223,482) r 86 26s [40]. Glaze α 0.55·(1−sinφ)."
       },
       "layers": [
         {
           "name": "sky",
           "depth": 0,
-          "description": "Ichimonji band y 0–130 in ベロ藍 + 墨 35% (solid to y 60, fading out by y 130); below, ベロ藍 → 紺 bokashi to y 420, flattening into 藍 at the horizon y 620; a 山吹 horizon bokashi at the left (x 0–700, y 520–640, α 0.25→0) — the glow of the rising moon.",
+          "description": "Ichimonji band y 0–130 in ベロ藍 + 墨 35% (solid to y 60, fading out by y 130); below, ベロ藍 → 紺 bokashi to y 420, flattening into 藍 at the horizon y 620 and, at x 0–760, continuing down behind the susuki to the far pond bank y 820; a 山吹 horizon bokashi at the left (x 0–760, y 600–820, α 0→0.25 downward) — the glow of the rising moon.",
           "motion": "Horizon glow fades 0.25→0.08 as the moon clears the susuki (16s [30]–26s [40])."
         },
         {
@@ -552,7 +577,7 @@
         {
           "name": "far land",
           "depth": 2,
-          "description": "Low 紺 hills y 580–640 (no key line). Fuji small, peak (1720,500), flanks reaching y 620 at x 1500 and 1940, flat ベロ藍 with a thin 胡粉 first-snow line 6–10 px under the peak, half-hidden by the kasumi.",
+          "description": "Low 紺 hills y 580–640 at x 760–1500 only (no key line); at x 0–760 there are no hills — the sky runs down behind the susuki so the moon rises out of the grass. Fuji small, peak (1720,500), flanks reaching y 620 at x 1500 and 1940, flat ベロ藍 with a thin 胡粉 first-snow line 6–10 px under the peak, half-hidden by the kasumi.",
           "motion": "static"
         },
         {
@@ -576,20 +601,20 @@
         {
           "name": "figures",
           "depth": 6,
-          "description": "たけ (CAST.elder, ≈52 px kneeling, profile): bent back, 銀鼠 bun, the 波兎 haori (藍, 3–4 胡粉 specks at this size). 小夜 (CAST.child, ≈62 px): 墨 okappa, 紺 kasuri, 紅 obi-age as a 2 px accent, carrying a susuki sheaf 120 px tall.",
-          "motion": "小夜: 4s [18] emerges from the susuki at x 120; 7s [21] crosses the disc (feet (190,790), head at y 735 against the moon); 8s [22]–16s [30] runs the pond rim — far bank x 400→1300 at y 830, back along the near bank at y 1040, 0.8 s bob per stride, reflection bobbing below; 16.5s [30.5] sets the flowers in the jug; 18.8s [32.8] ducks below the engawa lip (1010,712) and her arm rises 19s [33]. たけ: kneels at (1060,690) building the stand from 8s [22]; 19.6s [33.6] turns her head to the moon (profile flips left) and holds it there; 22.5s [36.5] her silhouette crosses the lit paper to the andon; 23s [37] blows it out."
+          "description": "たけ (CAST.elder, ≈52 px kneeling, profile): bent back, 銀鼠 bun, the 波兎 haori (藍, 3–4 胡粉 specks at this size). 小夜 (CAST.child, ≈62 px): 墨 okappa, 紺 kasuri, 紅絞り heko-obi as a 2–3 px accent (a soft bow at the back), carrying a susuki sheaf 120 px tall.",
+          "motion": "小夜: 4s [18] emerges from the susuki at x 120; 7s [21] crosses the disc (feet (190,790), head at y 735 against the moon); 8s [22]–16s [30] runs the pond rim — far bank x 400→1300 at y 830, back along the near bank at y 1040, 0.8 s bob per stride, reflection bobbing below; 16.5s [30.5] sets the flowers in the jug; 18.8s [32.8] ducks below the engawa lip (1010,712) and her arm rises 19s [33]. たけ: kneels at (1060,690) building the stand from 8s [22]; 19.6s [33.6] turns her head to the moon (profile flips left) and holds it there; 22.5s [36.5] her silhouette crosses the lit paper to the andon; 23s [37] blows it out. 小夜: 20.2s [34.2] climbs onto the engawa and sits at (1022,690), back view, facing the lit shoji, eating the stolen dango; she stays there through the andon at 23s [37] (the 六 fox-window inset needs her here at t′ 34–40)."
         },
         {
           "name": "susuki field",
           "depth": 7,
-          "description": "Three parallax layers y 620–820, densest at x 0–760: far (cached, 鼠 plumes α 0.5), mid (尾花 plumes, 黄土 stems), near (live, ≈150 plumes: curved 松葉 stem + a 12-stroke feathery 尾花/胡粉 plume, 墨 key line on 30%). The plumes stand in silhouette against the rising disc.",
-          "motion": "sway = shear sin(0.9t + 0.004x)·gust(t); gusts 5.5s [19.5], 13s [27], 21s [35]"
+          "description": "Three parallax layers y 620–820, densest at x 0–760: far (cached, 鼠 plumes α 0.5), mid (尾花 plumes, 黄土 stems), near (live, ≈150 plumes: curved 松葉 stem + a 12-stroke feathery 尾花/胡粉 plume, 墨 key line on 30%). The plumes stand in silhouette against the rising disc. During 4s [18]–9s [23] (the poster frame) the near-susuki density over x 40–320, y 580–800 is ≤ 20% and plumes there stay below y 760, so the disc's upper two-thirds and the tiny child stay clean.",
+          "motion": "sway = shear sin(0.9·t_abs + 0.004x)·gust(t_abs); gusts 5.5s [19.5], 13s [27], 21s [35] — continuing 序's gust of 13.0 without a restart"
         },
         {
           "name": "fox glints",
           "depth": 8,
-          "description": "Two eye-glints in the susuki at (612,748) and (626,748): 胡粉 points r 1.6 with 山吹 halos r 4. Nothing else of the fox.",
-          "motion": "6s [20] fade in (0.3 s); blink 7.2s [21.2] (0.12 s); gone 8s [22]."
+          "description": "Two eye-glints in the susuki at (612,748) and (626,748): 胡粉 points r 1.6 with 山吹 halos r 4, at α 0.6 (never full). Nothing else of the fox.",
+          "motion": "6s [20] fade in to α 0.6 (0.3 s); blink 7.2s [21.2] (0.12 s); gone 8s [22]."
         },
         {
           "name": "pond",
@@ -614,18 +639,29 @@
           "depth": 12,
           "description": "Three osmanthus florets (4-petal crosses, 4 px, 朱 with 山吹 centres).",
           "motion": "drift from (300,120) down-right across the 萩 branch 10s [24]–18s [32] (seeded B.drift), gone by 20s [34]"
+        },
+        {
+          "name": "title panels (carried from 序)",
+          "depth": 13,
+          "description": "序's tanzaku, 色紙 (十五夜摺) and 縁 seal, drawn unchanged from the cached 序 panel canvas.",
+          "motion": "0s [14]–0.4s [14.4] hold; 0.4s [14.4]–2s [16] fade out with the DOM title (inSine); gone from 16.0."
         }
       ],
       "beats": [
         {
           "t": 0.0,
           "t_abs": 14.0,
-          "desc": "The print breathes: wind, the insects gathering."
+          "desc": "The print breathes: wind, the insects gathering. The title still stands on its tanzaku."
+        },
+        {
+          "t": 0.4,
+          "t_abs": 14.4,
+          "desc": "The title and its painted panels begin to fade (gone at 16.0)."
         },
         {
           "t": 2.0,
           "t_abs": 16.0,
-          "desc": "The moon's rim rises through the susuki — huge, 山吹, blank. The 縁 motif sounds whole on the koto (16.5–19.9): the only complete statement in the film."
+          "desc": "The dry half-disc that has waited behind the susuki since 序 begins to lift — huge, 山吹, blank. The 縁 motif sounds whole on the koto (16.5–19.9): the only complete statement in the film."
         },
         {
           "t": 4.0,
@@ -635,7 +671,7 @@
         {
           "t": 6.0,
           "t_abs": 20.0,
-          "desc": "Two eye-glints in the grass — the fox. A blink at 21.2; gone at 22.0."
+          "desc": "Two eye-glints in the grass — the fox (α 0.6). A blink at 21.2; gone at 22.0."
         },
         {
           "t": 7.0,
@@ -676,6 +712,11 @@
           "t": 19.6,
           "t_abs": 33.6,
           "desc": "たけ turns her face to the moon and pretends not to see."
+        },
+        {
+          "t": 20.2,
+          "t_abs": 34.2,
+          "desc": "小夜 climbs onto the engawa and sits beside her, back to us, eating."
         },
         {
           "t": 23.0,
@@ -724,8 +765,8 @@
           "note": "On screen 小夜 is literally circling the pond: Bashō's delight. The poem's 'all night long' is the film's own time-scale (one night, twice)."
         }
       ],
-      "negative_space": "Sky pocket x 500–860, y 60–580 (between the 萩 branch and the house) holds only flat bokashi for the haiku. The rising moon at far left (x 40–320) must never be covered. Subtitle band y 960–1040 = pond: keep moon-road dashes sparse there (α ≤ 0.35).",
-      "audio": "Wind in the susuki (pink noise band-passed 0.8–2 kHz, gusts at 19.5, 27.0, 35.0). Insect chorus builds: suzumushi 1→8 voices by 30 s; matsumushi 3 voices from 24 s. Sōzu trickle (narrow-band noise). 16.5–19.9: the 縁 motif WHOLE on koto, rubato — A4 16.5 · B♭4 17.2 · D5 17.9 · E♭5 18.8 (oshide from D5) · D5 19.9, long decay. 22.4–29.4: fifteen koto plucks, one per dango — the counting melody in miyako-bushi: D4 E♭4 G4 A4 B♭4 A4 G4 E♭4 D4 | G4 A4 B♭4 D5 | E♭5 D5. 33.0: paper rustle; 33.6: a single koto harmonic (the grandmother's complicity — this exact harmonic returns at 198.5). 37.0: a breath puff (0.3 s) and the andon flame gutter. 40.0: sōzu KON — 200 Hz sine thump + wooden click, long room reverb; every bed cuts with it.",
+      "negative_space": "Sky pocket x 500–860, y 60–580 (between the 萩 branch and the house) holds only flat bokashi for the haiku. The title region x 1540–1830, y 50–480 stays flat sky until 16.0. The rising moon at far left (x 40–320) must never be covered by text. Subtitle band y 960–1040 = pond: keep moon-road dashes sparse there (α ≤ 0.35).",
+      "audio": "Wind in the susuki (pink noise band-passed 0.8–2 kHz, gusts at 19.5, 27.0, 35.0). Insect chorus builds: suzumushi 1→8 voices by 30 s; matsumushi 3 voices from 24 s. Sōzu trickle (narrow-band noise). 16.5–19.9: the 縁 motif WHOLE on koto, rubato — A4 16.5 · B♭4 17.2 · D5 17.9 · E♭5 18.8 (oshide from D5) · D5 19.9, long decay. 22.4–29.4: fifteen koto plucks, one per dango — the counting melody in miyako-bushi: D4 E♭4 G4 A4 B♭4 A4 G4 E♭4 D4 | G4 A4 B♭4 D5 | E♭5 D5. 33.0: paper rustle; 33.6: a single koto harmonic (the grandmother's complicity — this exact harmonic returns at 197.5). 37.0: a breath puff (0.3 s) and the andon flame gutter. 40.0: sōzu KON — 200 Hz sine thump + wooden click, long room reverb; every bed cuts with it.",
       "transition_out": "Hard cut on the KON at 40.0 (0 s) to Shot B interior; the last 2 s push slowly toward the darkened shoji so the cut feels like stepping inside.",
       "engine_transition_next": {
         "type": "cut"
@@ -744,14 +785,14 @@
       "end": 66,
       "shot": "B",
       "print_state": "shozuri",
-      "summary": "Inside, the andon out. Four moon-white shoji are the screen and the rising moon is the lantern. On the engawa outside, たけ holds paper cut-outs in the moonlight; inside, 小夜 kneels with her back to us and watches the Tale of the Bamboo Cutter play across the panels right to left, like an emaki. The shining node is a slit in the paper; the princess is a hole in the shape of a girl — light is made of absence. One continuous morph grows her from a three-inch child into a woman with floor-length hair. An emperor's palanquin passes. Under the real glow she raises her sleeve to her face; 小夜 looks up toward the round window; and たけ lifts a paper moon until it eclipses the real one — 'looking at the moon's face is forbidden'.",
+      "summary": "Inside, the andon out. Four moon-white shoji are the screen and the rising moon is the lantern. On the engawa outside, たけ holds paper cut-outs in the moonlight; inside, 小夜 kneels with her back to us and watches the Tale of the Bamboo Cutter play across the panels right to left, like an emaki. The shining culm is a slit in the paper; the princess is a hole in the shape of a girl — light is made of absence. One continuous morph grows her from a three-inch child into a woman with floor-length hair, and たけ's hand carries her across to the first panel. Under the real glow she raises her sleeve to her face; 小夜 looks up toward the round window; and たけ lifts a paper moon until it eclipses the real one — 'looking at the moon's face is forbidden'. The camera pushes into the ring of light.",
       "time_of_night": "early night (戌の刻, ≈20:00)",
       "moon": {
         "x": 573,
         "y": 645,
         "r": 220,
         "phase_note": "not seen directly: a radial glow through the paper of panels 1–2 (r = glow radius); the round window shows only 紺 sky",
-        "motion": "Shot B mapping: glow centre (573,645) 0s [40] → (650,414) 26s [66]; 21.5s [61.5]–24.5s [64.5] a paper moon's shadow slides over it until only a ring of light remains."
+        "motion": "Shot B mapping: glow centre (573,645) 0s [40] → (640,436) 23s [63] → (650,414) 26s [66]. 20s [60]–23s [63] the paper moon's shadow (a disc r 150, penumbra 2 px) slides over it and aligns at 23s [63], then tracks the glow centre, leaving a ring of real light r 150–235."
       },
       "layers": [
         {
@@ -775,7 +816,7 @@
         {
           "name": "shadow-play",
           "depth": 3,
-          "description": "藍鼠 multiply, never black. Puppet shadows are sharp (penumbra 1 px: the cut-outs are held against the paper); たけ's body and arm shadows are soft (6–10 px). The tale reads RIGHT→LEFT: panel 4 bamboo, panel 3 growth, panel 2 palanquin, panel 1 Kaguya. Kaguya is always a 'negative puppet': a dark cut-out field with her figure cut out of it, so she is made of the paper's light.",
+          "description": "藍鼠 multiply, never black. Puppet shadows are sharp (penumbra 1 px: the cut-outs are held against the paper); たけ's body and arm shadows are soft (6–10 px). The tale reads RIGHT→LEFT: panel 4 bamboo, panel 3 growth, panel 2 the passage (たけ's hand carries the grown silhouette across it), panel 1 Kaguya. Kaguya is always a 'negative puppet': a dark cut-out field with her figure cut out of it, so she is made of the paper's light.",
           "motion": "see beats"
         },
         {
@@ -805,8 +846,20 @@
         {
           "name": "小夜 (foreground)",
           "depth": 8,
-          "description": "Back view, kneeling seiza, x 860–1060, y 900–1080: a 墨 silhouette with the okappa bob and a thin 紅 obi-age line catching the light.",
-          "motion": "18.5s [58.5] her head tilts up 14° toward the round window; 21.5s [61.5] lowers."
+          "description": "Back view, kneeling seiza, x 860–1060, y 900–1080: a 墨 silhouette with the okappa bob and the soft bow of her 紅絞り heko-obi catching a thin line of light.",
+          "motion": "18.5s [58.5] her head tilts up 14° toward the round window; 20s [60] lowers as たけ raises the paper moon."
+        },
+        {
+          "name": "paper moon",
+          "depth": 9,
+          "description": "A cut-paper full moon on a stick, held by たけ against the paper: a sharp dark disc r 150 (藍鼠 deepening to 墨 at the centre, penumbra 2 px). Aligned, it leaves a ring of the real glow r 150–235 round a dark disc.",
+          "motion": "20s [60]–23s [63] slides in from the right (outCubic) onto the glow centre; aligned 23s [63], then tracks the glow centre; 23s [63]–24s [64] held (ma)."
+        },
+        {
+          "name": "camera",
+          "depth": 10,
+          "description": "The push-in that lands the match-cut.",
+          "motion": "24s [64]–26s [66] (inOutSine): scale 1.00→1.50 while the ring centre travels from its screen position (≈640,436) to (960,610); at 66.0 the ring is r 225–352 on screen, matching Shot C's basin rim (720×520 at (960,620), rx 360)."
         }
       ],
       "beats": [
@@ -828,12 +881,12 @@
         {
           "t": 6.0,
           "t_abs": 46.0,
-          "desc": "One node shines: a slit in the puppet lets the moonlight through — a 胡粉 point with kira."
+          "desc": "One culm shines: a slit in the puppet lets the moonlight through — a 胡粉 point with kira."
         },
         {
           "t": 8.0,
           "t_abs": 48.0,
-          "desc": "The axe-shadow swings; the culm splits; inside stands a girl-shaped hole of light, 26 px tall."
+          "desc": "The glowing culm's slit slowly widens; inside sits a three-inch girl-shaped hole of light, 26 px tall (「筒の中光りたり…三寸ばかりなる人、いとうつくしうてゐたり」 — no axe: the tale has none)."
         },
         {
           "t": 10.0,
@@ -841,9 +894,9 @@
           "desc": "たけ's hand-shadow carries her into panel 3. ONE CONTINUOUS MORPH (50.5–54.5): child → girl → young woman with hair to the floor, always a hole of light in a dark oval cut-out."
         },
         {
-          "t": 15.0,
-          "t_abs": 55.0,
-          "desc": "(Optional) Panel 2: an emperor's palanquin (鳳輦, phoenix finial) crosses right→left, pauses 0.6 s, moves on."
+          "t": 14.5,
+          "t_abs": 54.5,
+          "desc": "Hold on the grown Kaguya while たけ's hand-shadow carries her across panel 2 toward panel 1; a single koto D4 (55.5)."
         },
         {
           "t": 17.0,
@@ -861,19 +914,19 @@
           "desc": "The whisper appears: 「月の顔見るは、忌むこと」."
         },
         {
-          "t": 21.5,
-          "t_abs": 61.5,
+          "t": 20.0,
+          "t_abs": 60.0,
           "desc": "たけ raises a paper-cut full moon on a stick; its dark shadow slides in from the right over the real glow. 小夜 lowers her head."
         },
         {
-          "t": 24.5,
-          "t_abs": 64.5,
-          "desc": "Alignment: a black disc ringed with light — an eclipse made by a grandmother's hand."
+          "t": 23.0,
+          "t_abs": 63.0,
+          "desc": "Alignment: a black disc ringed with light — an eclipse made by a grandmother's hand. Held (63.0–64.0); a low koto D2 rings."
         },
         {
-          "t": 25.2,
-          "t_abs": 65.2,
-          "desc": "Slow push-in on the ring (scale 1.00→1.08 about its centre) to set up the match-cut."
+          "t": 24.0,
+          "t_abs": 64.0,
+          "desc": "Push-in on the ring (scale 1.00→1.50, its centre travelling to (960,610)) to land the match-cut."
         }
       ],
       "text_cues": [
@@ -898,18 +951,18 @@
           "y": 140,
           "ink": "light",
           "size": 36,
-          "note": "たけ's warning, quoted from the tale; small and pale (薄墨 feeling: 胡粉 at 70%). It lands as the paper moon covers the real one."
+          "note": "たけ's warning, quoted from the tale (said by ある人); small and pale (胡粉 at 70%). It appears just before the paper moon is raised (60.0) and holds through the alignment (63.0)."
         }
       ],
       "negative_space": "Right wall x 1640–1900, y 100–820 (dark, beyond panel 4) stays unlit and plain for the text. Subtitle band y 960–1040: tatami and 小夜's dark back only.",
-      "audio": "Insects muffled (low-pass 1.5 kHz, −9 dB). Biwa plucks (Karplus-Strong + noise-burst sawari) on each shadow beat: 41.0, 43.0, 46.0, 48.0, 50.5, 52.5, 54.5, 57.0. Paper rustles at each puppet change. 46.0 and 48.0: kagura-suzu shimmer. 50.5–54.5: a rising koto arpeggio across the growth (D4→D5, miyako-bushi). 55.0–57.0: soft taiko steps, two per second (the palanquin). 57.5–61.0: shakuhachi meri sigh — E♭4 bending down to D4, breath audible. 64.5: at the eclipse the mix dips −6 dB and a low koto D2 is plucked and left to ring.",
-      "transition_out": "Match-cut at 66.0 (0 s): the eclipse ring — a bright annulus round a dark disc — cuts to the tsukubai's stone rim round its dark water, placed where the ring was after the push-in.",
+      "audio": "Insects muffled (low-pass 1.5 kHz, −9 dB). Biwa plucks (Karplus-Strong + noise-burst sawari) on each shadow beat: 41.0, 43.0, 46.0, 48.0, 50.5, 52.5, 54.5, 57.0. Paper rustles at each puppet change. 46.0 and 48.0: kagura-suzu shimmer. 50.5–54.5: a rising koto arpeggio across the growth (D4→D5, miyako-bushi). 55.5: a single koto D4 as the grown Kaguya is carried toward panel 1 (no palanquin, no taiko). 57.5–61.0: shakuhachi meri sigh — E♭4 bending down to D4, breath audible. 63.0: at the alignment the mix dips −6 dB and a low koto D2 is plucked and left to ring through the push-in.",
+      "transition_out": "Match-cut at 66.0 (0 s): after the push-in (64.0–66.0, scale 1.00→1.50) the eclipse ring — a bright annulus r 225–352 round a dark disc — sits at (960,610); it cuts to the tsukubai's stone rim (720×520 at (960,620), rx 360) round its dark water.",
       "engine_transition_next": {
         "type": "cut"
       },
-      "hero_image": "24.5s [64.5] — four moon-white shoji; on the left panel a luminous girl-shaped hole with her sleeve to her face beneath a black paper moon ringed with light; at right the bent shadow of the old puppeteer; in the foreground the small dark back of a kneeling child; the dim scroll 掬水月在手 at the edge.",
+      "hero_image": "23.5s [63.5] — four moon-white shoji; on the left panel a luminous girl-shaped hole with her sleeve to her face beneath a black paper moon ringed with light; at right the bent shadow of the old puppeteer; in the foreground the small dark back of a kneeling child, head lowered; the dim scroll 掬水月在手 at the edge.",
       "difficulty": "high",
-      "simplification": "Every shadow is one flat 藍鼠 fill (multiply); penumbra = 2–3 offset low-alpha passes, not blur. Puppets are simple paths; the negative puppet is one path filled evenodd. The growth morph = three authored silhouettes with equal vertex counts (96), lerped. Base outlines from CAST.okina, CAST.kaguya ('weep') and CAST.elder. The palanquin is the first thing to cut."
+      "simplification": "Every shadow is one flat 藍鼠 fill (multiply); penumbra = 2–3 offset low-alpha passes, not blur. Puppets are simple paths; the negative puppet is one path filled evenodd. The growth morph = three authored silhouettes with equal vertex counts (96), lerped. Base outlines from CAST.okina, CAST.kaguya ('weep') and CAST.elder. The palanquin is cut (see spares: きと影になりぬ)."
     },
     {
       "id": "mizu-no-tsuki",
@@ -921,14 +974,14 @@
       "end": 90,
       "shot": "C",
       "print_state": "shozuri",
-      "summary": "At the tsukubai the child grabs the moon in the water and it shatters into mica. The ripples die; the moon returns, untouched. たけ's ladle lifts a tiny moon and tips it into the child's cupped hands; the moon leaks away between her fingers until her hands are dark and empty — her first lesson in transience, which she will write down sixty years later. Then たけ interlaces her old fingers into the fox window: inside the diamond the moon shows its true face — a palace roofline in mica and a rabbit in blind embossing. Still no ink.",
+      "summary": "At the tsukubai the child grabs the moon in the water and it shatters into mica. The ripples die; the moon returns, untouched. たけ's ladle lifts a tiny moon and tips it into the child's cupped hands; the moon leaks away between her fingers until her hands are dark and empty — her first lesson in transience, which she will write down sixty years later. Only insects. Then たけ's old hands glide in, already joined in the fox window: inside the diamond is the moon itself, enormous and blank — and the window opens until the sky is all there is.",
       "time_of_night": "night deepening (亥の刻前, ≈21:00)",
       "moon": {
         "x": 1000,
         "y": 600,
         "r": 70,
-        "phase_note": "only as a reflection: an elliptical hole to paper (rx 70, ry 40) in dark water with a kira glint; a tiny moon (r 18) in the ladle and the child's palms; inside the fox window, the true moon (r 130)",
-        "motion": "shatters 1.5s [67.5], regathers 4s [70]–6s [72]; the palm-moon shrinks 11s [77]–17.8s [83.8]."
+        "phase_note": "only as a reflection: an elliptical hole to paper (rx 70, ry 52) in dark water with a kira glint; a tiny moon (r 18) in the ladle and the child's palms; inside the fox window, Shot D's moon (r 260) — at first the diamond holds nothing but moon-paper and kira",
+        "motion": "shatters 1.9s [67.9], regathers 4s [70]–5.8s [71.8] (τ 0.5); the palm-moon shrinks 9.4s [75.4]–16.2s [82.2], r = 18·(1−(t−75.4)/6.8)^0.7."
       },
       "layers": [
         {
@@ -940,14 +993,14 @@
         {
           "name": "basin",
           "depth": 1,
-          "description": "Stone ellipse 720×420 centred (960,620): 鼠 with a 墨 key line, 黄土 lichen flecks, a 月白 highlight along the far rim.",
+          "description": "Stone ellipse 720×520 centred (960,620) (rx 360 ≈ the eclipse ring's outer radius at the cut): 鼠 with a 墨 key line, 黄土 lichen flecks, a 月白 highlight along the far rim.",
           "motion": "static"
         },
         {
           "name": "water",
           "depth": 2,
-          "description": "Ellipse 560×300 centred (960,620): 藍 with ベロ藍 bokashi toward the far edge; the reflected moon at (1000,600) as a hole to paper with kira; ripple rings as concentric 月白 arcs (α 0.4) in the seigaiha manner.",
-          "motion": "A drop lands at (700,580) every 2.3 s (first 0.3s [66.3]); rings expand 60 px/s and fade over 2 s."
+          "description": "Ellipse 560×380 centred (960,620): 藍 with ベロ藍 bokashi toward the far edge; the reflected moon at (1000,600) (rx 70, ry 52) as a hole to paper with kira; ripple rings as concentric 月白 arcs (α 0.4) in the seigaiha manner.",
+          "motion": "Still at the cut. A bead swells at the spout tip from 0s [66]; the first drop lands at (700,580) at 6s [72], then every 2.3 s; rings expand 60 px/s and fade over 2 s. Optionally the whole shot eases its y-scale 1.3→1.0 about (960,620) over 0s [66]–1.2s [67.2]."
         },
         {
           "name": "spout",
@@ -965,88 +1018,98 @@
           "name": "shards",
           "depth": 5,
           "description": "≈40 seeded crescents (胡粉 + kira) made from the reflection.",
-          "motion": "1.5s [67.5] fly apart (eased drift up to 180 px); 4s [70]–6s [72] regather exponentially (τ 0.6 s)."
+          "motion": "1.9s [67.9] fly apart (eased drift up to 180 px); 4s [70]–5.8s [71.8] regather exponentially (τ 0.5 s)."
         },
         {
           "name": "hands & ladle",
           "depth": 6,
-          "description": "Silhouettes (墨) entering from outside the frame: 小夜's small hands from the bottom; たけ's knuckled hands and the ladle (柄杓: 煤竹 handle, 黄土 cup, 墨 key) from the top-right; at 84–90 the edge of her 波兎 sleeve (藍 with one 胡粉 rabbit).",
+          "description": "Silhouettes (墨) entering from outside the frame: 小夜's small hands from the bottom; たけ's knuckled hands and the ladle (柄杓: 煤竹 handle, 黄土 cup, 墨 key) from the top-right; at 86–90 the edge of her 波兎 sleeve (藍 with one 胡粉 rabbit). Hands are NEVER morphed: each pose (grab, cup, window) is one authored 墨 silhouette path — the window pose has an even-odd diamond hole — with a 1.5 px 胡粉 α 0.35 rim line on the upper edges, 3 knuckle-crease arcs and ±2 px breathing drift. Poses enter or leave by sliding (outCubic, 1.0–1.2 s) or cut on motion.",
           "motion": "see beats"
         },
         {
           "name": "fox window",
           "depth": 7,
-          "description": "Diamond clip (an even-odd hole in the hand path) centred (960,420), ≈300×230. Inside: 紺 sky, the moon r 130 as a hole to paper, a palace roofline across its lower third in mica only (山吹 α 0.3 + sparkle), and a rabbit in karazuri relief (±1.5 px light/dark rim, NO ink — the rabbit has not yet earned its place).",
-          "motion": "18s [84]–19.5s [85.5] the hands interlace; the inside is revealed 19.5s [85.5]; 22s [88] the diamond begins to grow (the engine iris continues it into 四)."
+          "description": "Diamond clip (the even-odd hole in たけ's window pose) centred (960,420), 300×230. Inside: Shot D's first frame — the 四 scene's draw at local t = 0, under the clip: the enormous blank moon r 260 with its kira, so at first the diamond holds only moon-paper; the tips of the Jataka fire just show at its lower point. No palace, no rabbit: the moon's true face is blank, waiting.",
+          "motion": "20s [86]–21.2s [87.2] the hands glide in from the top-right already joined as the window (no finger morph) and stop at (960,420); 21.2s [87.2] the inside is revealed (glass cluster); 22.2s [88.2]–24s [90] hands and diamond scale ×1 → ×12.2 about (960,420) (inOutCubic): the diamond's half-width reaches 1830 and covers the frame, and 四 begins on the identical frame."
         }
       ],
       "beats": [
         {
           "t": 0.0,
           "t_abs": 66.0,
-          "desc": "Cut in on the stone rim: the reflected moon whole in dark water. A drop falls (66.3)."
+          "desc": "Cut in on the stone rim: the reflected moon whole in dark, still water. A bead swells at the spout tip."
         },
         {
-          "t": 1.0,
-          "t_abs": 67.0,
-          "desc": "Small hands plunge in; at 67.5 the moon shatters into some forty mica shards and the rings race outward."
+          "t": 1.4,
+          "t_abs": 67.4,
+          "desc": "Small hands plunge in."
         },
         {
-          "t": 2.5,
-          "t_abs": 68.5,
+          "t": 1.9,
+          "t_abs": 67.9,
+          "desc": "The moon shatters into some forty mica shards; the rings race outward."
+        },
+        {
+          "t": 2.9,
+          "t_abs": 68.9,
           "desc": "The hands come up empty and dripping, bright beads falling."
         },
         {
           "t": 4.0,
           "t_abs": 70.0,
-          "desc": "The ripples die away; the shards regather; by 72.0 the moon is whole again, untouched."
+          "desc": "The ripples die away; the shards regather (τ 0.5); by 71.8 the moon is whole again, untouched."
         },
         {
           "t": 6.0,
           "t_abs": 72.0,
-          "desc": "たけ's ladle enters from the top-right, dips (73.5), lifts (74.5): a tiny moon in its cup."
+          "desc": "The first drop falls from the spout (then every 2.3 s). たけ's ladle enters from the top-right, dips (73.0), lifts (73.8): a tiny moon in its cup."
         },
         {
-          "t": 10.0,
-          "t_abs": 76.0,
+          "t": 9.0,
+          "t_abs": 75.0,
           "desc": "She tips it into 小夜's cupped hands."
         },
         {
-          "t": 11.0,
-          "t_abs": 77.0,
-          "desc": "The moon sits in the child's palms. Beads fall between her fingers every half-second; the moon shrinks with the water, r = 18·(1−(t−77)/7)^0.7."
+          "t": 9.4,
+          "t_abs": 75.4,
+          "desc": "The moon sits in the child's palms. A bead falls between her fingers every half-second; the moon shrinks with the water, r = 18·(1−(t−75.4)/6.8)^0.7."
         },
         {
-          "t": 16.0,
-          "t_abs": 82.0,
+          "t": 14.6,
+          "t_abs": 80.6,
           "desc": "The small hands tremble."
         },
         {
-          "t": 17.8,
-          "t_abs": 83.8,
-          "desc": "The last drop. The hands are dark and empty."
+          "t": 16.2,
+          "t_abs": 82.2,
+          "desc": "The last drop. The hands are dark and empty. Only insects (82.2–86.0)."
         },
         {
-          "t": 18.0,
-          "t_abs": 84.0,
-          "desc": "たけ's old hands interlace into the fox window (狐の窓) and hold it before the child's eye."
+          "t": 17.0,
+          "t_abs": 83.0,
+          "desc": "小夜's haiku writes itself in the dark moss above the spout."
         },
         {
-          "t": 19.5,
-          "t_abs": 85.5,
-          "desc": "Inside the diamond, the moon's true face: a palace roofline of mica, a rabbit in blind relief."
+          "t": 20.0,
+          "t_abs": 86.0,
+          "desc": "たけ's old hands glide in from the top-right, already joined in the fox window (狐の窓), and stop before the child's eye."
         },
         {
-          "t": 22.0,
-          "t_abs": 88.0,
-          "desc": "The diamond begins to open — an iris into the sky."
+          "t": 21.2,
+          "t_abs": 87.2,
+          "desc": "Inside the diamond: the moon itself, enormous and blank."
+        },
+        {
+          "t": 22.2,
+          "t_abs": 88.2,
+          "desc": "The window opens — hands and diamond grow ×12 until the sky is all there is (90.0)."
         }
       ],
       "text_cues": [
         {
-          "t": 12.0,
-          "t_abs": 78.0,
-          "dur": 8.0,
+          "t": 17.0,
+          "t_abs": 83.0,
+          "dur": 8.5,
           "kind": "haiku",
           "style": "tanzaku",
           "ja": [
@@ -1058,32 +1121,26 @@
           "author": "小夜",
           "seal": "小夜",
           "seal_style": "白文",
-          "source": "原創（劇中・小夜の句）",
+          "source": "創作（劇中・小夜の句）",
           "zh": "舀起的月亮，从孩子的手心洒落了。",
           "position": "upper-left",
           "x": 150,
           "y": 50,
           "ink": "light",
-          "size": 48,
-          "note": "Written by 小夜 decades later about this moment — she is the 子. Rhymes with the tokonoma scroll 掬水月在手 seen in 二. Kigo 月 (autumn). 5-7-5: すくひたる / つきこぼれけり / このてより."
+          "size": 46,
+          "note": "Written by 小夜 decades later about this moment — she is the 子. Lands in the pause after the last drop (82.2–86.0) and fades over the opening window into 四's dark sky (x 150, y 50 also sits in Shot D's dark pocket). Rhymes with the tokonoma scroll 掬水月在手 seen in 二. Kigo 月 (autumn). 5-7-5: す・く・い・た・る / つ・き・こ・ぼ・れ・け・り / こ・の・て・よ・り."
         }
       ],
-      "negative_space": "Upper-left x 110–460, y 50–450 (dark moss vignette above the spout) stays plain for the haiku. The fox window at the centre (x 800–1120, y 300–540) is text-free. Subtitle band y 960–1040: vignette and the child's wrists only; keep falling beads above y 950.",
-      "audio": "Outside again: insect chorus moderate (6 voices), low wind. Spout trickle. Drops as sine pings gliding 1.8→1.2 kHz (80 ms) every 2.3 s. 67.5: splash (40 ms noise burst) + a glass shimmer of seeded high sines (2–5 kHz, 1.5 s). 70.5: shakuhachi 'sob' — a breath-only bend, no tone. 71.0–72.0: koto harmonics as the moon re-forms. 77.0–83.8: each falling bead a tiny, quieter ping; after the last (83.8), 0.5 s of nothing but insects. 84.0: the fox-window cluster — glassy sines A6, B6, E7 (no semitones: heaven's scale), sustained into 四.",
-      "transition_out": "2.0 s iris (90.0–92.0): the fox window's diamond keeps opening until it fills the frame; its inside becomes the sky of Shot D.",
+      "negative_space": "Upper-left x 110–460, y 50–460 (dark moss vignette above the spout) stays plain for the haiku (83.0–91.5, continuing into 四's dark sky pocket). The fox window at the centre (x 800–1120, y 300–540) is text-free. Subtitle band y 960–1040: vignette and the child's wrists only; keep falling beads above y 950.",
+      "audio": "Outside again: insect chorus moderate (6 voices), low wind. Spout trickle. From 72.0, drops as sine pings gliding 1.8→1.2 kHz (80 ms) every 2.3 s. 67.9: splash (40 ms noise burst) + a glass shimmer of seeded high sines (2–5 kHz, 1.5 s). 70.2–71.8: koto harmonics as the moon re-forms. 70.5: shakuhachi 'sob' — a breath-only bend, no tone. 75.4–82.2: each falling bead a tiny, quieter ping; after the last (82.2), nothing but insects until 86.0 (ma). 87.2: the fox-window cluster — glassy sines A6, B6, E7 (no semitones: heaven's scale), swelling as the window opens and sustained into 四.",
+      "transition_out": "No engine transition: the fox window opens inside the scene (88.2–90.0) until its diamond (half-width 1830) covers the frame; its inside is already Shot D's first frame, so 四 begins on the identical frame — a cut.",
       "engine_transition_next": {
-        "type": "iris",
-        "dur": 2.0,
-        "center": [
-          960,
-          420
-        ],
-        "ring": false,
-        "note": "ideally a diamond (狐の窓) mask; a circular iris with the scene's hands drawn around it is acceptable"
+        "type": "cut",
+        "note": "the scene owns the diamond opening (88.2–90.0)"
       },
       "hero_image": "14s [80] — seen from above: dark 藍 water in a mossy stone basin; a child's small cupped hands hold a moon no bigger than a coin; bright beads fall between her fingers; the ladle's handle crosses the frame; 萩 petals float on the water.",
       "difficulty": "medium",
-      "simplification": "Water is two flat ellipses plus arcs; shards are seeded crescents on analytic paths; hands are three authored poses (grab, cup, fox window), the fox-window path doubling as the clip (reused in 六); the palm-moon is one circle whose radius is a function of t."
+      "simplification": "Water is two flat ellipses plus arcs; shards are seeded crescents on analytic paths; hands are three authored silhouettes (grab, cup, window) that slide in and out — never morphed — the window path doubling as the clip (reused, aged, in 六); the palm-moon is one circle whose radius is a function of t; the window's inside is the 四 scene function at local t = 0 under the clip."
     },
     {
       "id": "tsuki-tenshin",
@@ -1095,14 +1152,14 @@
       "end": 118,
       "shot": "D, then tilt down to A",
       "print_state": "shozuri",
-      "summary": "Looking straight up: an enormous blank moon with a halo. On its paper face, in sumi, the Jataka plays: an old beggar, a monkey with fruit, a fox with a fish, a rabbit with nothing. A fire is lit — the only warm colour ever drawn inside the moon. The rabbit looks up and leaps. The disc flashes white and every insect on earth stops for 1.2 s. The smoke drifts across the face and settles into a rabbit pounding with pestle and mortar: the maria are born, the only ink ever laid on the moon, and every moon afterwards keeps it. The pestle's ぺったん fades as we tilt down to earth, where たけ gives her own dango to 小夜 and the child falls asleep in her lap.",
+      "summary": "Looking straight up: an enormous blank moon with a halo. On its paper face, in sumi, the Jataka plays: an old beggar sits by a fire the others have built — the only warm colour ever drawn inside the moon. A monkey brings fruit, a fox a fish; the rabbit comes with nothing and its ears droop. It looks up at us and leaps. The disc flashes white and every insect on earth stops for 1.2 s. The smoke drifts across the face in fourteen brush strokes and settles into a rabbit pounding with pestle and mortar: the maria are born, the only ink ever laid on the moon, and every moon afterwards keeps it. The pestle's ぺったん fades as we tilt down to earth — one moon travelling the whole way — where たけ gives her own dango to 小夜 and the child falls asleep in her lap.",
       "time_of_night": "the moon high (亥の刻〜子の刻前, ≈22:00–23:00)",
       "moon": {
         "x": 960,
         "y": 430,
         "r": 260,
         "phase_note": "full; 月暈 halo r 420; face BLANK until 16s [106], then the rabbit maria (薄墨 22%) for the rest of the film",
-        "motion": "Fixed in Shot D; exits the top during the tilt 18s [108]–21s [111]; afterwards in Shot A at (746,160)→(780,150), r 73, carrying its rabbit."
+        "motion": "Fixed in Shot D until 18s [108]. During the tilt 18s [108]–21s [111] it is drawn ONCE, on top of both masters: e = inOutSine((t−108)/3); centre lerp((960,430)→(703,170)); r lerp(260→72.1); maria scaled with the disc; halo α × (1−e). From 21s [111] Shot A mapping: (703,170) r 72 → (762,158) 28s [118], carrying its rabbit."
       },
       "layers": [
         {
@@ -1126,14 +1183,14 @@
         {
           "name": "Jataka (clipped to the disc)",
           "depth": 3,
-          "description": "Sumi figures (墨 α 0.85, 50–90 px): beggar hunched with a staff at (860,560); monkey with three fruit dots; fox (CAST.fox silhouette) with a fish in outline; rabbit (CAST.rabbit) empty-handed. Fire at (960,560): seven flame tongues — 朱 outer, 山吹 core, 墨 curl outlines in the Buddhist 火焔 manner; sparks as 山吹 points.",
+          "description": "Sumi figures (墨 α 0.85, 50–90 px): beggar hunched with a staff, seated at (860,560) from the first frame; monkey with three fruit dots; fox (CAST.fox silhouette) with a fish in outline; rabbit (CAST.rabbit) empty-handed. Fire at (960,560), burning from the first frame (the monkey and the fox have built it): seven flame tongues — 朱 outer, 山吹 core, 墨 curl outlines in the Buddhist 火焔 manner; sparks as 山吹 points.",
           "motion": "see beats"
         },
         {
           "name": "smoke → maria",
           "depth": 4,
-          "description": "≈300 soft 薄墨 blobs (墨 α 0.06–0.10, r 6–14) clipped to the disc; target points sampled at init from a rabbit-with-杵臼 silhouette (rabbit facing left centred (900,470), mortar (1040,535)).",
-          "motion": "10s [100] rise from the fire with curl-noise wobble; 12s [102]–16s [106] ease to their targets (outCubic); 16s [106] the settled maria are baked into the rabbit plate R (薄墨 22%, a slightly crisp woodblock edge)."
+          "description": "Fourteen brush-stroke ribbons, not particles: each a 6-point polyline, width 10–26 px, 墨 α 0.10 multiply, drawn twice with a 1.5 px offset for bleed, clipped to the disc. Start shape: curl-noise wisps above the fire. End shape: the 14 authored strokes of the rabbit with 杵臼 (rabbit facing left centred (900,470), mortar (1040,535)) — the same shape as the moon's maria path.",
+          "motion": "10s [100] the wisps rise from the fire; 11.5s [101.5]–16s [106] their control points ease to the authored strokes (outCubic); 16s [106] the settled strokes are baked into the rabbit plate R (薄墨 22%, a slightly crisp woodblock edge)."
         },
         {
           "name": "pestle",
@@ -1150,8 +1207,8 @@
         {
           "name": "tilt to Shot A",
           "depth": 7,
-          "description": "The cached Shot A 初摺 master, house at x 900–1460, the moon high at left (746,160), r 73, now with its rabbit.",
-          "motion": "18s [108]–21s [111] all Shot D layers scroll up 1080 px (inOutSine) while Shot A rises from below; a kasumi band hides the join."
+          "description": "The cached Shot A 初摺 master, house at x 900–1460. The moon belongs to neither master during the tilt: it is drawn once, on top, per the moon block.",
+          "motion": "18s [108]–21s [111]: the Shot D sky and susuki translate by −1080e and the Shot A plates by +1080(1−e), e = inOutSine((t−108)/3); a kasumi band rides over the seam."
         },
         {
           "name": "figures (Shot A)",
@@ -1164,32 +1221,37 @@
         {
           "t": 0.0,
           "t_abs": 90.0,
-          "desc": "The iris completes: an enormous blank moon, a halo, the tips of susuki."
+          "desc": "The fox window has opened past the frame: an enormous blank moon, a halo, the tips of susuki. On its face an old beggar sits by a small fire. Ma (90–92)."
         },
         {
           "t": 2.0,
           "t_abs": 92.0,
-          "desc": "On the moon's face a beggar shuffles in and sits."
+          "desc": "A monkey enters from the left with fruit (92.0–93.4)."
         },
         {
-          "t": 3.5,
-          "t_abs": 93.5,
-          "desc": "A monkey brings fruit; a fox brings a fish; the rabbit searches and comes back with nothing. Its ears droop (95.5)."
+          "t": 3.4,
+          "t_abs": 93.4,
+          "desc": "A fox enters from the right with a fish (93.4–94.8)."
         },
         {
-          "t": 5.5,
-          "t_abs": 95.5,
-          "desc": "The monkey gathers sticks; the fox lights them: the fire — the only warm colour ever drawn inside the moon."
+          "t": 4.8,
+          "t_abs": 94.8,
+          "desc": "The rabbit hops in with nothing."
         },
         {
-          "t": 7.5,
-          "t_abs": 97.5,
-          "desc": "The rabbit looks up — out of the moon, at us."
+          "t": 5.8,
+          "t_abs": 95.8,
+          "desc": "Its ears droop (held 1.2 s)."
         },
         {
-          "t": 8.2,
-          "t_abs": 98.2,
-          "desc": "It leaps in a parabola into the fire."
+          "t": 7.0,
+          "t_abs": 97.0,
+          "desc": "The rabbit looks up — out of the moon, at us (held 1.0 s)."
+        },
+        {
+          "t": 8.0,
+          "t_abs": 98.0,
+          "desc": "It leaps in a parabola, apex 60 px above the flames, into the fire (98.9)."
         },
         {
           "t": 9.0,
@@ -1204,12 +1266,17 @@
         {
           "t": 10.0,
           "t_abs": 100.0,
-          "desc": "Smoke spreads across the blank face and begins to gather."
+          "desc": "Smoke rises from the fire in thin wisps across the blank face."
         },
         {
           "t": 10.2,
           "t_abs": 100.2,
           "desc": "The insects return, one at a time."
+        },
+        {
+          "t": 11.5,
+          "t_abs": 101.5,
+          "desc": "The wisps begin to gather into brush strokes."
         },
         {
           "t": 16.0,
@@ -1224,7 +1291,7 @@
         {
           "t": 18.0,
           "t_abs": 108.0,
-          "desc": "Tilt down to earth; with every metre the pestle grows fainter until it cannot be heard (≈112)."
+          "desc": "Tilt down to earth; the one moon travels with us, shrinking into the sky over the house; with every metre the pestle grows fainter until it cannot be heard (≈112)."
         },
         {
           "t": 20.0,
@@ -1244,27 +1311,27 @@
       ],
       "text_cues": [
         {
-          "t": 10.5,
-          "t_abs": 100.5,
-          "dur": 8.0,
+          "t": 10.2,
+          "t_abs": 100.2,
+          "dur": 7.6,
           "kind": "narration",
           "style": "kotobagaki",
           "ja": [
-            "万の人、月を見む毎に",
-            "此の兎の事思ひ出づべし。"
+            "万の人、月を見む毎に、",
+            "此の兎の事思ひいだすべし。"
           ],
-          "reading": "よろづのひと、つきをみむごとに　このうさぎのことおもひいづべし",
+          "reading": "よろずのひと、つきをみむごとに　このうさぎのことおもいいだすべし",
           "author": "今昔物語集",
           "seal": "月",
           "seal_style": "朱文",
-          "source": "『今昔物語集』巻五第十三「三の獣、菩薩の道を行じ、兎、身を焼く語」の結句",
+          "source": "『今昔物語集』巻五第十三「三の獣、菩薩の道を行じ、兎、身を焼く語」結び（語り収めの定型句の直前）の一文。本文は新日本古典文学大系33『今昔物語集 一』による",
           "zh": "世上众人，每当望月，都该想起这只兔子。",
           "position": "left",
           "x": 150,
           "y": 110,
           "ink": "light",
           "size": 38,
-          "note": "Appears as the smoke becomes the rabbit. The final verb is printed 思ひ出づべし in some editions and 思出すべし / 思ひいだすべし in others — lock to one edition before release."
+          "note": "Appears as the smoke becomes the rabbit; ends at 107.8, before the tilt. The manuscript reads 思出スベシ: the okurigana ス marks transitive いだす, so the text is normalised 思ひいだすべし, not 思ひ出づべし. Locked to 新日本古典文学大系33 (or 日本古典文学大系22); 新編日本古典文学全集 contains only 巻11–31, so it cannot be the source for 巻五."
         },
         {
           "t": 20.0,
@@ -1282,17 +1349,17 @@
           "seal": "月",
           "seal_style": "朱文",
           "source": "与謝蕪村　明和五年（1768）　『蕪村句集』",
-          "zh": "月到中天——静静走过一条贫寒的小街。（“月天心”化自邵雍“月到天心处”）",
+          "zh": "月到天心——走过一条贫寒的小街。",
           "position": "upper-right",
           "x": 1160,
           "y": 50,
           "ink": "light",
           "size": 46,
-          "note": "The 'poor town' is this one thatched house; the grandmother's gift of her own dango is the rabbit's gift in small. 月天心 echoes 邵雍《清夜吟》「月到天心処」 — a quiet bridge for the Chinese viewer."
+          "note": "The 'poor town' is this one thatched house; the grandmother's gift of her own dango is the rabbit's gift in small. 月天心 echoes 邵雍《清夜吟》「月到天心処」: the subtitle's 月到天心 is itself the bridge, left unexplained."
         }
       ],
       "negative_space": "Shot D: the band x 110–470, y 90–800 (outside the halo, which reaches x 540) is dark flat sky for the Konjaku line. Shot A (from 110): the sky pocket x 1150–1440, y 40–420 above the house ridge stays flat for Buson. Subtitle band: susuki silhouettes (D) / pond (A) — calm.",
-      "audio": "Insects continue (6 voices) until 99.0. The play on the moon is narrated sparsely: 92.0 a biwa pluck (the beggar); 93.5 and 94.2 two light koto notes (monkey, fox); 95.5 a low descending pair (the empty-handed rabbit). 95.5–99.0 fire crackle (seeded noise bursts). 97.5 a single high koto harmonic as the rabbit looks up. 98.9 a hard biwa bachi strike at the leap. 99.0 ALL INSECTS STOP for 1.2 s; in the gap only one small struck bowl (鏧, ≈1.1 kHz inharmonic, 6 s decay). 100.2 onward the insects return voice by voice (100.2, 100.6, 101.1, 101.9, 103.0). 106.4 ぺったん every 1.6 s — a soft taiko thump (90 Hz sine, 0.15 s) + a hand-slap noise, doubled by the lowest koto D2; from 108.0 its gain falls with the tilt, 1.0 → 0 by 112.0: the pestle we stop hearing (no text says so). 110.0: shō aitake cluster (A4 B4 E5 F♯5 A5 B5) enters pp.",
+      "audio": "Fire crackle (seeded noise bursts) 90.0–99.0; the fox-window cluster from 三 decays under the ma (90–92). Insects continue (6 voices) until 99.0. The play on the moon is narrated sparsely: 90.6 a biwa pluck (the beggar); 92.0 and 93.4 two light koto notes (monkey, fox); 95.8 a low descending pair (the empty-handed rabbit). 97.0 a single high koto harmonic as the rabbit looks up. 97.9 a hard biwa bachi strike at the leap. 99.0 ALL INSECTS STOP for 1.2 s; in the gap only one small struck bowl (鏧, ≈1.1 kHz inharmonic, 6 s decay). 100.2 onward the insects return voice by voice (100.2, 100.6, 101.1, 101.9, 103.0). 106.4 ぺったん every 1.6 s — a soft taiko thump (90 Hz sine, 0.15 s) + a hand-slap noise, doubled by the lowest koto D2; from 108.0 its gain falls with the tilt, 1.0 → 0 by 112.0: the pestle we stop hearing (no text says so). 110.0: shō aitake cluster (A4 B4 E5 F♯5 A5 B5) enters pp.",
       "transition_out": "3.0 s suyari-gasumi wipe (118.0–121.0): long 胡粉 bands with rounded ends drift in from the right (emaki reading direction), cover the frame, and drift off to the left with Shot B beneath.",
       "engine_transition_next": {
         "type": "kasumi",
@@ -1301,9 +1368,9 @@
         "rows": 7,
         "note": "color = TSUKI.C.gofun"
       },
-      "hero_image": "16s [106] — an enormous paper-white moon with a faint halo against ベロ藍; thin 薄墨 smoke has just settled into a rabbit pounding at a mortar; the last ember fades at its centre; black susuki plumes stand along the bottom edge.",
+      "hero_image": "16s [106] — an enormous paper-white moon with a faint halo against ベロ藍; fourteen thin 薄墨 strokes of smoke have just settled into a rabbit pounding at a mortar; the last ember fades at its centre; black susuki plumes stand along the bottom edge.",
       "difficulty": "high",
-      "simplification": "The 300 particles exist only in Shot D (≤ 16 s); targets are sampled once at init with isPointInPath on a grid; paths are analytic (eased lerp + curl-noise offset) so each frame is a pure function of t; after 106.0 draw the baked maria bitmap instead. The tilt is two cached masters translated vertically."
+      "simplification": "The smoke is 14 authored brush ribbons whose control points are analytic functions of t (curl-noise offset × (1 − ease) + an eased lerp to the authored stroke) — no particles; after 106.0 draw the baked maria (plate R). The tilt is two cached masters translated vertically with ONE moon drawn on top."
     },
     {
       "id": "ama-no-hagoromo",
@@ -1315,14 +1382,14 @@
       "end": 160,
       "shot": "B, then A′",
       "print_state": "shozuri (tears 140–147.8, CLICK 147.8)",
-      "summary": "The climax. Inside again: the moon climbs into the round window. On the shoji, たけ's shadow lifts her haori against the light — for two seconds its rabbits-over-waves pattern shines through — and lays it over the sleeping child: the robe left behind as a keepsake, while Kaguya's letter completes the film's title. Then shadows cast by nothing: a cloud of celestials slides down the paper though the garden is empty, and a ribbon of light — the heavenly robe — unfurls down the central stile. At the moon's culmination her shadow peels off the paper, straightens out of old age and climbs the lattice rung by rung, while every colour plate drifts out of register like eyes filling with tears and the koto forgets its melody. She looks back once. CLICK — perfect register, cold: she has forgotten. She enters the moon; a black cloud covers it; absolute silence. When it passes, only the child's shadow remains under the haori's. Outside, たけ sits upright with her eyes closed; a wave drains her colour to moon-white while the haori and the child's red sash stay bright. The child casts a shadow; the grandmother casts none. One cricket. Then another.",
+      "summary": "The climax. Inside again: the moon climbs into the round window. On the shoji, たけ's shadow lifts her haori against the light — for two seconds its rabbits-over-waves pattern shines through — and lays it over the sleeping child: the robe left behind as a keepsake, while Kaguya's letter completes the film's title. Then, without a word on screen, shadows cast by nothing: a cloud of celestials slides down the paper though the garden is empty, and a ribbon of light — the heavenly robe — unfurls down the central stile. At the moon's culmination her shadow peels off the paper, straightens out of old age and climbs the lattice rung by rung, while every colour plate drifts out of register like eyes filling with tears and the koto forgets its melody. She looks back once — though the robe should already have changed her heart. CLICK — perfect register, cold: she has forgotten. She enters the moon; a black cloud covers it; absolute silence. When it passes, only the child's shadow remains under the haori's, and the moon is sliding out of the window. Cut, in silence, to the engawa: たけ sits upright with her eyes closed; a wave drains her colour to moon-white while the haori and the child's red heko-obi stay bright. The child casts a shadow; the grandmother casts none. One cricket. Then another.",
       "time_of_night": "midnight (子の刻) — culmination at 140.0",
       "moon": {
         "x": 960,
         "y": 150,
         "r": 64,
-        "phase_note": "full, with the rabbit maria; enters the round window ≈3s [121], exactly centred 22s [140], hidden by a 墨 叢雲 30.6s [148.6]–34s [152], alone in the window a little right of centre 35s [153]–38s [156]",
-        "motion": "Shot B: disc seen through the round window (960,150) r 110, centre (960−420cosφ, 960−810sinφ); chromatic fringes 22s [140]–29.8s [147.8] from the misregistered plate holes."
+        "phase_note": "full, with the rabbit maria; enters the round window ≈3s [121], fully inside 13s [131]–32s [150], exactly centred 22s [140] and lingering near centre while she climbs (24 px right at 147, 29 px at 148), hidden by a 墨 叢雲 30.6s [148.6]–34s [152]; from 151 sliding out past the window's right edge (79 px off-centre at 153)",
+        "motion": "Shot B: disc seen through the round window (960,150) r 110, centre (960−420cosφ, 960−810sinφ) with the keypoint [148, 1.64]; chromatic fringes 22s [140]–29.8s [147.8] from the misregistered plate holes."
       },
       "layers": [
         {
@@ -1380,12 +1447,6 @@
           "motion": "22s [140]–23.2s [141.2] THE PEEL: skew 0→12°→0, penumbra 0→6 px, it rises to standing and its back straightens (老いをせず). 23.2s [141.2]–28.8s [146.8] it climbs the kumiko along the central stile, five rungs (y 845, 730, 615, 500, 385) at ≈1.1 s per rung (reach / pull / knee / reach). 29s [147] at the top rail (y 270) it turns its head back toward the child (profile flip, 0.5 s). 29.8s [147.8] CLICK. 30s [148]–30.4s [148.4] it slides up into the window and is absorbed by the disc (kira pinpoint 30.4s [148.4])."
         },
         {
-          "name": "katsura-otoko",
-          "depth": 9,
-          "description": "A second maria bitmap in which the rabbit's smoke forms a figure under a katsura tree raising one hand (桂男) — no new ink, the same smoke rearranged.",
-          "motion": "17s [135]–17.6s [135.6] crossfade to it at 8% contrast and back."
-        },
-        {
           "name": "叢雲",
           "depth": 10,
           "description": "Three scalloped cloud layers crossing the round window: far 鼠, mid 銀鼠, near 墨 (胡粉 rims).",
@@ -1394,8 +1455,8 @@
         {
           "name": "Shot A′ (engawa)",
           "depth": 11,
-          "description": "Engawa in profile (Harunobu idiom). たけ sits upright against the post, eyes closed (one closed-eye line, no mouth): kimono 紺 with 鼠 stripes, 黄土 obi, 朱 obijime, 銀鼠 bun with a 煤竹 comb. 小夜 asleep in her lap under the 波兎 haori (藍 ground, 胡粉 rabbits and seigaiha), the 紅 obi-age showing. Moonlight from the upper right: 小夜 throws a 藍鼠 shadow across the boards to the lower left; たけ throws none.",
-          "motion": "38.4s [156.4]–40.8s [158.8] COLOUR DRAIN: a feathered horizontal wavefront descends through たけ, top to bottom — 紺→月白, 黄土→胡粉, 朱→胡粉, 煤竹→銀鼠, key lines 墨→銀鼠 — with kira along the front. The haori and the obi-age keep full saturation."
+          "description": "Engawa in profile (Harunobu idiom). たけ sits upright against the post, eyes closed (one closed-eye line, no mouth): kimono 紺 with 鼠 stripes, 黄土 obi, 海老茶 obijime, 銀鼠 bun with a 煤竹 comb. 小夜 asleep in her lap under the 波兎 haori (藍 ground, 胡粉 rabbits and seigaiha), the bow of her 紅絞り heko-obi showing. Moonlight from the upper right: 小夜 throws a 藍鼠 shadow across the boards to the lower left; たけ throws none.",
+          "motion": "37s [155] hard cut in, in silence. 37.4s [155.4]–39.8s [157.8] COLOUR DRAIN: a feathered horizontal wavefront descends through たけ, top to bottom — 紺→月白, 黄土→胡粉, 海老茶→胡粉, 煤竹→銀鼠, key lines 墨→銀鼠 — with kira along the front. The haori and the heko-obi keep full saturation. 39.8s [157.8]–42s [160] held still (ma)."
         }
       ],
       "beats": [
@@ -1432,12 +1493,7 @@
         {
           "t": 14.0,
           "t_abs": 132.0,
-          "desc": "SHADOWS CAST BY NOTHING: a cloud with seven celestials and a canopied carriage slides down panels 2–3. The garden outside is empty; her real shadow does not move. The insects thin (8→3 voices by 138)."
-        },
-        {
-          "t": 17.0,
-          "t_abs": 135.0,
-          "desc": "For 0.6 s the moon's maria shift into a figure under a katsura tree, beckoning (桂男) — then settle back into the rabbit."
+          "desc": "SHADOWS CAST BY NOTHING: a cloud with seven celestials and a canopied carriage slides down panels 2–3. The garden outside is empty; her real shadow does not move. The insects thin (8→3 voices by 138). No text from here to 160."
         },
         {
           "t": 18.0,
@@ -1457,7 +1513,7 @@
         {
           "t": 29.0,
           "t_abs": 147.0,
-          "desc": "At the top, under the window, she looks back once — against the rule of the myth. One E♭ on the koto: the ache, for a single note."
+          "desc": "At the top, under the window, she looks back once — though the robe should already have changed her heart (「衣着せつる人は、心異になるなり」). One E♭ on the koto: the ache, for a single note."
         },
         {
           "t": 29.8,
@@ -1477,22 +1533,27 @@
         {
           "t": 35.0,
           "t_abs": 153.0,
-          "desc": "The moon alone in the window, a little right of centre. On the paper only the child's small shadow under the haori's. Her seated shadow is gone."
+          "desc": "The moon alone in the window, sliding out past its right edge. On the paper only the child's small shadow under the haori's. Her seated shadow is gone."
         },
         {
-          "t": 38.0,
-          "t_abs": 156.0,
-          "desc": "Shot A′ outside: たけ upright, eyes closed; the child asleep in her lap."
+          "t": 37.0,
+          "t_abs": 155.0,
+          "desc": "Hard cut, in silence, to Shot A′ outside: たけ upright, eyes closed; the child asleep in her lap."
         },
         {
-          "t": 38.4,
-          "t_abs": 156.4,
-          "desc": "Her colour drains downward like moonlight — to 胡粉 and 銀鼠 — while the haori and the red obi-age stay bright."
+          "t": 37.4,
+          "t_abs": 155.4,
+          "desc": "Her colour drains downward like moonlight — to 胡粉 and 銀鼠 — while the haori and the red heko-obi stay bright (to 157.8)."
         },
         {
           "t": 38.6,
           "t_abs": 156.6,
-          "desc": "One suzumushi. (158.2: another.) The child casts a shadow; the grandmother casts none."
+          "desc": "One suzumushi. The child casts a shadow; the grandmother casts none."
+        },
+        {
+          "t": 39.8,
+          "t_abs": 157.8,
+          "desc": "Stillness (157.8–160.0): a second suzumushi (158.2); the sōzu trickle (159.2)."
         },
         {
           "t": 42.0,
@@ -1504,71 +1565,38 @@
         {
           "t": 4.5,
           "t_abs": 122.5,
-          "dur": 8.0,
-          "kind": "narration",
+          "dur": 9.0,
+          "kind": "letter",
           "style": "letter",
-          "font": "Yuji Syuku (brush)",
+          "font": "brush",
           "ja": [
             "脱ぎおく衣を形見と見たまへ。",
             "月の出でたらむ夜は、",
             "見おこせたまへ。"
           ],
-          "reading": "ぬぎおくきぬをかたみとみたまへ。　つきのいでたらむよは、　みおこせたまへ。",
+          "reading": "ぬぎおくきぬをかたみとみたまえ。　つきのいでたらむよは、　みおこせたまえ。",
           "author": "かぐや姫の文　竹取物語",
           "seal": "月",
           "seal_style": "朱文",
           "source": "『竹取物語』かぐや姫が翁・嫗に書き置く文",
-          "zh": "请把我留下的这件衣裳，当作念想。有月亮出来的夜晚，请望向我。",
+          "zh": "请把留下的衣裳当作念想。有月亮出来的夜晚，请望向我。",
           "position": "right",
           "x": 1660,
           "y": 110,
           "ink": "light",
           "size": 40,
-          "note": "Revealed stroke by stroke, as if brushed. The middle column 月の出でたらむ夜は is the film's title — the half-sentence is finally completed. On screen it is たけ's haori, laid over the child, that becomes the 形見."
-        },
-        {
-          "t": 14.0,
-          "t_abs": 132.0,
-          "dur": 8.0,
-          "kind": "waka",
-          "style": "shikishi",
-          "ja": [
-            "今はとて",
-            "天の羽衣",
-            "着るをりぞ",
-            "君をあはれと",
-            "思ひいでける"
-          ],
-          "reading": "いまはとて　あまのはごろも　きるをりぞ　きみをあはれと　おもひいでける",
-          "author": "かぐや姫　竹取物語",
-          "seal": "月",
-          "seal_style": "朱文",
-          "source": "『竹取物語』かぐや姫が帝に残す歌",
-          "zh": "此刻，就要披上天之羽衣了——偏在这时，才想起你，满心哀怜。",
-          "position": "left",
-          "x": 70,
-          "y": 110,
-          "ink": "dark",
-          "size": 42,
-          "chirashi": [
-            0,
-            44,
-            88,
-            36,
-            80
-          ],
-          "note": "散らし書き in a 色紙 cartouche the scene draws on canvas for exactly 132.0–140.0 (月白 ground, 山吹 砂子 α 0.3, 墨 hairline border) over the darkened tokonoma. Gone before the climb: NO text 140–160."
+          "note": "Revealed stroke by stroke, as if brushed (kind 'letter': Yuji Syuku 40 px; columns y 110–737 in the dark right-wall pocket). The middle column 月の出でたらむ夜は is the film's title — the half-sentence is finally completed. On screen it is たけ's haori, laid over the child, that becomes the 形見; 小夜 answers it in 七 with 「形見着て」, placed on this same wall."
         }
       ],
-      "negative_space": "Right wall x 1640–1900, y 100–820 for the letter. Left x 60–300, y 100–620 (the tokonoma in shadow) for the 色紙, only 132–140. From 140.0 to 160.0 NO text anywhere: the climb, the cloud and the drain play in silence. Subtitle band y 960–1040: tatami and the edge of the child's shadow — calm.",
-      "audio": "118–140: shō aitake (A4 B4 E5 F♯5 A5 B5) swells pp → f by 140. 122.5–130.5: under the letter, soft brush-on-paper swishes per character (band-passed noise 1.5–4 kHz, 80 ms) over a sustained koto D3 drone. 124.0–126.0: a quiet ascending koto glissando as the rabbits shine through. 132.0: kagura-suzu clusters pinned to the cloud shadow; insects thin 8→3 voices by 138. 136.0: a soft taiko heartbeat (55 Hz, 60 bpm) begins. 140.0–147.8 THE KOTO FORGETS in four passes: pass 1 at 140.0 A4 B♭4 D5 E♭5 — the fifth withheld, the shō fills the gap; pass 2 at 141.9 A4 B4 D5 E5 — semitones raised, heaven has no semitones; pass 3 at 143.8 D5 E5; pass 4 at 145.6 E5 alone, a thin harmonic. 147.0: at the look back, one E♭5 with oshide (pressed up from D5) — the ache returns for one note — and the heartbeat stops. 147.8: the kentō CLICK of 序 (dry, close, louder) and the rest where D5 should fall. 148.0–152.0: ABSOLUTE SILENCE — master gain 0, no insects, no wind, no reverb tail. 152.0: faint wind. 156.6: one suzumushi 'rīn'; 158.2: a second. 159.2: the sōzu trickle again. 160.0: KON.",
+      "negative_space": "Right wall x 1640–1900, y 100–820 for the letter (122.5–131.5). From 131.5 to 160.0 NO text anywhere: the celestials, the ribbon, the climb, the cloud and the drain play without words. Subtitle band y 960–1040: tatami and the edge of the child's shadow — calm.",
+      "audio": "118–140: shō aitake (A4 B4 E5 F♯5 A5 B5) swells pp → f by 140. 122.5–131.5: under the letter, soft brush-on-paper swishes per character (band-passed noise 1.5–4 kHz, 80 ms) over a sustained koto D3 drone. 124.0–126.0: a quiet ascending koto glissando as the rabbits shine through. 132.0: kagura-suzu clusters pinned to the cloud shadow; insects thin 8→3 voices by 138. 136.0: a soft taiko heartbeat (55 Hz, 60 bpm) begins. 140.0–147.8 THE KOTO FORGETS in four passes: pass 1 at 140.0 A4 B♭4 D5 E♭5 — the fifth withheld, the shō fills the gap; pass 2 at 141.9 A4 B4 D5 E5 — semitones raised, heaven has no semitones; pass 3 at 143.8 D5 E5; pass 4 at 145.6 E5 alone, a thin harmonic. 147.0: at the look back, one E♭5 with oshide (pressed up from D5) — the ache returns for one note — and the heartbeat stops. 147.8: the kentō CLICK of 序 (dry, close, louder) and the rest where D5 should fall. 148.0–152.0: ABSOLUTE SILENCE — master gain 0, no insects, no wind, no reverb tail. 152.0: faint wind. 155.0: the cut to A′ brings no sound of its own. 156.6: one suzumushi 'rīn'; 158.2: a second. 159.2: the sōzu trickle again. 160.0: KON.",
       "transition_out": "Hard cut on the KON at 160.0 (0 s) from Shot A′ to Shot A, which arrives already aging: 六 draws the 0.6 s jolt from 初摺 into 後摺 itself.",
       "engine_transition_next": {
         "type": "cut"
       },
-      "hero_image": "29s [147] — the round window with the full moon exactly centred behind a reed lattice; beneath it, at the top of the kumiko ladder, the shadow of a young woman with long Heian hair turns back toward the small shadow of a sleeping child under a haori; a white ribbon of light runs down the central stile; every colour plate trembles a few px out of register so the moon wears faint blue and gold fringes (homage: 芳年『月百姿』「月宮迎 竹とり」, transposed into shadow). Second image 40s [158]: an old woman drained to moon-white beside a sleeping child in a bright indigo haori and a red sash — one shadow on the boards.",
+      "hero_image": "29s [147] — the round window with the full moon at its centre (fully inside, 24 px right of exact centre) behind a reed lattice; beneath it, at the top of the kumiko ladder, the shadow of a young woman with long Heian hair turns back toward the small shadow of a sleeping child under a haori; a white ribbon of light runs down the central stile; every colour plate trembles a few px out of register so the moon wears faint blue and gold fringes (homage: 芳年『月百姿』「月宮迎 竹とり」, transposed into shadow). Second image 40.5s [158.5]: an old woman drained to moon-white beside a sleeping child in a bright indigo haori and a red heko-obi — one shadow on the boards.",
       "difficulty": "high",
-      "simplification": "All of heaven is single-colour 藍鼠 shadow (no full-colour celestials). The climb is a 4-pose cycle. The colour drain is two offscreen renders of A′ (colour / drained) composited through a moving feathered gradient mask (destination-in) plus kira points on the front. Misregistration is the shared per-plate (dx,dy) table. The 桂男 flicker is a 0.6 s crossfade between two maria bitmaps."
+      "simplification": "All of heaven is single-colour 藍鼠 shadow (no full-colour celestials). The climb is a 4-pose cycle. The colour drain is two offscreen renders of A′ (colour / drained) composited through a moving feathered gradient mask (destination-in) plus kira points on the front. Misregistration is the shared per-plate (dx,dy) table."
     },
     {
       "id": "atozuri",
@@ -1580,14 +1608,14 @@
       "end": 190,
       "shot": "A (後摺), A′ inserts, 月に雁 crop",
       "print_state": "atozuri",
-      "summary": "The same garden pulled sixty years later from the worn blocks: no warm colours, a flat sky without bokashi, broken key lines, drifted registration, yellowed and foxed paper. Reeds have taken half the pond, the sōzu is dry, one shoji is torn. Only the moon is fresh. A bent figure in the rabbit-and-wave haori sits on the engawa — drawn on たけ's exact path — so for a moment we believe she has come back. She stacks fifteen dango to a koto that has lost some of its notes; she pours two cups of tea, and one stays untouched with a tiny moon in it. A faded pink cord ties the susuki: the child's obi-age. It is 小夜. A tall 月に雁 print: three geese cross the moon, the third lagging, with Bai Juyi's Mid-Autumn couplet as its inscription. Then her old hands make the fox window, and inside it the first impression is still playing — the warm andon, her grandmother, the little girl, who turns and looks out across sixty years. The hands tremble and come down.",
+      "summary": "The same garden pulled sixty years later from the worn blocks: no warm colours, a flat sky without bokashi, broken key lines, drifted registration, yellowed and foxed paper. Reeds have taken half the pond, the sōzu is dry, one shoji is torn. Only the moon is fresh. A bent figure in the rabbit-and-wave haori sits on the engawa — drawn on たけ's exact path — so for a moment we believe she has come back; no words interrupt the belief. She stacks fifteen dango to a koto that has lost some of its notes; she pours two cups of tea, and one stays untouched with a tiny moon in it. A faded pink strip ties the susuki — torn from the child's red heko-obi. It is 小夜. A tall 月に雁 print: three geese cross the moon, the third lagging, with Bai Juyi's Mid-Autumn couplet as its inscription. Then her old hands rise into frame already joined in the fox window, and inside it the first impression is still playing — the warm andon, her grandmother, the little girl, who turns and looks out across sixty years. The hands tremble and come down.",
       "time_of_night": "after midnight, the moon descending westward (丑〜寅の刻)",
       "moon": {
         "x": 1263,
         "y": 182,
         "r": 72,
         "phase_note": "full; the only fresh element — crisp, uninked except its rabbit, kira intact; its disc is exempt from the paper's yellowing, as if kept from the light for sixty years",
-        "motion": "Shot A mapping, now descending faster: (1263,182) 0s [160] → (1582,347) r 77 30s [190]. In the kakemono crop: (960,330) r 120. In the fox-window inset: the 初摺 moon at its t−150 position (outside the crop)."
+        "motion": "Shot A mapping, now descending faster: (1264,182) 0s [160] → (1581,347) r 77 30s [190]. In the kakemono crop: (960,330) r 120. In the fox-window inset: the 初摺 moon at its t−150 position (outside the crop)."
       },
       "layers": [
         {
@@ -1641,26 +1669,26 @@
         {
           "name": "figure & offerings",
           "depth": 8,
-          "description": "Old 小夜: CAST.elder on たけ's exact path and pose table, 銀鼠 bun, the 波兎 haori. The 三方 at (1000,690) with fifteen dango; the jug with susuki tied by the 退紅 cord (鴇 ink, 2 px); a small lacquer box of old paper cut-outs, the bamboo cut-out leaning on the jug; two teacups.",
-          "motion": "1s [161] she settles; 3s [163]–9s [169] the dango appear one per pluck (0.5 s spacing), four of them in silence."
+          "description": "Old 小夜: CAST.elder on たけ's exact path and pose table, 銀鼠 bun, the 波兎 haori. The 三方 at (1000,690) with fifteen dango; the jug with susuki tied by a strip of the faded heko-obi (鴇/退紅 ink, 2 px); a small 黒漆 lacquer box (墨 with 銀鼠 highlights — no 朱) of old paper cut-outs, the bamboo cut-out leaning on the jug; two teacups.",
+          "motion": "1s [161] she settles; 1.2s [161.2]–8.7s [168.7] the dango appear one per pluck — nine at 0.5 s, a breath (0.75 s), four at 0.5 s, a breath, two — plucks 3, 7, 10 and 13 silent, so those four dango arrive in silence."
         },
         {
           "name": "A′ insert",
           "depth": 9,
-          "description": "Engawa close (A′ scale), 9s [169]–13s [173]: old hands (たけ's path) pour two cups — one steams (胡粉 α 0.3), the other stays untouched with a tiny moon (r 6) floating in its tea; then the jug's susuki tied by the faded 退紅 cord — the one warm colour left in the print, hand-applied, slightly overrunning the key line like an early 丹絵.",
-          "motion": "pour 9s [169]–10.2s [170.2]; hold on the untouched cup 10.5s [170.5]; cord 11s [171]–13s [173]"
+          "description": "Engawa close (A′ scale), 9s [169]–13s [173]: old hands (たけ's path) pour two cups — one steams (胡粉 α 0.3), the other stays untouched with a tiny moon (r 6) floating in its tea; then the jug's susuki tied with a strip torn from the faded heko-obi (退紅に褪せた兵児帯の端切れ) — the one warm colour left in the print, hand-applied, slightly overrunning the key line like an early 丹絵.",
+          "motion": "pour 9s [169]–10.2s [170.2]; hold on the untouched cup 10.5s [170.5]; the strip 11s [171]–13s [173]"
         },
         {
           "name": "月に雁 crop",
           "depth": 10,
           "description": "Yellowed washi margins slide in from both sides and narrow the frame to a tall 640×1080 panel (x 640–1280, 1 px 墨 border). Inside: flat pale 藍 sky, the fresh moon (960,330) r 120, three geese (墨 silhouettes, 鼠 inner wings, 胡粉 bellies, 4-frame wingbeat at 1.2 Hz, wingspans 210 / 170 / 140 px) descending steeply from upper right to lower left across the disc; the third starts 1.4 s late and flies 20% slower. Left margin (x 380–630) carries the 画賛.",
-          "motion": "margins in 13s [173]–13.8s [173.8]; geese cross 14s [174]–21s [181]; margins out 21.2s [181.2]–22s [182]"
+          "motion": "margins in 13s [173]–13.8s [173.8]; the 画賛 173.6–181.6 (fades over its last 1.5 s); geese cross 14s [174]–21s [181]; margins out 21.4s [181.4]–22s [182]"
         },
         {
           "name": "fox-window payoff",
           "depth": 11,
-          "description": "A′ framing: old hands (たけ's path) interlaced into the diamond at (960,470), ≈380×290 (the path from 三). INSIDE the clip: drawShotA(t − 150, 'shozuri', {crop: scale 1.8 about (1150,650), gazeOut}) — the first impression, live: 山吹 andon-lit shoji, 萩 pink, the dango, たけ and the little girl on the engawa at t′ = 32–40. OUTSIDE: everything stays 後摺.",
-          "motion": "22s [182]–23.5s [183.5] the hands interlace; 23s [183] inside, a small arm takes a dango and たけ turns to the moon (t′ 33.0–33.6); 26s [186]–27s [187] the little girl turns from back view to profile and looks straight out of the window (gazeOut 0→1); 27s [187] inside, the andon goes out (t′ 37) and the warm light dies within the diamond; 28s [188] the hands tremble (±2 px, 9 Hz); 29s [189]–30s [190] they come down."
+          "description": "A′ framing: old hands (たけ's path — the same authored window silhouette as in 三, aged: deeper knuckle creases, 銀鼠 rim line) at (960,470), diamond ≈380×290. INSIDE the clip: drawShotA(t − 150, 'shozuri', {crop: {scale: 1.8, about: (1080,668), to: (960,470)}, camera: false, gazeOut}) — showing Shot A x 975–1185, y 588–749: the 三方 with its dango, たけ, 小夜 at the engawa lip and the andon-lit shoji, at t′ = 32–40. OUTSIDE: everything stays 後摺.",
+          "motion": "22s [182]–23s [183] the hands rise into frame already joined (slide, outCubic) — no interlacing; 23s [183] inside, a small arm takes a dango and たけ turns to the moon (t′ 33.0–33.6); 24.2s [184.2] inside, 小夜 climbs onto the engawa and sits (t′ 34.2); 26s [186]–27s [187] gazeOut: 小夜 turns back view → profile → three-quarter (a 3-key silhouette swap, 0.25 s crossfades; the three-quarter face a flat 胡粉 oval under the okappa fringe, two 5 px 墨 Harunobu slit-eyes, no mouth) and looks straight out of the window; 27s [187] inside, the andon goes out (t′ 37) and the warm light dies within the diamond; 28s [188] the hands tremble (±2 px, 9 Hz); 29s [189]–30s [190] they come down."
         }
       ],
       "beats": [
@@ -1677,12 +1705,12 @@
         {
           "t": 1.0,
           "t_abs": 161.0,
-          "desc": "A bent figure in the 波兎 haori sits on the engawa — たけ's silhouette. We believe she has come back."
+          "desc": "A bent figure in the 波兎 haori sits on the engawa — たけ's silhouette. We believe she has come back. No text."
         },
         {
-          "t": 3.0,
-          "t_abs": 163.0,
-          "desc": "Fifteen dango, one per pluck, slower; four plucks are missing and those dango arrive in silence."
+          "t": 1.2,
+          "t_abs": 161.2,
+          "desc": "Fifteen dango, one per pluck, a little slower; four plucks are missing and those dango arrive in silence (to 168.7)."
         },
         {
           "t": 9.0,
@@ -1697,22 +1725,27 @@
         {
           "t": 11.0,
           "t_abs": 171.0,
-          "desc": "The faded pink cord tying the susuki — the child's obi-age. It is 小夜."
+          "desc": "The faded pink strip tying the susuki — torn from the child's red heko-obi. It is 小夜."
         },
         {
           "t": 13.0,
           "t_abs": 173.0,
-          "desc": "The margins close into a tall 月に雁 print; three geese cross the fresh moon; the third lags behind."
+          "desc": "The margins close into a tall 月に雁 print; three geese cross the fresh moon; the third lags behind. Bai Juyi's couplet is brushed in the margin (173.6)."
         },
         {
           "t": 22.0,
           "t_abs": 182.0,
-          "desc": "A′: 小夜's old hands form the fox window toward the moon."
+          "desc": "A′: 小夜's old hands rise into frame already joined in the fox window, toward the moon."
         },
         {
           "t": 23.0,
           "t_abs": 183.0,
           "desc": "Inside it the first impression is still playing: a small arm steals a dango; たけ turns to the moon."
+        },
+        {
+          "t": 24.2,
+          "t_abs": 184.2,
+          "desc": "Inside, the little girl climbs onto the engawa beside her grandmother."
         },
         {
           "t": 26.0,
@@ -1732,35 +1765,10 @@
       ],
       "text_cues": [
         {
-          "t": 4.0,
-          "t_abs": 164.0,
+          "t": 13.6,
+          "t_abs": 173.6,
           "dur": 8.0,
-          "kind": "haiku",
-          "style": "tanzaku",
-          "ja": [
-            "羽織着て",
-            "祖母のかたちに",
-            "月を見る"
-          ],
-          "reading": "はおりきて　そぼのかたちに　つきをみる",
-          "author": "小夜",
-          "seal": "小夜",
-          "seal_style": "白文",
-          "source": "原創（劇中・小夜の句）",
-          "zh": "披上祖母的羽织——以她的身形，看月。",
-          "position": "upper-left",
-          "x": 540,
-          "y": 70,
-          "ink": "dark",
-          "size": 50,
-          "note": "かたち = both the garment's shape and the bent body: she has become the person she lost. 羽織 quietly rhymes with 羽衣. Kigo 月. Stays in the same place through the A′ insert, whose composition keeps x 500–860, y 60–580 plain. Ink dark: the 後摺 sky is pale."
-        },
-        {
-          "t": 14.0,
-          "t_abs": 174.0,
-          "dur": 8.0,
-          "kind": "waka",
-          "form": "kanshi (漢詩)",
+          "kind": "kanshi",
           "style": "gasan",
           "ja": [
             "三五夜中新月色",
@@ -1771,7 +1779,7 @@
           "seal": "月",
           "seal_style": "朱文",
           "source": "白居易「八月十五日夜禁中独直対月憶元九」（『白氏文集』）　『和漢朗詠集』秋・十五夜",
-          "zh": "三五夜中新月色，二千里外故人心。——“故人”，在汉语里是老友，在今日日语里是逝者，此处两义皆取。",
+          "zh": "白居易《八月十五日夜禁中独直对月忆元九》",
           "position": "left",
           "x": 440,
           "y": 120,
@@ -1781,18 +1789,18 @@
             0,
             0
           ],
-          "note": "Brushed as the 画賛 in the left margin of the kakemono crop (dark ink on yellowed washi). Genji recites 二千里外故人心 on the fifteenth night in exile (『源氏物語』須磨)."
+          "note": "Brushed as the 画賛 in the left margin of the kakemono crop (dark ink on yellowed washi; columns y 120–471 in the margin x 380–630); its 「月」 seal in faded 退紅. The Chinese viewer reads the couplet itself, so the subtitle carries only the attribution. Genji recites 二千里外故人心 on the fifteenth night in exile (『源氏物語』須磨); on 故人 see the treatment's commentary."
         }
       ],
-      "negative_space": "Shot A: sky pocket x 500–860, y 60–580 flat (haiku); the A′ insert keeps the same region plain. Kakemono crop: left margin x 380–630 is bare yellowed washi for the 画賛; right margin bare. The fox window is text-free. Subtitle band y 960–1040: pond reeds (A) / margin paper (crop) — calm.",
-      "audio": "160.0: the jolt — a dry paper crack (high-passed noise burst, 60 ms) under the KON's tail. Insects: three voices only, sparse; thinner wind; NO sōzu trickle. 163.0–169.0: the counting melody of 一, slower (0.5 s spacing), plucks 3, 7, 10 and 13 deleted and every decay shortened (Karplus-Strong loss up): the melody as a late impression. 169.0: tea poured (filtered noise trickle, 1.2 s), a small ceramic tick; silence round the untouched cup (170.5). 171.0: a single koto B♭4, pressed softly (the cord). 173.0–182.0: distant geese — two-formant FM honks with delay at 174.5 and 176.0, and alone, late, at 178.4; a long shakuhachi A4 bending meri and back. 182.0: the fox-window cluster of 三 (A6 B6 E7) returns; inside the window, low-passed and quieter, the 初摺 soundscape of t−150 (the full insect chorus of 一; the andon breath at 187.0). 188.0–190.0: breathy shakuhachi muraiki as the hands tremble, then silence.",
+      "negative_space": "Shot A: no text 160–173.6 — 'she has come back' plays as pure image. Kakemono crop: left margin x 380–630 is bare yellowed washi for the 画賛; right margin bare. The fox window is text-free. Subtitle band y 960–1040: pond reeds (A) / margin paper (crop) — calm.",
+      "audio": "160.0: the jolt — a dry paper crack (high-passed noise burst, 60 ms) under the KON's tail. Insects: three voices only, sparse; thinner wind; NO sōzu trickle. 161.2–168.7: the counting melody of 一, a little slower (0.5 s within groups, 0.75 s breaths), plucks 3, 7, 10 and 13 deleted and every decay shortened (Karplus-Strong loss up): the melody as a late impression. 169.0: tea poured (filtered noise trickle, 1.2 s), a small ceramic tick; silence round the untouched cup (170.5). 171.0: a single koto B♭4, pressed softly (the strip). 173.0–182.0: distant geese — two-formant FM honks with delay at 174.5 and 176.0, and alone, late, at 178.4; a long shakuhachi A4 bending meri and back. 182.0: the fox-window cluster of 三 (A6 B6 E7) returns as the hands rise; inside the window, low-passed and quieter, the 初摺 soundscape of t−150 (the full insect chorus of 一; the andon breath at 187.0). 188.0–190.0: breathy shakuhachi muraiki as the hands tremble, then silence.",
       "transition_out": "Hard cut at 190.0 (0 s) as the hands come down, to Shot B interior in the 後摺 state.",
       "engine_transition_next": {
         "type": "cut"
       },
       "hero_image": "18s [178] — a tall narrow 月に雁: pale flat 藍, a fresh white moon, three black geese descending steeply across it, the third lagging behind; on the yellowed margin Bai Juyi's two lines brushed as the inscription (homage: 歌川広重『月に雁』). Second image 26.5s [186.5]: inside a diamond of old knuckled fingers, a warm lamplit engawa where a little girl turns to look straight out at us; everything outside the diamond is faded.",
       "difficulty": "medium",
-      "simplification": "Everything is reuse: Shot A with printState 'atozuri' (the per-plate table, dash-gapped key line, cached foxing), CAST.elder on たけ's path, the fox-window path from 三, and the inset is literally drawShotA(t−150,'shozuri') under a clip. The crop is two margin rectangles over a small bespoke composition."
+      "simplification": "Everything is reuse: Shot A with printState 'atozuri' (the per-plate table, dash-gapped key line, cached foxing), CAST.elder on たけ's path, the fox-window silhouette from 三 (aged), and the inset is literally drawShotA(t−150,'shozuri', crop about (1080,668)) under a clip. The crop is two margin rectangles over a small bespoke composition."
     },
     {
       "id": "ariake",
@@ -1804,14 +1812,14 @@
       "end": 206,
       "shot": "B (後摺)",
       "print_state": "atozuri",
-      "summary": "The room is empty: no andon, no scroll — only a darker, unfaded rectangle where the scroll hung for decades. Through a torn panel a coin of moonlight falls on the tatami; through the open panel the moon hangs low and pale. 小夜 sits outside with her back to us and lights incense: a straight thread of smoke that stops short of the moon. She dozes. Two eye-glints at the edge of the engawa: the fox takes the top dango. She wakes, sees, and — exactly as たけ did — turns her face to the moon and pretends not to see.",
+      "summary": "The room is empty: no andon, no scroll — only a darker, unfaded rectangle where the scroll hung for decades. Through a torn panel a coin of moonlight falls on the tatami; through the open panel the moon hangs low and pale. 小夜 sits outside with her back to us and lights incense: a straight thread of smoke that points at the moon and stops short of it. She dozes. Two eye-glints peek round the stile and a fox's shadow rises on the paper of the closed panel; a paw takes the top dango. She wakes, sees, and — exactly as たけ did — turns her face to the moon and pretends not to see. Her haiku writes itself on the dark wall where Kaguya's letter once appeared: 形見着て.",
       "time_of_night": "before dawn (有明, 寅の刻)",
       "moon": {
-        "x": 1235,
-        "y": 400,
+        "x": 1160,
+        "y": 360,
         "r": 56,
         "phase_note": "full but paling: 月白 → 銀鼠 glaze, kira fading, maria faint",
-        "motion": "Art-directed for this shot: seen through the open panel, descending (1235,400) → (1265,520). The incense thread stays ≥ 60 px below and left of it at every moment (only Fuji's smoke may touch the moon)."
+        "motion": "Art-directed for this shot and fully inside the opening (x 960–1290): (1160,360) 0s [190] → (1195,470) 16s [206], directly above the incense, whose thread (x 1180, fading out by y 640) points at it and stops 224 → 114 px short (only Fuji's smoke may touch the moon)."
       },
       "layers": [
         {
@@ -1835,7 +1843,7 @@
         {
           "name": "shoji",
           "depth": 3,
-          "description": "Panel 1 closed (月白 dimmed by 藍鼠 30%) and kept plain; panel 2 closed with a ragged torn hole (x 760–820, y 560–640) through which a faint coin of moonlight (胡粉 α 0.4, ellipse 70×26) falls on the tatami at (760,1000); panel 3 slid open behind panel 4 (opening x 960–1290); panel 4 closed.",
+          "description": "Panel 1 closed (月白 dimmed by 藍鼠 30%); panel 2 closed with a ragged torn hole (x 760–820, y 560–640) through which a faint coin of moonlight (胡粉 α 0.4, ellipse 80×24) falls down-left on the tatami at (650,1010), away from the moon; panel 3 slid open behind panel 4 (opening x 960–1290); panel 4 closed — its paper takes the fox's shadow.",
           "motion": "static"
         },
         {
@@ -1847,8 +1855,8 @@
         {
           "name": "小夜 & offerings",
           "depth": 5,
-          "description": "小夜 on the engawa just outside, back view, seated, ≈160 px (x 1030–1170, y 780–940), 波兎 haori, white bun. Beside her at (1250,930): the 三方 with fifteen dango, the jug with the 退紅 cord. A small 鼠 incense burner at (1180,905).",
-          "motion": "1s [191] lights the incense; 4s [194]–6s [196] dozes (two slow nods); 7.5s [197.5] wakes and turns to the stand; 8.5s [198.5] turns her face to the moon and holds, head slightly tilted."
+          "description": "小夜 on the engawa just outside, back view, seated, ≈160 px (x 1030–1170, y 780–940), 波兎 haori, white bun. Beside her at (1250,930): the 三方 with fifteen dango, the jug with the 退紅 strip. A small 鼠 incense burner at (1180,905).",
+          "motion": "1s [191] lights the incense; 3s [193]–6.5s [196.5] dozes (two slow nods); 6.5s [196.5] wakes and turns to the stand; 7.5s [197.5] turns her face to the moon and holds, head slightly tilted."
         },
         {
           "name": "incense",
@@ -1859,13 +1867,13 @@
         {
           "name": "fox",
           "depth": 7,
-          "description": "Eye-glints as in 一 at (1330,915); a 藍鼠 paw-shadow.",
-          "motion": "6s [196] glints on; 6.2s [196.2]–7s [197] the paw-shadow flickers across the stand; 7s [197] the top dango is gone (14 remain); glints off 7.2s [197.2]."
+          "description": "Never in colour, never whole: a 藍鼠 shadow on panel 4's paper (ears and muzzle, x 1300–1440, y 820–930); its 墨 paw crosses the opening to the stand (1250,930); two eye-glints — 胡粉 r 1.6 with 銀鼠 halos (no warm colour in the 後摺) — at (1276,902) and (1286,902), peeking round the stile.",
+          "motion": "5s [195] glints on and the shadow rises on panel 4; 5.2s [195.2]–6s [196] the paw crosses to the stand; 6s [196] the top dango is gone (14 remain); 6.2s [196.2] glints off, the shadow sinks."
         },
         {
           "name": "tatami",
           "depth": 8,
-          "description": "Faded heri lines; the coin of moonlight.",
+          "description": "Faded heri lines; the coin of moonlight at (650,1010).",
           "motion": "static"
         }
       ],
@@ -1873,37 +1881,47 @@
         {
           "t": 0.0,
           "t_abs": 190.0,
-          "desc": "Cut in: the empty room; the unfaded rectangle where the scroll hung; a coin of moonlight on the tatami."
+          "desc": "Cut in: the empty room; the darker, unfaded rectangle where the scroll hung; a coin of moonlight on the tatami."
         },
         {
           "t": 1.0,
           "t_abs": 191.0,
-          "desc": "小夜 lights incense; a thread of smoke rises straight at x 1180."
+          "desc": "小夜 lights incense; a thread of smoke rises straight at x 1180, pointing at the moon."
         },
         {
-          "t": 4.0,
-          "t_abs": 194.0,
+          "t": 3.0,
+          "t_abs": 193.0,
           "desc": "She dozes; her head nods twice."
         },
         {
-          "t": 6.0,
-          "t_abs": 196.0,
-          "desc": "Two eye-glints at the edge of the engawa. A paw's shadow. The top dango is gone."
+          "t": 5.0,
+          "t_abs": 195.0,
+          "desc": "Two eye-glints round the stile; a fox's shadow rises on the closed panel."
+        },
+        {
+          "t": 5.2,
+          "t_abs": 195.2,
+          "desc": "A paw crosses to the stand; at 196.0 the top dango is gone."
+        },
+        {
+          "t": 6.5,
+          "t_abs": 196.5,
+          "desc": "She wakes, turns to the stand, and sees."
         },
         {
           "t": 7.5,
           "t_abs": 197.5,
-          "desc": "She wakes, turns to the stand, and sees."
+          "desc": "She turns her face to the moon and pretends not to see — たけ's gesture, inherited. The tilt of her head suggests a smile."
         },
         {
-          "t": 8.5,
-          "t_abs": 198.5,
-          "desc": "She turns her face to the moon and pretends not to see — たけ's gesture, inherited. The tilt of her head suggests a smile."
+          "t": 7.8,
+          "t_abs": 197.8,
+          "desc": "Her haiku writes itself on the dark right wall, where Kaguya's letter once appeared."
         },
         {
           "t": 10.0,
           "t_abs": 200.0,
-          "desc": "Stillness: the moon framed in the open panel; the thread of smoke."
+          "desc": "Stillness: the moon framed in the open panel; the thread of smoke pointing at it."
         },
         {
           "t": 14.0,
@@ -1913,39 +1931,39 @@
       ],
       "text_cues": [
         {
-          "t": 7.0,
-          "t_abs": 197.0,
+          "t": 7.8,
+          "t_abs": 197.8,
           "dur": 8.0,
           "kind": "haiku",
           "style": "tanzaku",
           "ja": [
-            "ひとつ減る",
-            "団子の山や",
-            "今日の月"
+            "形見着て",
+            "祖母のかたちに",
+            "月を見る"
           ],
-          "reading": "ひとつへる　だんごのやまや　きょうのつき",
+          "reading": "かたみきて　そぼのかたちに　つきをみる",
           "author": "小夜",
           "seal": "小夜",
           "seal_style": "白文",
-          "source": "原創（劇中・小夜の句）",
-          "zh": "团子堆上，少了一个——今夜的月。",
-          "position": "left",
-          "x": 380,
-          "y": 300,
-          "ink": "dark",
-          "size": 46,
-          "note": "Written as if on panel 1's paper. On the surface, the children's お月見泥棒 custom (tonight the thief is a fox); underneath, 'one fewer at the table'. Kigo 今日の月 (仲秋)."
+          "source": "創作（劇中・小夜の句）",
+          "zh": "披着她留下的念想——以祖母的身形，看月。",
+          "position": "right",
+          "x": 1660,
+          "y": 120,
+          "ink": "light",
+          "size": 42,
+          "note": "形見 answers the letter (「脱ぎおく衣を形見と見たまへ」, 122.5): she did what Kaguya asked. かたち = both the garment's shape and the bent body — she has become the person she lost. It lands just after the inherited gesture, in Shot B's dark right-wall pocket x 1640–1900 (columns y 120–525, x 1660–1887), the very place Kaguya's letter appeared. The haori on screen keeps the 羽織/羽衣 rhyme visually. Kigo 月 only (羽織 would have added the winter kigo 冬羽織). Seal in faded 退紅."
         }
       ],
-      "negative_space": "Panel 1 (x 300–630, y 280–900) is kept plain dim paper for the haiku; the unfaded rectangle (x 95–195) must stay clear and legible as a shape. Subtitle band y 960–1040: tatami and the faint coin of moonlight only.",
-      "audio": "Only one or two insects left, far apart. Pre-dawn wind in sparse gusts. Single koto notes like drips: G4 at 191.0, D4 at 194.5, A4 at 200.0. 191.0: the faintest ember hiss. 196.0: a dry susuki rustle — the unseen thief. 198.5: at her pretended not-seeing, the same koto harmonic that marked たけ's complicity at 33.6. 201.5: a drop of dew falls into the dry sōzu — 'plink': the water beginning to return.",
-      "transition_out": "Match-cut at 206.0 (0 s): the incense thread at x 1180 cuts to Fuji's smoke thread rising at exactly the same x.",
+      "negative_space": "Right wall x 1640–1900, y 100–820 (dark) is kept plain for the haiku (197.8–205.8). The unfaded rectangle (x 95–195) must stay clear and legible as a shape. Keep the moon's opening (x 960–1290) and the incense axis x 1180 clear. Subtitle band y 960–1040: tatami and the faint coin of moonlight only.",
+      "audio": "Only one or two insects left, far apart. Pre-dawn wind in sparse gusts. Single koto notes like drips: G4 at 191.0, D4 at 194.5, A4 at 200.0. 191.0: the faintest ember hiss. 195.2: a dry susuki rustle — the unseen thief. 197.5: at her pretended not-seeing, the same koto harmonic that marked たけ's complicity at 33.6. 201.5: a drop of dew falls into the dry sōzu — 'plink': the water beginning to return.",
+      "transition_out": "Match-cut at 206.0 (0 s): the incense thread at x 1180 (y 640–905) cuts to Fuji on the same axis — the tapered 胡粉 snow gully (x 1174–1186, y 425–640) and, above the crater, a short visible smoke thread (1180, 420 → 392) — so the line carries across the cut.",
       "engine_transition_next": {
         "type": "cut"
       },
-      "hero_image": "9s [199] — a dim empty room; a pale rectangle on the wall where a scroll once hung; a coin of moonlight on the tatami through a torn shoji; through the open panel, a small old woman in a rabbit-and-wave haori, her back to us, her face turned to a low pale moon; one thread of incense rising straight.",
+      "hero_image": "9s [199] — a dim empty room; a darker, unfaded rectangle on the wall where a scroll once hung; a coin of moonlight on the tatami through a torn shoji; through the open panel, a small old woman in a rabbit-and-wave haori, her back to us, her face turned to a low pale moon that the thread of incense points at but does not reach; on the dark wall at right, her haiku.",
       "difficulty": "low",
-      "simplification": "Shot B cached in the 後摺 state; panel 3 is simply not drawn (the opening shows a small bespoke exterior); the only animation is the thread (a sine-perturbed polyline), the figure's head (CAST.elder back view), the glints and one dango."
+      "simplification": "Shot B cached in the 後摺 state; panel 3 is simply not drawn (the opening shows a small bespoke exterior); the only animation is the thread (a sine-perturbed polyline), the figure's head (CAST.elder back view), the fox's shadow and paw, the glints and one dango."
     },
     {
       "id": "fuji-no-keburi",
@@ -1957,14 +1975,14 @@
       "end": 236,
       "shot": "E, then the unprinting",
       "print_state": "atozuri + a fresh 東雲 block → unprinted",
-      "summary": "Dawn. Fuji from afar; the tiny house, one figure, the fox sitting in the susuki. The pale moon comes down toward the summit as a thread of smoke rises from the crater — the undying smoke of the burned elixir. At 214.0 the smoke touches the moon's rim: the only contact between earth and moon in the whole film. The shakuhachi, voice of the one left behind, finally plays the missing fifth note, and the first temple bell of dawn — held back all night — sustains it. 小夜's dawn shadow stretches across the susuki toward where たけ went. Then the print unprints itself in the real order in which pigments fade — reds first, then blues, then earths, sumi last — until only blank washi remains, the registration notch, and a moon embossed in the paper carrying nothing but the rabbit's faint carbon. Her last haiku writes itself beside it. A red seal: 忘れじ — I will not forget.",
-      "time_of_night": "dawn, moonset (明け六つ)",
+      "summary": "Dawn. Fuji from afar; the tiny house, one figure, the fox sitting in the susuki. The pale moon comes down toward the summit at a steady pace as a thread of smoke rises from the crater — the undying smoke of the burned elixir, burned with the emperor's poem. At 214.0 the smoke touches the moon's rim: the only contact between earth and moon in the whole film, the emperor's poem reaching her at last. The shakuhachi, voice of the one left behind, finally plays the missing fifth note, and the first bell of dawn — held back all night — sustains it. The moon slides down the thread (烟中月), rests on the summit and sinks behind it. 小夜's long dawn shadow reaches across the susuki toward where たけ went. Then the print unprints itself in approximately the order in which pigments fade — the plant-dye pinks and the dawn first, then the blues, then earths and greys, sumi last — until only blank washi remains, the registration notch, and a moon embossed in the paper carrying nothing but the rabbit's faint carbon. Her last haiku writes itself beside it. A red seal: 忘れじ — I will not forget.",
+      "time_of_night": "dawn, moonset (just before 明け六つ)",
       "moon": {
-        "x": 1110,
-        "y": 250,
+        "x": 1140,
+        "y": 202,
         "r": 48,
         "phase_note": "full, setting; 銀鼠/月白 glaze, kira fading, faint maria; after the unprinting it survives only as a karazuri circle at (960,360) r 150 with the rabbit's carbon at α 0.10",
-        "motion": "(1110,250) 0s [206] → (1180,330) 8s [214], lower rim y 378 meeting the smoke tip; resting on the summit ≈10s [216] (パール富士); sunk into the peak by 12.5s [218.5]."
+        "motion": "Linear in t, velocity (5,16) px/s, no easing: (1140,202) 0s [206] → (1180,330) 8s [214], lower rim y 378 meeting the smoke tip; rim resting on the summit ≈10.6s [216.6] (パール富士); half sunk (1210,426) 14s [220]; hidden (1223,468) behind the summit plateau 16.6s [222.6]."
       },
       "layers": [
         {
@@ -1976,7 +1994,7 @@
         {
           "name": "sky",
           "depth": 1,
-          "description": "Flat pale 藍 above; a FRESH 東雲 bokashi (the 鴇 ink — the same ink as the faded cord) rising from the left horizon (x 0–900, y 480–820, α 0→0.8), the one new block printed tonight; a thin 桔梗 band above it (α 0.25).",
+          "description": "Flat pale 藍 above; a FRESH 東雲 bokashi (the 鴇 ink — the same ink as the faded heko-obi strip) rising from the left horizon (x 0–900, y 480–820, α 0→0.8), the one new block printed tonight; a thin 桔梗 band above it (α 0.25).",
           "motion": "東雲 grows 0s [206]–14s [220]"
         },
         {
@@ -1988,14 +2006,14 @@
         {
           "name": "Fuji",
           "depth": 3,
-          "description": "Peak (1180,420) with a 30 px crater notch; concave flanks to the base x 700–1700 at y 820; ベロ藍 printed flat (後摺) with 胡粉 snow tongues to y 520; 墨 key line with small gaps.",
+          "description": "Peak (1180,420): a flat Hokusai summit plateau x 1140–1250 at y ≈420 with a 30 px crater notch at its centre; concave flanks to the base x 700–1700 at y 820; ベロ藍 printed flat (後摺) with 胡粉 snow tongues to y 520 and a tapered 胡粉 snow gully on the axis x 1174–1186, y 425–640 (it carries the incense line across the 206.0 cut); 墨 key line with small gaps.",
           "motion": "static"
         },
         {
           "name": "smoke thread",
           "depth": 4,
-          "description": "One thread from the crater (1180,420): 鼠 α 0.55, 4 px at the root tapering to 1.5 px, with 5–7 small Hokusai curl glyphs (墨 1 px spirals) along it.",
-          "motion": "Its tip rises from y 420 to y 378 between 0s [206] and 8s [214] and touches the moon's lower rim exactly at 8s [214] (kira flash along the rim, 0.8 s); 8s [214]–12.5s [218.5] it keeps rising into the moon as the moon sinks; afterwards it rises on into an empty sky."
+          "description": "One thread from the crater (1180,420): 鼠 α 0.55, 4 px at the root tapering to 2 px, with 5–7 small Hokusai curl glyphs (墨 1 px spirals) along it. The emperor had his poem burned with the elixir: this is the smoke of both.",
+          "motion": "Visible from the first frame: 0s [206] from the crater to a tip at y 392; the tip creeps up 1.75 px/s to y 378 and touches the moon's lower rim exactly at 8s [214] (kira flash along the rim, 0.8 s); the moon then slides down the thread (烟中月), which crosses its face until the moon is hidden at 16.6s [222.6]; afterwards it rises on into an empty sky."
         },
         {
           "name": "kasumi",
@@ -2012,19 +2030,19 @@
         {
           "name": "dawn shadow",
           "depth": 7,
-          "description": "小夜's shadow (藍鼠 α 0.6): a long thin diagonal from the house across the susuki toward Fuji.",
-          "motion": "9s [215]–14s [220] lengthens 0 → 900 px (the sun rising behind her, off-frame left)."
+          "description": "小夜's shadow (藍鼠, up to α 0.55): a long thin diagonal at its full 900 px length from the start — sunrise shadows are longest when they first appear — from the house across the susuki toward Fuji.",
+          "motion": "9s [215]–14s [220] revealed by a mask wiping from her feet outward, α 0→0.55 (the sun clearing the horizon behind her, off-frame left)."
         },
         {
           "name": "unprinting",
           "depth": 8,
           "description": "The per-plate alpha & lift table (plates.unprint).",
-          "motion": "16s [222]–17.5s [223.5] warm plates (鴇/東雲, 紅, 朱, 山吹, 萩); 17.5s [223.5]–19s [225] blues (藍, ベロ藍, 紺, 桔梗); 19s [225]–20.5s [226.5] earths and greys (黄土, 松葉, 尾花, 鼠, 銀鼠); 20.5s [226.5]–22s [228] the 墨 key block last. Each group slips 2–4 px out of register and rises 4 px as its alpha falls to 0 (inOutSine)."
+          "motion": "16s [222]–17.5s [223.5] D + P2 (鴇/東雲 and any plant-dye pinks and yellows: 紅, 萩, 山吹); 17.5s [223.5]–19s [225] blues (藍, ベロ藍, 紺, 桔梗); 19s [225]–20.5s [226.5] earths and greys (黄土, 松葉, 尾花, 鼠, 銀鼠 — 朱, a stable mineral, would fade here if any were left); 20.5s [226.5]–22s [228] the 墨 key block last. Each group slips 2–4 px out of register and rises 4 px as its alpha falls to 0 (inOutSine)."
         },
         {
           "name": "the last paper",
           "depth": 9,
-          "description": "Clean 生成 washi; the 見当 notch at (1840,1040) as in 序; a karazuri moon at (960,360), r 150 — a ±1.5 px rim (胡粉 highlight upper-left, 墨 α 0.12 shadow lower-right) and a faint inner sheen; inside it the rabbit's maria at 墨 α 0.10 (carbon does not fade). At 230.0 the scene stamps the 朱 seal 「忘れじ」 (≈90 px) at (1300,820). At 233.0 a tiny colophon in 墨 α 0.55, bottom-right (x 1500–1820, y 1000): 「原典　竹取物語・今昔物語集」.",
+          "description": "Clean 生成 washi; the 見当 notch at (1840,1040) as in 序 (arms x 1794–1840, y 994–1040); a karazuri moon at (960,360), r 150 — a ±2 px rim (胡粉 α 0.55 highlight upper-left, 墨 α 0.22 shadow lower-right: strong enough to survive video compression) with a 3% inner sheen, and inside it the rabbit's maria at 墨 α 0.10 (carbon does not fade). At 230.0 the scene stamps the 朱 seal 「忘れじ」 (≈90 px) at (1300,820) — fresh 朱, the first saturated red since 160. At 233.0 a tiny colophon: 22 px mincho, 墨 α 0.55, right-aligned to x 1760, baseline y 1012 (clear of the notch): 「原典　竹取物語・今昔物語集」.",
           "motion": "The embossed moon emerges 20s [226]–22s [228]; seal 24s [230] (a 0.12 s press: scale 1.06→1.00, ink α 0→0.92); colophon fades in 27s [233]–28s [234]; hold to the end."
         }
       ],
@@ -2032,12 +2050,12 @@
         {
           "t": 0.0,
           "t_abs": 206.0,
-          "desc": "Match-cut: Fuji's smoke continues the incense thread at x 1180. 東雲 rises at the left. The tiny house, one figure, the fox in the susuki."
+          "desc": "Match-cut: the incense line continues as Fuji's snow gully and smoke thread on the axis x 1180. 東雲 rises at the left. The tiny house, one figure, the fox in the susuki. The moon is already coming down, steadily."
         },
         {
-          "t": 0.5,
-          "t_abs": 206.5,
-          "desc": "The emperor's poem appears."
+          "t": 1.3,
+          "t_abs": 207.3,
+          "desc": "The tale's last sentence writes itself: その煙、いまだ雲の中へ立ち昇るとぞ、言ひ伝へたる。"
         },
         {
           "t": 4.5,
@@ -2047,17 +2065,12 @@
         {
           "t": 8.0,
           "t_abs": 214.0,
-          "desc": "The smoke touches the moon's lower rim — the only contact between earth and moon in the film; a kira flash runs round the rim. The SHAKUHACHI plays the missing D."
+          "desc": "The smoke touches the moon's lower rim — the only contact between earth and moon in the film, the emperor's burned poem reaching her; a kira flash runs round the rim. The SHAKUHACHI plays the missing D. No text until 226.8."
         },
         {
           "t": 9.0,
           "t_abs": 215.0,
-          "desc": "The first 梵鐘 of dawn (明け六つ), its hum tuned to D, sustains the note. 小夜's dawn shadow begins to stretch toward the mountain."
-        },
-        {
-          "t": 10.0,
-          "t_abs": 216.0,
-          "desc": "Pearl Fuji: the moon rests on the summit, the smoke rising into it."
+          "desc": "The first bell of dawn — the first of the three 捨て鐘 before 明け六つ — its hum tuned to D, sustains the note. 小夜's long dawn shadow is revealed from her feet toward the mountain."
         },
         {
           "t": 10.5,
@@ -2065,29 +2078,34 @@
           "desc": "The fox turns its head toward the peak."
         },
         {
-          "t": 12.5,
-          "t_abs": 218.5,
-          "desc": "The moon has sunk into the mountain; the smoke goes on rising into an empty sky."
+          "t": 10.6,
+          "t_abs": 216.6,
+          "desc": "Pearl Fuji: the moon rests on the summit, the smoke thread across its face."
         },
         {
           "t": 14.0,
           "t_abs": 220.0,
-          "desc": "Second bell."
+          "desc": "Second bell. The moon is half sunk behind the summit."
         },
         {
           "t": 16.0,
           "t_abs": 222.0,
-          "desc": "The unprinting begins: reds and the dawn first … blues … earths … sumi last (228.0)."
+          "desc": "The unprinting begins: the dawn and the plant pinks first … blues … earths … sumi last (228.0)."
         },
         {
-          "t": 18.0,
-          "t_abs": 224.0,
-          "desc": "小夜's last haiku writes itself beside the embossed moon — the only new ink."
+          "t": 16.6,
+          "t_abs": 222.6,
+          "desc": "The moon has gone behind the mountain; the smoke goes on rising into an empty sky."
         },
         {
           "t": 19.0,
           "t_abs": 225.0,
           "desc": "Third bell."
+        },
+        {
+          "t": 20.8,
+          "t_abs": 226.8,
+          "desc": "As the key block lifts, 小夜's last haiku writes itself beside the emerging embossed moon — the only new ink."
         },
         {
           "t": 22.0,
@@ -2112,58 +2130,32 @@
       ],
       "text_cues": [
         {
-          "t": 0.5,
-          "t_abs": 206.5,
-          "dur": 8.0,
-          "kind": "waka",
-          "style": "shikishi",
-          "ja": [
-            "逢ふことも",
-            "涙に浮かぶ",
-            "わが身には",
-            "死なぬ薬も",
-            "何にかはせむ"
-          ],
-          "reading": "あふことも　なみだにうかぶ　わがみには　しなぬくすりも　なににかはせむ",
-          "author": "帝　竹取物語",
-          "seal": "月",
-          "seal_style": "朱文",
-          "source": "『竹取物語』帝の歌（かぐや姫の文と不死の薬を受けて）",
-          "zh": "再也无缘相见，此身只在泪中浮沉——那不死之药，又有何用？",
-          "position": "upper-left",
-          "x": 110,
-          "y": 60,
-          "ink": "dark",
-          "size": 42,
-          "note": "On screen while the smoke of the burned elixir climbs to the moon; it fades just after the contact at 214.0."
-        },
-        {
-          "t": 10.0,
-          "t_abs": 216.0,
-          "dur": 6.5,
+          "t": 1.3,
+          "t_abs": 207.3,
+          "dur": 6.7,
           "kind": "narration",
           "style": "kotobagaki",
           "ja": [
             "その煙、いまだ雲の中へ",
             "立ち昇るとぞ、言ひ伝へたる。"
           ],
-          "reading": "そのけぶり、いまだくものなかへ　たちのぼるとぞ、いひつたへたる。",
+          "reading": "そのけぶり、いまだくものなかへ　たちのぼるとぞ、いいつたえたる。",
           "author": "竹取物語",
           "seal": "月",
           "seal_style": "朱文",
           "source": "『竹取物語』結びの一文",
-          "zh": "据说，那烟至今仍向云中升腾。（富士，音同“不死”。）",
-          "position": "upper-right",
-          "x": 1600,
+          "zh": "据说，那烟至今仍向云中升腾。",
+          "position": "upper-left",
+          "x": 120,
           "y": 70,
           "ink": "dark",
-          "size": 36,
-          "note": "The tale's own etymology for 富士 is 士に富む (many soldiers climbed the mountain); the 不死 homophone is the famous pun and lives only in the Chinese gloss. Fades as the unprinting begins."
+          "size": 32,
+          "note": "The tale's last sentence, placed while the smoke climbs toward the moon; it has faded by the contact (214.0). The tale's own etymology for 富士 is 士に富む (many soldiers climbed the mountain); the 不死 wordplay works only in Japanese (ふじ / ふし) and is noted in the credits, never in a subtitle. Seal in faded 退紅."
         },
         {
-          "t": 18.0,
-          "t_abs": 224.0,
-          "dur": 12.0,
+          "t": 20.8,
+          "t_abs": 226.8,
+          "dur": 10.8,
           "kind": "haiku",
           "style": "tanzaku",
           "ja": [
@@ -2173,43 +2165,74 @@
           ],
           "reading": "かげひとつ　こうしをのぼる　りょうやかな",
           "author": "小夜",
-          "seal": "小夜",
-          "seal_style": "白文",
-          "source": "原創（劇中・小夜の句）",
+          "seal": false,
+          "source": "創作（劇中・小夜の句）",
           "zh": "一道影子，攀上窗格——好一个良宵。",
-          "position": "center",
+          "position": "upper-right",
           "x": 1180,
           "y": 170,
           "ink": "dark",
           "size": 52,
-          "note": "Her poem about that night; the film ends in her voice. Kigo 良夜 (仲秋). 格子 instead of 障子 avoids a winter-kigo 季重なり. It writes itself while the world unprints — the only new ink — and stays to the last frame."
+          "note": "Her poem about that night; the film ends in her voice. Kigo 良夜 (仲秋). 格子 instead of 障子 avoids a winter-kigo 季重なり. It writes itself as the key block lifts (226.5–228) — the only new ink — right of the embossed moon (block ≈ x 1180–1452, y 170–725, clear of the moon x 810–1110). dur runs past 236.0, so its fade (236.0–237.6) is never seen: it stays to the last frame. No seal: 忘れじ (230.0) is the only red on the last paper."
         }
       ],
-      "negative_space": "Upper-left x 100–520, y 50–470 (pale sky above the 東雲) for the emperor's waka; upper-right x 1560–1860, y 60–520 (sky right of the peak) for the narration; after the unprinting, the space right of the embossed moon x 1150–1440, y 150–780 for the final haiku, with the seal 忘れじ at (1300,820). Keep the moon's circle (x 810–1110, y 210–510) and the notch clear. Subtitle band y 960–1040: susuki, then bare paper.",
-      "audio": "Dawn pine-wind (soft low-passed noise); insects down to two voices. 210.5: thin koto (damped 後摺 decay) A4 · B♭4 · D5 · E♭5 — then the rest, waiting. 214.0: SHAKUHACHI D5, the missing fifth note: breathy muraiki onset, meri from C♯ up to D, then pure, held 6 s. 215.0 / 220.0 / 225.0: 梵鐘, three strokes of 明け六つ — inharmonic partials over a D hum (D3 146.8 Hz), one pair detuned 0.7 Hz for 唸り, 12 s decay; the first stroke's hum sustains the shakuhachi's D. 222.0–228.0: four soft paper-peel swishes as the plate groups lift. 230.0: the seal — soft taiko thud (55 Hz sine + felt click) and a paper press. 232.5: sōzu KON (the water has returned). 233.0: one suzumushi 'rīn' (1.2 s). 234.2–236.0: silence.",
+      "negative_space": "Upper-left x 100–520, y 50–470 (pale sky above the 東雲) for the tale's last sentence (207.3–214.0). No text 214.0–226.8: the contact, the missing note, the bells, the moonset and the start of the unprinting. After the unprinting, the space right of the embossed moon x 1180–1460, y 150–780 for the final haiku, with the seal 忘れじ at (1300,820). Keep the moon's circle (x 810–1110, y 210–510) and the notch clear. Subtitle band y 960–1040: susuki, then bare paper.",
+      "audio": "Dawn pine-wind (soft low-passed noise); insects down to two voices. 210.5: thin koto (damped 後摺 decay) A4 · B♭4 · D5 · E♭5 — then the rest, waiting. 214.0: SHAKUHACHI D5, the missing fifth note: breathy muraiki onset, meri from C♯ up to D, then pure, held 6 s. 215.0 / 220.0 / 225.0: 梵鐘, the three 捨て鐘 that precede 明け六つ (the hour itself is never struck) — inharmonic partials over a D hum (D3 146.8 Hz), one pair detuned 0.7 Hz for 唸り, 12 s decay; the first stroke's hum sustains the shakuhachi's D. 222.0–228.0: four soft paper-peel swishes as the plate groups lift. 230.0: the seal — soft taiko thud (55 Hz sine + felt click) and a paper press. 232.5: sōzu KON (the water has returned). 233.0: one suzumushi 'rīn' (1.2 s). 234.2–236.0: silence.",
       "transition_out": "End of film at 236.0: hold on blank washi — the embossed moon, the haiku, the seal, the notch, the colophon — in silence; the engine's end card follows. No fade to black: the film ends on paper.",
       "engine_transition_next": null,
-      "hero_image": "10s [216] — pearl Fuji at dawn: a pale moon resting on the snow-capped summit, a single thread of smoke rising into it; 東雲 pink along the left horizon; far below, a tiny thatched house, a small fox in the susuki and one long shadow reaching toward the mountain (homage: 北斎『富嶽三十六景』; 芳年『月百姿』「烟中月」). Final frame 26s [232]: blank washi, an embossed moon with a faint rabbit, a vertical haiku and a red seal 忘れじ.",
+      "hero_image": "10.6s [216.6] — pearl Fuji at dawn: a pale moon resting on the snow-capped summit, a single thread of smoke rising across its face; 東雲 pink along the left horizon; far below, a tiny thatched house, a small fox in the susuki and one long shadow reaching toward the mountain (homage: 北斎『富嶽三十六景』; 芳年『月百姿』「烟中月」). Final frame 26s [232]: blank washi, an embossed moon with a faint rabbit, a vertical haiku and a red seal 忘れじ.",
       "difficulty": "medium",
-      "simplification": "Fuji is one polygon plus a snow polygon; the smoke is one tapered Bézier with glyphs; the unprinting is the shared per-plate alpha table (序's printing machinery run backwards in fugitive order); the karazuri moon is two 1 px arcs and a paper sheen; the seal is B.seal; the colophon is one ctx.fillText in the loaded mincho."
+      "simplification": "Fuji is one polygon plus a snow polygon and the gully; the smoke is one tapered Bézier with glyphs; the moon is linear in t; the unprinting is the shared per-plate alpha table (序's printing machinery run backwards); the karazuri moon is two 2 px arcs and a paper sheen; the seal is B.seal; the colophon is one ctx.fillText in the loaded mincho."
     }
   ],
-  "ending": "The film ends on paper, not on black. After Fuji's smoke touches the moon (214.0) and the shakuhachi supplies the missing note under the first dawn bell, the whole print lifts away in the true order in which ukiyo-e pigments fade — safflower reds and the dawn first, then the blues, then the earths and greys, and the carbon key block last (222–228). What remains is blank washi with its registration notch and, at the place of culmination, a moon embossed into the paper without ink, still carrying the rabbit's faint smoke — the one thing that was given to the moon and kept. 小夜's haiku 「影ひとつ格子をのぼる良夜かな」 writes itself beside it, the only new ink; a red seal 「忘れじ」 (I will not forget) — the survivor's answer to the robe that erases grief — is pressed with a soft thud (230.0). A last sōzu KON: the water has returned to the dry bamboo. One suzumushi. A tiny colophon 「原典　竹取物語・今昔物語集」. Silence to 236.0.",
+  "ending": "The film ends on paper, not on black. After Fuji's smoke — the burned elixir and the emperor's poem — touches the moon (214.0) and the shakuhachi supplies the missing note under the first dawn bell, the moon slides down the thread and sinks behind the summit (222.6), and the whole print lifts away in approximately the order in which ukiyo-e pigments fade — the plant-dye pinks and the dawn first, then the blues, then the earths and greys, and the carbon key block last (222–228). What remains is blank washi with its registration notch and, at the place of culmination, a moon embossed into the paper without ink, still carrying the rabbit's faint smoke — the one thing that was given to the moon and kept. 小夜's haiku 「影ひとつ格子をのぼる良夜かな」 writes itself beside it (226.8), the only new ink, unsealed; a red seal 「忘れじ」 (I will not forget) — the survivor's answer to the robe that erases grief, and the first fresh red since the grandmother's night — is pressed with a soft thud (230.0). A last sōzu KON: the water has returned to the dry bamboo. One suzumushi. A tiny colophon 「原典　竹取物語・今昔物語集」. Silence to 236.0.",
   "credits": [
-    "原典　竹取物語・今昔物語集（巻五第十三）",
-    "引用　松尾芭蕉「名月や池をめぐりて夜もすがら」（『孤松』）／与謝蕪村「月天心貧しき町を通りけり」（『蕪村句集』）／白居易「八月十五日夜禁中独直対月憶元九」（『和漢朗詠集』十五夜）／『竹取物語』かぐや姫の文・かぐや姫の歌・帝の歌・結び",
-    "句　劇中人物・小夜（原創四句：掬ひたる／羽織着て／ひとつ減る／影ひとつ）",
+    "原典　竹取物語（新編日本古典文学全集）・今昔物語集 巻五第十三（新日本古典文学大系）",
+    "引用　松尾芭蕉「名月や池をめぐりて夜もすがら」（『孤松』）／与謝蕪村「月天心貧しき町を通りけり」（『蕪村句集』）／白居易「八月十五日夜禁中独直対月憶元九」（『和漢朗詠集』十五夜）／『竹取物語』かぐや姫の文・結び／『今昔物語集』「三の獣、菩薩の道を行じ、兎、身を焼く語」",
+    "句　劇中人物・小夜（創作句三句：掬ひたる／形見着て／影ひとつ）",
     "意匠の典拠　歌川広重『月に雁』『名所江戸百景』／月岡芳年『月百姿』「月宮迎 竹とり」「烟中月」／葛飾北斎『富嶽三十六景』／鈴木春信",
     "書　Yuji Syuku（題字・かぐや姫の文）／Shippori Mincho B1／Noto Serif SC",
     "音　WebAudio 合成（箏・尺八・笙・琵琶・神楽鈴・梵鐘・鈴虫・松虫・鹿威し）",
-    "印　縁（題）・月（古典）・小夜（白文）・忘れじ（結）"
+    "印　縁（題）・月（古典）・小夜（白文）・忘れじ（結）",
+    "注　“富士”与“不死”在日语中音近（ふじ／ふし），在汉语中并不同音；《竹取物语》原文自释山名为“士に富む”（众多士兵登山）。“故人”在汉语中是老友，在今日日语中多指逝者。"
   ],
   "spares": [
     {
       "ja": "彫り捨てしところぞ月となりにける",
       "reading": "ほりすてし　ところぞつきと　なりにける",
-      "author": "原創",
+      "author": "創作",
       "use": "Alternative final haiku if the director prefers the medium's thesis ('the place I carved away has become the moon') over 小夜's voice. Default: not used."
+    },
+    {
+      "ja": "今はとて天の羽衣着るをりぞ君をあはれと思ひいでける",
+      "reading": "いまはとて　あまのはごろも　きるおりぞ　きみをあわれと　おもいいでける",
+      "author": "かぐや姫（『竹取物語』）",
+      "zh": "此刻就要披上天之羽衣了——偏在这一刻，想起你，满心眷恋。",
+      "use": "Cut from 五 (132–140) so the celestials and the ribbon play without words. If restored: kind 'waka', 散らし書き on a 色紙 kept inside the tokonoma pocket, ≥ 8 s, gone before 140. あはれ here is tender, yearning affection — never 哀怜."
+    },
+    {
+      "ja": "逢ふことも涙に浮かぶわが身には死なぬ薬も何にかはせむ",
+      "reading": "あうことも　なみだにうかぶ　わがみには　しなぬくすりも　なににかはせむ",
+      "author": "帝（『竹取物語』）",
+      "zh": "再也无缘相见，此身只在泪中浮沉——那不死之药，又有何用？",
+      "use": "Cut from 結 (206.5) so the smoke–moon contact plays without text. It survives in the image: the emperor had this poem burned with the elixir on the summit, so the smoke that touches the moon at 214.0 carries it."
+    },
+    {
+      "ja": "ひとつ減る団子の山や今日の月",
+      "reading": "ひとつへる　だんごのやまや　きょうのつき",
+      "author": "創作（劇中・小夜の句）",
+      "zh": "团子堆上，少了一个——今夜的月。",
+      "use": "Cut from 七 (text load; dark text over panel kumiko). Kigo 今日の月 (仲秋). Surface: the お月見泥棒 custom, the thief a fox; underneath: one fewer at the table."
+    },
+    {
+      "ja": "桂男（月の桂の下で、長く見つめる者を手招く男）",
+      "author": "伝承",
+      "use": "Cut from 五 (135): a 0.6 s crossfade of the maria into a beckoning figure could not be read at 8% contrast on a 128 px disc and cluttered 132–140. For a longer cut: its own beat, the gazer warned away."
+    },
+    {
+      "ja": "「きと影になりぬ」",
+      "author": "『竹取物語』（帝が連れ帰ろうとすると、かぐや姫はふっと影になる）",
+      "use": "Cut with the palanquin (二, 55–57) to give 二 room to breathe. In a longer cut: the palanquin's shadow reaches for the girl-shaped hole of light and she turns into a shadow — a shadow-play beat true to the text."
     },
     {
       "ja": "名月をとってくれろと泣く子かな",
@@ -2229,7 +2252,7 @@
     {
       "ja": "嫦娥应悔偷灵药，碧海青天夜夜心",
       "author": "李商隐《嫦娥》",
-      "use": "Chinese-line whisper under the emperor's poem (Chang'e took the elixir; the emperor burned his)."
+      "use": "Chinese-line whisper under the emperor's poem (Chang'e took the elixir; the emperor burned his) — only if that poem is restored."
     },
     {
       "ja": "天の原ふりさけ見れば春日なる三笠の山に出でし月かも",
@@ -2243,13 +2266,17 @@
     }
   ],
   "fact_check": [
-    "『竹取物語』 quotations follow the standard 流布本 school text; kana (たまへ/給へ, 出で/いで, 立ち昇る/たち上る) varies by edition — lock every line to ONE edition (e.g. 新編日本古典文学全集) before release.",
-    "『今昔物語集』巻五第十三: the sentence 「万の人、月を見む毎に此の兎の事思ひ出づべし」 is the tale's closing line (preceded by the cloud-like shadows on the moon being the rabbit's smoke). Its final verb is 思出スベシ in the manuscript tradition and is normalised as 思ひ出づべし or 思ひいだすべし by different editors — choose one edition's reading.",
+    "『竹取物語』 quotations are locked to 新編日本古典文学全集 (流布本 school text); the wording and historical kana of the letter 「脱ぎおく衣を形見と見たまへ。月の出でたらむ夜は、見おこせたまへ」, the closing line 「その煙、いまだ雲の中へたち昇るとぞ、言ひ伝へたる」, 「月の顔見るは、忌むこと」 (said by ある人) and the two spare waka were checked; the displayed ja keeps historical kana, every 'reading' field is in modern kana (現代仮名遣い).",
+    "『今昔物語集』巻五第十三: 「万の人、月を見む毎に、此の兎の事思ひいだすべし」 comes at the end of the tale, right after the explanation that the cloud-like marks on the moon are the smoke of the rabbit's burning; the tale's closing formula follows it, so it is not the literal last sentence (結句). The manuscript reads 思出スベシ: the okurigana ス marks transitive いだす, so it is normalised 思ひいだすべし, not 思ひ出づべし. Text locked to 新日本古典文学大系33『今昔物語集 一』 (or 日本古典文学大系22); 新編日本古典文学全集 contains only 巻11–31.",
     "芭蕉「名月や池をめぐりて夜もすがら」: 貞享三年（1686）八月十五夜、深川芭蕉庵の月見、『孤松』所収.",
-    "蕪村「月天心貧しき町を通りけり」: 明和五年（1768）; 月天心 after 邵雍《清夜吟》「月到天心処、風来水面時」.",
-    "白居易 couplet: from 「八月十五日夜禁中独直対月憶元九」; collected in 『和漢朗詠集』 under 十五夜; recited by Genji in 『源氏物語』須磨.",
-    "富士 naming: the tale itself derives 富士 from the many soldiers (士に富む) who climbed; 不死 is the celebrated homophone. The screenplay never claims the text says 不死.",
-    "Original haiku (all 5-7-5, each with an autumn kigo): 掬ひたる月こぼれけり子の手より (すくひたる/つきこぼれけり/このてより; 月) · 羽織着て祖母のかたちに月を見る (はおりきて/そぼのかたちに/つきをみる; 月) · ひとつ減る団子の山や今日の月 (ひとつへる/だんごのやまや/きょうのつき; 今日の月) · 影ひとつ格子をのぼる良夜かな (かげひとつ/こうしをのぼる/りょうやかな; 良夜). 障子 (winter) deliberately avoided.",
-    "Customs: fifteen 月見団子 stacked 9-4-2 (a common Kantō arrangement; regional variants exist); 衣かつぎ for 芋名月; お月見泥棒 is a regional children's custom; the fox-window chant varies too much by region and is never shown."
+    "蕪村「月天心貧しき町を通りけり」: 明和五年（1768）; 月天心 after 邵雍《清夜吟》「月到天心処、風来水面時」. The Chinese subtitle reads 月到天心 with no gloss and no added adverb.",
+    "白居易 couplet: from 「八月十五日夜禁中独直対月憶元九」; collected in 『和漢朗詠集』 under 十五夜; recited by Genji in 『源氏物語』須磨. The Chinese subtitle carries only the attribution; the 故人 double sense (old friend in Chinese, the departed in modern Japanese) is kept to the treatment and the credits' note.",
+    "富士 naming: the tale itself derives 富士 from the many soldiers (士に富む) who climbed; 不死 is the celebrated wordplay, which works only in Japanese (ふじ / ふし, both ふし in historical kana) — in Mandarin 富士 fùshì and 不死 bùsǐ do not sound alike. The note sits in the credits, never in a subtitle, and the screenplay never claims the text says 不死.",
+    "Original haiku (5-7-5 in on, each with exactly one autumn kigo, no 季重なり): 掬ひたる月こぼれけり子の手より (すくいたる/つきこぼれけり/このてより; 月) · 形見着て祖母のかたちに月を見る (かたみきて/そぼのかたちに/つきをみる; 月 — replaces 羽織着て…, because 羽織 is a winter word, 冬羽織) · 影ひとつ格子をのぼる良夜かな (かげひとつ/こうしをのぼる/りょうやかな; 良夜). Spare: ひとつ減る団子の山や今日の月 (今日の月). 障子 (winter) deliberately avoided. Credited as 創作 (原創 is Chinese usage).",
+    "Customs: fifteen 月見団子 stacked 9-4-2 (a common Kantō arrangement; regional variants exist); 衣かつぎ for 芋名月; お月見泥棒 is a regional children's custom; the fox-window chant varies too much by region and is never shown.",
+    "Costume: a six-year-old in everyday 紺絣 at a Shōwa home tsukimi wears a soft 兵児帯 (usually red or pink 絞り), not an 帯揚げ (which goes with a tied adult obi or a formal 七五三 outfit); a 78-year-old's obijime is subdued (海老茶/臙脂), not bright 朱.",
+    "Myth fidelity: 竹取物語 has no taboo against looking back (that is Izanagi's and Orpheus's); the text says the robe changes the wearer's heart — 「衣着せつる人は、心異になるなり」, 「物思ひなくなりにければ」 — so her look-back is framed as a heart not yet changed, not a broken rule. The old man does not split the bamboo with an axe: 「筒の中光りたり。それを見れば、三寸ばかりなる人、いとうつくしうてゐたり」 — the shadow-play has no axe.",
+    "Bells: in the Edo time-bell system 明け六つ was struck as six strokes after three preliminary 捨て鐘; the film's three strokes (215, 220, 225) are those 捨て鐘 — the hour itself is never heard.",
+    "Pigments: the unprint order is approximate — plant dyes first (紅 safflower and its 萩/鴇 pinks, plant yellows), then the blues, then mineral earths; 朱 vermilion is a stable mineral (丹 red lead darkens rather than fades); carbon never fades. Many ukiyo-e moons (Hiroshige's included) are left as bare paper, though some carry a tint, bokashi edge, mica or 胡粉 — the film's moon follows the bare-paper practice."
   ]
 }

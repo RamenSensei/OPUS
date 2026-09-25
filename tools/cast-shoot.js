@@ -6,6 +6,7 @@
      node tools/cast-shoot.js --sheets 1,2 --t 0,1.5,3
      node tools/cast-shoot.js --focus kaguya --scale 1.2 [--t 0,2]
      node tools/cast-shoot.js --perf               # time every character × pose
+     node tools/cast-shoot.js --pzoom kaguya --v 'grow:0,grow:1~raise:1' --scale 2   # 影絵 puppets
      options: --out DIR (default shots/cast)  --w 1920
 
    Writes shots/cast/<sheet>[_t<t>].png and prints console / page errors.
@@ -44,6 +45,10 @@ const opt = (name, def) => {
   const jobs = [];
   if (opt('perf')) {
     jobs.push({ q: 'perf=1', name: 'perf' });
+  } else if (opt('pzoom')) {
+    const z = opt('pzoom');
+    const extra = ['v', 'scale', 'cy'].filter((k) => opt(k)).map((k) => `${k}=${encodeURIComponent(opt(k))}`).join('&');
+    for (const t of times) jobs.push({ q: `pzoom=${z}&${extra}&t=${t}`, name: `pzoom-${z}${times.length > 1 ? `_t${t}` : ''}` });
   } else if (opt('zoom')) {
     const z = opt('zoom');
     const extra = ['pose', 'scale', 'cx', 'cy'].filter((k) => opt(k)).map((k) => `${k}=${opt(k)}`).join('&');

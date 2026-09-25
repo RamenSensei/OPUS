@@ -14,7 +14,7 @@
         id: "jo-surizome", title_ja: "序　摺り初め", title_zh: "序　初摺", duration: 14,
         shot: "A (being printed)",
         text: [
-          {"t":7,"dur":7,"kind":"title","ja":["月の出でたらむ夜は","十五夜摺"],"seal":"縁","seal_style":"朱文","zh":"月出之夜 · 十五夜摺","position":"upper-right","x":1560,"y":60,"ink":"dark","size":96,"font":"brush"},
+          {"t":7,"dur":9,"kind":"haiku","ja":["月の出でたらむ夜は"],"seal":false,"en":"On Nights When the Moon Comes Out — A Fifteenth-Night Impression","zh":"月出之夜 · 十五夜摺","position":"upper-right","x":1716,"y":74,"ink":"dark","size":36,"font":"brush"},
         ],
       },
       {
@@ -38,16 +38,16 @@
         shot: "C",
         transition: {"type":"cut","dur":0},
         text: [
-          {"t":12,"dur":8,"kind":"haiku","ja":["掬ひたる","月こぼれけり","子の手より"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"舀起的月亮，从孩子的手心洒落了。","position":"upper-left","x":150,"y":50,"ink":"light","size":48},
+          {"t":17,"dur":8.5,"kind":"haiku","ja":["掬ひたる","月こぼれけり","子の手より"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"舀起的月亮，从孩子的手心洒落了。","position":"upper-left","x":150,"y":50,"ink":"light","size":46},
         ],
       },
       {
         id: "tsuki-tenshin", title_ja: "四　月天心", title_zh: "四　月在中天", duration: 28,
         shot: "D, then tilt down to A",
-        transition: {"type":"iris","dur":2,"center":[960,420],"ring":false},
+        transition: {"type":"cut","dur":0},
         text: [
-          {"t":10.5,"dur":8,"kind":"narration","ja":["万の人、月を見む毎に","此の兎の事思ひ出づべし。"],"author":"今昔物語集","seal":"月","seal_style":"朱文","zh":"世上众人，每当望月，都该想起这只兔子。","position":"left","x":150,"y":110,"ink":"light","size":38},
-          {"t":20,"dur":8,"kind":"haiku","ja":["月天心","貧しき町を","通りけり"],"author":"蕪村","seal":"月","seal_style":"朱文","zh":"月到中天——静静走过一条贫寒的小街。（“月天心”化自邵雍“月到天心处”）","position":"upper-right","x":1160,"y":50,"ink":"light","size":46},
+          {"t":10.2,"dur":7.6,"kind":"narration","ja":["万の人、月を見む毎に、","此の兎の事思ひいだすべし。"],"author":"今昔物語集","seal":"月","seal_style":"朱文","zh":"世上众人，每当望月，都该想起这只兔子。","position":"left","x":150,"y":110,"ink":"light","size":38},
+          {"t":20,"dur":8,"kind":"haiku","ja":["月天心","貧しき町を","通りけり"],"author":"蕪村","seal":"月","seal_style":"朱文","zh":"月到天心——走过一条贫寒的小街。","position":"upper-right","x":1160,"y":50,"ink":"light","size":46},
         ],
       },
       {
@@ -55,8 +55,7 @@
         shot: "B, then A′",
         transition: {"type":"kasumi","dur":3,"rows":7,"color":C.gofun},
         text: [
-          {"t":4.5,"dur":8,"kind":"narration","ja":["脱ぎおく衣を形見と見たまへ。","月の出でたらむ夜は、","見おこせたまへ。"],"author":"かぐや姫の文　竹取物語","seal":"月","seal_style":"朱文","zh":"请把我留下的这件衣裳，当作念想。有月亮出来的夜晚，请望向我。","position":"right","x":1660,"y":110,"ink":"light","size":40,"font":"Yuji Syuku (brush)"},
-          {"t":14,"dur":8,"kind":"waka","ja":["今はとて","天の羽衣","着るをりぞ","君をあはれと","思ひいでける"],"author":"かぐや姫　竹取物語","seal":"月","seal_style":"朱文","zh":"此刻，就要披上天之羽衣了——偏在这时，才想起你，满心哀怜。","position":"left","x":70,"y":110,"ink":"dark","size":42,"chirashi":[0,44,88,36,80]},
+          {"t":4.5,"dur":9,"kind":"letter","ja":["脱ぎおく衣を形見と見たまへ。","月の出でたらむ夜は、","見おこせたまへ。"],"author":"かぐや姫の文　竹取物語","seal":"月","seal_style":"朱文","zh":"请把留下的衣裳当作念想。有月亮出来的夜晚，请望向我。","position":"right","x":1660,"y":110,"ink":"light","size":40,"font":"brush"},
         ],
       },
       {
@@ -64,8 +63,7 @@
         shot: "A (後摺), A′ inserts, 月に雁 crop",
         transition: {"type":"cut","dur":0},
         text: [
-          {"t":4,"dur":8,"kind":"haiku","ja":["羽織着て","祖母のかたちに","月を見る"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"披上祖母的羽织——以她的身形，看月。","position":"upper-left","x":540,"y":70,"ink":"dark","size":50},
-          {"t":14,"dur":8,"kind":"waka","ja":["三五夜中新月色","二千里外故人心"],"author":"白居易","seal":"月","seal_style":"朱文","zh":"三五夜中新月色，二千里外故人心。——“故人”，在汉语里是老友，在今日日语里是逝者，此处两义皆取。","position":"left","x":440,"y":120,"ink":"dark","size":44,"chirashi":[0,0]},
+          {"t":13.6,"dur":8,"kind":"kanshi","ja":["三五夜中新月色","二千里外故人心"],"author":"白居易","seal":"月","seal_style":"朱文","zh":"白居易《八月十五日夜禁中独直对月忆元九》","position":"left","x":440,"y":120,"ink":"dark","size":44,"chirashi":[0,0]},
         ],
       },
       {
@@ -73,7 +71,7 @@
         shot: "B (後摺)",
         transition: {"type":"cut","dur":0},
         text: [
-          {"t":7,"dur":8,"kind":"haiku","ja":["ひとつ減る","団子の山や","今日の月"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"团子堆上，少了一个——今夜的月。","position":"left","x":380,"y":300,"ink":"dark","size":46},
+          {"t":7.8,"dur":8,"kind":"haiku","ja":["形見着て","祖母のかたちに","月を見る"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"披着她留下的念想——以祖母的身形，看月。","position":"right","x":1660,"y":120,"ink":"light","size":42},
         ],
       },
       {
@@ -81,9 +79,8 @@
         shot: "E, then the unprinting",
         transition: {"type":"cut","dur":0},
         text: [
-          {"t":0.5,"dur":8,"kind":"waka","ja":["逢ふことも","涙に浮かぶ","わが身には","死なぬ薬も","何にかはせむ"],"author":"帝　竹取物語","seal":"月","seal_style":"朱文","zh":"再也无缘相见，此身只在泪中浮沉——那不死之药，又有何用？","position":"upper-left","x":110,"y":60,"ink":"dark","size":42},
-          {"t":10,"dur":6.5,"kind":"narration","ja":["その煙、いまだ雲の中へ","立ち昇るとぞ、言ひ伝へたる。"],"author":"竹取物語","seal":"月","seal_style":"朱文","zh":"据说，那烟至今仍向云中升腾。（富士，音同“不死”。）","position":"upper-right","x":1600,"y":70,"ink":"dark","size":36},
-          {"t":18,"dur":12,"kind":"haiku","ja":["影ひとつ","格子をのぼる","良夜かな"],"author":"小夜","seal":"小夜","seal_style":"白文","zh":"一道影子，攀上窗格——好一个良宵。","position":"center","x":1180,"y":170,"ink":"dark","size":52},
+          {"t":1.3,"dur":6.7,"kind":"narration","ja":["その煙、いまだ雲の中へ","立ち昇るとぞ、言ひ伝へたる。"],"author":"竹取物語","seal":"月","seal_style":"朱文","zh":"据说，那烟至今仍向云中升腾。","position":"upper-left","x":120,"y":70,"ink":"dark","size":32},
+          {"t":20.8,"dur":10.8,"kind":"haiku","ja":["影ひとつ","格子をのぼる","良夜かな"],"author":"小夜","seal":false,"zh":"一道影子，攀上窗格——好一个良宵。","position":"upper-right","x":1180,"y":170,"ink":"dark","size":52},
         ],
       },
     ],

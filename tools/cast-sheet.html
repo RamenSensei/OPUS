@@ -219,6 +219,33 @@
         label(x0 + cw / 2, y0 + chh - 10, `${n}.${p} ×${sc}`, undefined, 11);
       });
     },
+    9() {
+      // 影絵 catalogue on moon-white paper: every puppet in a few states (multiply, 藍鼠)
+      ctx.fillStyle = C.geppaku; ctx.fillRect(0, 0, W, H);
+      title('sheet 9 · 影絵 puppets · CAST.drawPuppet (multiply 藍鼠) · sticks · negative puppets');
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      const P = (n, x, y, s, o) => { CAST.drawPuppet(ctx, n, x, y, s, Object.assign({ t: T, penumbra: 1 }, o)); };
+      // row 1: kaguya grow morph (negative puppet)
+      [0, 0.25, 0.5, 0.75, 1].forEach((g, i) => { P('kaguya', 110 + i * 150 + g * 40, 330, 1, { grow: g, facing: -1, sticks: false }); label(110 + i * 150 + g * 40, 360, `kaguya grow:${g}`); });
+      P('kaguya-engawa', 1010, 330, 1, { raise: 0, facing: -1, sticks: false }); label(1010, 360, 'kaguya-engawa raise:0');
+      P('kaguya-engawa', 1270, 330, 1, { raise: 1, facing: -1, sticks: false }); label(1270, 360, 'raise:1');
+      P('moon', 1560, 200, 0.9, { stickAngle: 0.5 }); label(1560, 360, 'moon (stick)');
+      P('bamboo', 1800, 360, 0.52, { shine: 1 }); label(1800, 378, 'bamboo shine:1');
+      // row 2: okina walk cycle + cut swing, bamboo split
+      [0, 0.25, 0.5, 0.75].forEach((ph, i) => { P('okina', 90 + i * 110, 600, 1.4, { phase: ph, facing: -1, sticks: false }); label(90 + i * 110, 625, `okina ph:${ph}`); });
+      [0, 0.5, 1].forEach((sw, i) => { P('okina', 560 + i * 130, 600, 1.4, { pose: 'cut', swing: sw, sticks: false }); label(560 + i * 130, 625, `cut swing:${sw}`); });
+      [0.3, 1].forEach((sp, i) => { P('bamboo', 1000 + i * 120, 620, 0.5, { split: sp, sticks: false }); label(1000 + i * 120, 640, `split:${sp}`); });
+      P('palanquin', 1500, 620, 1.2, { facing: -1 }); label(1500, 640, 'palanquin (鳳輦) facing:-1');
+      // row 3: cloud of celestials, たけ's shadow (CAST.grandma silhouette, buffered), cut mode on a dark field
+      P('cloud', 420, 900, 1.2, { penumbra: 6, alpha: 0.7, facing: -1 }); label(420, 1010, 'cloud penumbra:6 alpha:.7');
+      CAST.grandma(ctx, 1000, 1000, 1.5, { pose: 'lift-haori', lift: 1, silhouette: CAST.AINEZU, buffer: true, t: T }); label(1000, 1030, 'grandma lift-haori (silhouette 藍鼠, buffer)');
+      ctx.restore();
+      ctx.fillStyle = C.sumi; ctx.fillRect(1300, 700, 560, 330);
+      CAST.drawPuppet(ctx, 'kaguya', 1430, 990, 1.2, { mode: 'cut', grow: 1, facing: -1, sticks: false });
+      CAST.drawPuppet(ctx, 'moon', 1700, 830, 0.8, { mode: 'cut', stickAngle: -0.3 });
+      label(1580, 1050, "mode:'cut' (destination-out) on sumi");
+    },
     focus() {
       const name = q.get('focus');
       const sc = parseFloat(q.get('scale') || '1');
@@ -242,12 +269,33 @@
         // "pose~key:value~key:value" adds options, e.g. rise~robe:hagoromo
         const [p, ...kv] = p0.split('~');
         const extra = {};
-        for (const s of kv) { const [k, v] = s.split(':'); extra[k] = isNaN(+v) ? v : +v; }
+        // values: numbers, palette names (C.*), 'ainezu' (藍鼠, the shoji-shadow ink), or strings
+        const col = (v) => (v === 'ainezu' ? U.mix(C.ai, C.nezumi, 0.5) : C[v] || v);
+        for (const s of kv) { const [k, v] = s.split(':'); extra[k] = isNaN(+v) ? ((k === 'silhouette' || k === 'ink') && v !== 'true' ? col(v) : v === 'true' ? true : v === 'false' ? false : v) : +v; }
         ctx.save();
         ctx.beginPath(); ctx.rect(i * cw, 0, cw, H); ctx.clip();
         CAST[name](ctx, i * cw + cw / 2 - cx * sc, H / 2 - cy * sc, sc, Object.assign({ pose: p, t: T }, extra));
         ctx.restore();
         label(i * cw + cw / 2, H - 20, `${name}.${p0} ×${sc}`);
+      });
+    },
+    pzoom() {
+      // ?pzoom=name&v=k:v~k:v,k:v&scale=&cy= : puppet variants side by side on moon-white
+      const name = q.get('pzoom');
+      const sc = parseFloat(q.get('scale') || '2');
+      const cy = parseFloat(q.get('cy') || '-100');
+      const vs = (q.get('v') || '').split(',');
+      ctx.fillStyle = C.geppaku; ctx.fillRect(0, 0, W, H);
+      const cw = W / vs.length;
+      vs.forEach((v0, i) => {
+        const o = { t: T, penumbra: 1, sticks: false };
+        for (const s of v0.split('~').filter(Boolean)) { const [k, v] = s.split(':'); o[k] = isNaN(+v) ? (v === 'true' ? true : v === 'false' ? false : v) : +v; }
+        ctx.save();
+        ctx.beginPath(); ctx.rect(i * cw, 0, cw, H); ctx.clip();
+        ctx.globalCompositeOperation = 'multiply';
+        CAST.drawPuppet(ctx, name, i * cw + cw / 2, H / 2 - cy * sc, sc, o);
+        ctx.restore();
+        label(i * cw + cw / 2, H - 20, `${name} ${v0} ×${sc}`);
       });
     },
     perf() {
@@ -286,7 +334,7 @@
     },
   };
 
-  const which = q.has('perf') ? 'perf' : q.has('zoom') ? 'zoom' : q.has('focus') ? 'focus' : (q.get('sheet') || '1');
+  const which = q.has('perf') ? 'perf' : q.has('pzoom') ? 'pzoom' : q.has('zoom') ? 'zoom' : q.has('focus') ? 'focus' : (q.get('sheet') || '1');
   const fn = sheets[which] || sheets[1];
   const t0 = performance.now();
   try { fn(); } catch (e) { console.error(e && e.stack || e); }
