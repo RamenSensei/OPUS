@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Cast model sheet</title>
+<style>
+  html, body { margin: 0; background: #222; }
+  canvas { display: block; width: 100vw; height: 56.25vw; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script src="../js/core/util.js"></script>
+<script src="../js/core/palette.js"></script>
+<script src="../js/core/brush.js"></script>
+<script src="../js/core/cast.js"></script>
+<script>
+/* ==========================================================================
+   Cast model sheets.  ?sheet=1..6  ?t=seconds  ?focus=name&scale=s  ?perf=1
+   1 · every character × pose on washi (mid scale)
+   2 · night & moon: back views, silhouettes, rise, tennyo, moon rabbits
+   3 · small-scale legibility (40–90 px figures) + a crowd
+   4 · Kaguya large
+   5 · the others large
+   6 · motion strips (t series)
+   ========================================================================== */
+(function () {
+  'use strict';
+  const { U, B, C, CAST } = window.TSUKI;
+  const q = new URLSearchParams(location.search);
+  const W = 1920, H = 1080;
+  const cv = document.getElementById('c');
+  const k = (parseInt(q.get('w'), 10) || 1920) / W;
+  cv.width = Math.round(W * k); cv.height = Math.round(H * k);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  const T = parseFloat(q.get('t') || '0');
+
+  const label = (x, y, s, col, size) => {
+    ctx.save();
+    ctx.font = `${size || 13}px ui-monospace, monospace`;
+    ctx.fillStyle = col || 'rgba(28,26,24,0.55)';
+    ctx.textAlign = 'center';
+    ctx.fillText(s, x, y);
+    ctx.restore();
+  };
+  const washi = () => {
+    ctx.fillStyle = C.kinari;
+    ctx.fillRect(0, 0, W, H);
+    const r = U.rng(3);
+    ctx.fillStyle = U.rgba(C.torinoko, 0.35);
+    for (let i = 0; i < 900; i++) ctx.fillRect(r() * W, r() * H, 1 + r() * 18, 0.8);
+  };
+  const night = () => {
+    B.sky(ctx, [[0, C.tetsukon], [0.55, C.koiai], [1, C.kon]]);
+  };
+  const title = (s, dark) => label(W / 2, 30, s, dark ? 'rgba(238,242,234,0.6)' : 'rgba(28,26,24,0.6)', 16);
+
+  /* flow layout: items {name, pose, scale, opts, lab} */
+  function flow(items, x0, y0, x1, gap, dark) {
+    let x = x0, y = y0, rowH = 0;
+    const rows = [];
+    let row = [];
+    for (const it of items) {
+      const bb = CAST.bounds(it.name, it.pose, it.opts);
+      const w = bb[2] * it.scale, h = bb[3] * it.scale;
+      if (x + w > x1 && row.length) {
+        rows.push({ row, rowH });
+        x = x0; y += rowH + gap; rowH = 0; row = [];
+      }
+      row.push({ it, bb, x, y, w, h });
+      x += Math.max(w, 60) + gap;
+      rowH = Math.max(rowH, h);
+    }
+    if (row.length) rows.push({ row, rowH });
+    let yy = y0;
+    for (const R of rows) {
+      for (const c of R.row) {
+        const { it, bb } = c;
+        const ax = c.x - (it.opts && it.opts.facing < 0 ? -(bb[0] + bb[2]) : bb[0]) * it.scale;
+        const ay = yy + R.rowH - (bb[1] + bb[3]) * it.scale;
+        const o = Object.assign({ pose: it.pose, t: T }, it.opts || {});
+        CAST[it.name](ctx, ax, ay, it.scale, o);
+        label(c.x + c.w / 2, yy + R.rowH + 16, it.lab || `${it.name}.${it.pose}`, dark ? 'rgba(238,242,234,0.5)' : undefined, 12);
+      }
+      yy += R.rowH + gap;
+    }
+    return yy;
+  }
+  const allPoses = (scale, extra) => {
+    const out = [];
+    for (const name of Object.keys(CAST.POSES)) {
+      for (const pose of CAST.POSES[name]) out.push({ name, pose, scale, opts: Object.assign({}, extra) });
+    }
+    return out;
+  };
+
+  const sheets = {
+    1() {
+      washi(); title('sheet 1 · every character × pose · scale 0.5');
+      flow(allPoses(0.5), 40, 60, 1880, 30);
+    },
+    2() {
+      night();
+      B.moon(ctx, 1240, 430, 330, { halo: 0.7, maria: 0 });
+      title('sheet 2 · night · back views & silhouettes', true);
+      CAST.kaguya(ctx, 1240, 900, 1.9, { pose: 'back', t: T });
+      if (CAST.POSES.rabbit) {
+        CAST.rabbit(ctx, 1150, 520, 0.5, { pose: 'pound', silhouette: U.rgba(C.kitsune, 1), alpha: 0.35, t: T, phase: (T * 0.8) % 1 });
+      }
+      CAST.kaguya(ctx, 260, 980, 0.6, { pose: 'stand', t: T });
+      CAST.kaguya(ctx, 420, 980, 0.6, { pose: 'back', t: T });
+      CAST.kaguya(ctx, 560, 980, 0.3, { pose: 'back', t: T, silhouette: C.sumi });
+      CAST.kaguya(ctx, 660, 980, 0.3, { pose: 'stand', t: T, alpha: 0.5 });
+      if (CAST.POSES.kaguya.indexOf('rise') >= 0) {
+        CAST.kaguya(ctx, 400, 420, 0.8, { pose: 'rise', t: T, wind: 0.6 });
+        CAST.kaguya(ctx, 680, 360, 0.7, { pose: 'rise', robe: 'hagoromo', t: T, wind: 0.6 });
+      }
+    },
+    3() {
+      washi(); title('sheet 3 · small scales (0.14 · 0.22 · 0.3)');
+      let y = flow(allPoses(0.14), 40, 60, 1880, 16);
+      y = flow(allPoses(0.22), 40, y + 10, 1880, 18);
+      flow(allPoses(0.3), 40, y + 10, 1880, 20);
+    },
+    4() {
+      washi(); title('sheet 4 · Kaguya large');
+      flow(CAST.POSES.kaguya.map((p) => ({ name: 'kaguya', pose: p, scale: 1.25 })), 40, 70, 1880, 40);
+    },
+    5() {
+      washi(); title('sheet 5 · others large');
+      const items = [];
+      for (const n of Object.keys(CAST.POSES)) if (n !== 'kaguya') for (const p of CAST.POSES[n]) items.push({ name: n, pose: p, scale: n === 'rabbit' || n === 'fox' || n === 'deer' ? 1.3 : 0.95 });
+      flow(items, 40, 60, 1880, 30);
+    },
+    6() {
+      washi(); title('sheet 6 · motion strips t = 0 … 5.25 (0.75 s)');
+      const rows = [
+        ['kaguya', 'back', 0.62, { wind: 0.8 }],
+        ['kaguya', 'stand', 0.62, { wind: 0.8 }],
+      ];
+      if (CAST.POSES.kaguya.indexOf('rise') >= 0) rows.push(['kaguya', 'rise', 0.55, { wind: 0.5 }]);
+      if (CAST.POSES.tennyo) rows.push(['tennyo', 'fly', 0.5, { instrument: 'flute' }]);
+      if (CAST.POSES.rabbit) rows.push(['rabbit', 'pound', 0.9, {}]);
+      let y = 60;
+      for (const [n, p, s, extra] of rows) {
+        const bb = CAST.bounds(n, p, extra);
+        const h = bb[3] * s;
+        for (let i = 0; i < 8; i++) {
+          const t = i * 0.75;
+          const cx = 130 + i * 230;
+          const o = Object.assign({ pose: p, t, phase: (t * 0.6) % 1 }, extra);
+          CAST[n](ctx, cx - (bb[0] + bb[2] / 2) * s, y - bb[1] * s, s, o);
+          label(cx, y + h + 14, `${n}.${p} t=${t}`, undefined, 11);
+        }
+        y += h + 34;
+        if (y > 1000) break;
+      }
+    },
+    focus() {
+      const name = q.get('focus');
+      const sc = parseFloat(q.get('scale') || '1');
+      const dark = q.has('dark');
+      dark ? night() : washi();
+      title(`focus · ${name} · scale ${sc} · t=${T}`, dark);
+      const poses = CAST.POSES[name] || [];
+      let y = flow(poses.map((p) => ({ name, pose: p, scale: sc })), 40, 60, 1880, 40, dark);
+      y = flow(poses.map((p) => ({ name, pose: p, scale: sc * 0.4 })), 40, y + 10, 1880, 30, dark);
+      flow(poses.map((p) => ({ name, pose: p, scale: 0.15 })), 40, y + 10, 1880, 24, dark);
+    },
+    zoom() {
+      // ?zoom=name&pose=p&scale=s&cx=&cy= : local point (cx,cy) at canvas centre, several poses side by side
+      const name = q.get('zoom');
+      const sc = parseFloat(q.get('scale') || '4');
+      const cx = parseFloat(q.get('cx') || '0'), cy = parseFloat(q.get('cy') || '-150');
+      const poses = (q.get('pose') || CAST.POSES[name][0]).split(',');
+      q.has('dark') ? night() : washi();
+      const cw = W / poses.length;
+      poses.forEach((p, i) => {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(i * cw, 0, cw, H); ctx.clip();
+        CAST[name](ctx, i * cw + cw / 2 - cx * sc, H / 2 - cy * sc, sc, { pose: p, t: T });
+        ctx.restore();
+        label(i * cw + cw / 2, H - 20, `${name}.${p} ×${sc}`);
+      });
+    },
+    perf() {
+      washi(); title('perf · ms per draw at scale 1 (100 draws, flushed)');
+      const off = document.createElement('canvas');
+      off.width = 1920; off.height = 1080;
+      const o2 = off.getContext('2d');
+      const lines = [];
+      let worst = 0;
+      for (const name of Object.keys(CAST.POSES)) {
+        for (const pose of CAST.POSES[name]) {
+          for (const variant of [{}, { alpha: 0.6 }]) {
+            // warm up
+            for (let i = 0; i < 5; i++) CAST[name](o2, 960, 700, 1, Object.assign({ pose, t: i * 0.1 }, variant));
+            o2.getImageData(0, 0, 1, 1);
+            const t0 = performance.now();
+            for (let i = 0; i < 100; i++) CAST[name](o2, 960, 700, 1, Object.assign({ pose, t: i * 0.05, phase: (i * 0.03) % 1 }, variant));
+            o2.getImageData(0, 0, 1, 1);
+            const ms = (performance.now() - t0) / 100;
+            if (!variant.alpha) worst = Math.max(worst, ms);
+            lines.push(`${(name + '.' + pose).padEnd(22)} ${variant.alpha ? 'alpha 0.6' : 'opaque   '}  ${ms.toFixed(3)} ms`);
+          }
+        }
+      }
+      lines.push(`worst opaque: ${worst.toFixed(3)} ms`);
+      console.log(lines.join('\n'));
+      ctx.font = '14px ui-monospace, monospace';
+      ctx.fillStyle = C.sumi;
+      lines.forEach((l, i) => ctx.fillText(l, 60 + Math.floor(i / 60) * 600, 70 + (i % 60) * 16));
+      window.__info = `worst opaque ${worst.toFixed(3)} ms`;
+    },
+  };
+
+  const which = q.has('perf') ? 'perf' : q.has('zoom') ? 'zoom' : q.has('focus') ? 'focus' : (q.get('sheet') || '1');
+  const fn = sheets[which] || sheets[1];
+  const t0 = performance.now();
+  try { fn(); } catch (e) { console.error(e && e.stack || e); }
+  if (!window.__info) window.__info = `drawn in ${(performance.now() - t0).toFixed(1)} ms`;
+  window.__done = true;
+})();
+</script>
+</body>
+</html>
