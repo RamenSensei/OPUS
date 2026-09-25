@@ -14,9 +14,14 @@
    (たけ's body and arm, far from the paper, lighter, 6–10 px penumbra) then
    'shadow' (puppets held against the paper, sharp). Overlaps never
    compound within a buffer; puppets over her body read darker.
-   Stand-ins drawn here (not in CAST): the hand-shadow that carries Kaguya,
-   the offerings still-life, 小夜's heko-obi bow; the bamboo-cutter puppet
-   is CAST's with its hatchet removed (the tale has no axe).
+   Drawn here (not CAST): the hand-shadows (a fist on the stick: the carry
+   and the paper moon), the offerings still-life (panel 1, bottom-left), the
+   engawa card (eave, 御簾 with its slits, post, 高欄, boards — Kaguya a hole
+   of light before it, her hair parted from her robe by a line of card, her
+   袂 raised before her bowed face), 小夜 in the foreground (a back-lit
+   silhouette with a moon rim; her heko-obi bow below the subtitle band).
+   The bamboo-cutter is CAST's puppet with its hatchet cut away (the tale has
+   no axe); the growth morph is CAST's negative 'kaguya' puppet.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -25,6 +30,7 @@
   const G = SB.GEOM;
   const E = U.ease;
   const AINEZU = SB.INK.AINEZU;
+  const L2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
   /* ------------------------------------------------------------------ */
   /* the beats (absolute film time)                                      */
@@ -32,10 +38,10 @@
   const BAMBOO = { x: 1372, base: 950, s: 1.0 };
   const OKINA = { x0: 1660, x1: 1478, y: 949, s: 1.5 };
   const KAG_CHILD_S = 0.62;
-  const ENGAWA = { x: 474, y: 953, s: 1.1 };           // Kaguya's cut-out engawa, panel 1
-  // the oval card's woman must land exactly on the engawa card's woman
-  const KAG_END_S = 0.92 * ENGAWA.s;                   // puppet scale (woman 190·s px)
-  const KAG_END = [ENGAWA.x + 6 * ENGAWA.s, ENGAWA.y - 12 * ENGAWA.s];
+  const ENGAWA = { x: 542, y: 955, s: 1.0 };           // Kaguya's cut-out engawa card, panel 1 (right of the offerings)
+  // the oval card's woman lands where the engawa card's woman stands (feet on its boards)
+  const KAG_END_S = 1.0;                               // puppet scale (woman 190·s px)
+  const KAG_END = [ENGAWA.x + 8, ENGAWA.y - 16];
   const TAKE = { x: 1552, y: 968, s: 1.95 };            // たけ's body shadow (anchor = knees on the floor)
 
   /** where the oval card (her feet) is, its scale and growth, at T */
@@ -43,7 +49,7 @@
     // 48–50 inside the split node; 50–50.5 lifted out; 50.5–54.5 morph into panel 3; 54.5–56.4 across panel 2
     const inNode = [node[0] - 1, node[1] + 13 * KAG_CHILD_S];
     const lifted = [node[0] - 24, node[1] - 40];
-    const p3 = [1128, 912];
+    const p3 = [1126, 790];
     let pos, s, grow;
     if (T < 50) { pos = inNode; s = KAG_CHILD_S; grow = 0; }
     else if (T < 50.5) { const u = E.inOutSine(U.seg(T, 50, 50.5)); pos = [U.lerp(inNode[0], lifted[0], u), U.lerp(inNode[1], lifted[1], u)]; s = KAG_CHILD_S; grow = 0; }
@@ -56,7 +62,7 @@
       grow = E.inOutSine(u);
     } else {
       const u = E.inOutSine(U.seg(T, 54.5, 56.4));
-      pos = [U.lerp(p3[0], KAG_END[0], u), U.lerp(p3[1], KAG_END[1], u) - Math.sin(Math.PI * u) * 22];
+      pos = [U.lerp(p3[0], KAG_END[0], u), U.lerp(p3[1], KAG_END[1], u) - Math.sin(Math.PI * u) * 60];
       s = KAG_END_S; grow = 1;
     }
     return { pos, s, grow };
@@ -73,28 +79,44 @@
   /* ------------------------------------------------------------------ */
   /* stand-ins                                                           */
   /* ------------------------------------------------------------------ */
-  /** たけ's hand-shadow gripping a stick (grip at 0,0, stick up), forearm and
-   *  hanging sleeve going down-right out of the paper. a = forearm angle. */
-  function handPath(x, y, s, a, open) {
+  /**
+   * たけ's hand-shadow closed round a stick: a fist with four knuckle bumps and
+   * the thumb over them, the wrist, the forearm running down and out of the
+   * paper toward (dir) with its hanging sleeve. (x, y) = where the stick passes
+   * through the fist; the stick continues up (a = its angle from straight up).
+   * s = scale (a hand far from the paper throws a large shadow).
+   */
+  function fistPath(x, y, s, dir, open) {
     const p = new Path2D();
-    const M = new DOMMatrix().translate(x, y).rotate(a * 180 / Math.PI).scale(s, s);
     const q = new Path2D();
-    // fist round the stick (knuckles to the left), thumb over the top
-    q.ellipse(0, 4, 13, 16, 0.25, 0, U.TAU);
-    q.moveTo(-9, -6); q.bezierCurveTo(-6, -16, 6, -16, 9, -9); q.lineTo(4, -4); q.closePath();
-    if (open) { q.moveTo(-12, -2); q.bezierCurveTo(-26, -14, -30, -24, -26, -30); q.lineTo(-20, -24); q.bezierCurveTo(-16, -14, -8, -8, -4, -4); q.closePath(); }
-    // wrist and forearm, down and away
-    q.moveTo(-10, 12); q.lineTo(12, 10); q.lineTo(26, 140); q.lineTo(-4, 146); q.closePath();
-    // the sleeve (袂) hanging from the forearm
-    q.moveTo(-6, 70); q.bezierCurveTo(-40, 76, -56, 104, -52, 150); q.lineTo(-38, 210); q.lineTo(20, 210); q.lineTo(22, 110); q.closePath();
-    p.addPath(q, M);
+    // palm and the curled fingers: the knuckles face the stick's far side
+    q.moveTo(-14, -12);
+    q.bezierCurveTo(-18, -2, -17, 12, -10, 18);
+    q.lineTo(12, 20);
+    q.bezierCurveTo(17, 10, 17, -6, 12, -14);
+    q.closePath();
+    for (let i = 0; i < 4; i++) { const ky = -9 + i * 7.6; q.moveTo(-12, ky + 3.8); q.ellipse(-15.5, ky, 4.4, 3.9, 0, 0, U.TAU); }
+    // the thumb wrapped over the front of the fingers
+    q.moveTo(8, -14); q.bezierCurveTo(-2, -20, -14, -16, -17, -10); q.lineTo(-12, -6); q.bezierCurveTo(-6, -10, 2, -10, 10, -6); q.closePath();
+    if (open) { q.moveTo(-14, -8); q.bezierCurveTo(-30, -18, -34, -30, -30, -36); q.lineTo(-24, -30); q.bezierCurveTo(-20, -20, -10, -12, -6, -8); q.closePath(); }
+    // wrist and forearm, out toward dir, widening; the sleeve (袂) hanging below it
+    const d = [Math.cos(dir), Math.sin(dir)], n = [-d[1], d[0]];
+    const W0 = 13, W1 = 24, L = 170;
+    const A = [2 + n[0] * W0, 14 + n[1] * W0], Bq = [2 - n[0] * W0, 14 - n[1] * W0];
+    const C0 = [2 + d[0] * L - n[0] * W1, 14 + d[1] * L - n[1] * W1], D0 = [2 + d[0] * L + n[0] * W1, 14 + d[1] * L + n[1] * W1];
+    q.moveTo(A[0], A[1]); q.lineTo(D0[0], D0[1]); q.lineTo(C0[0], C0[1]); q.lineTo(Bq[0], Bq[1]); q.closePath();
+    const e = [2 + d[0] * 70, 14 + d[1] * 70];
+    q.moveTo(e[0], e[1]); q.bezierCurveTo(e[0] - 30, e[1] + 10, e[0] - 36, e[1] + 60, e[0] - 22, e[1] + 110);
+    q.lineTo(e[0] + d[0] * 100 + 10, e[1] + 140); q.lineTo(e[0] + d[0] * 90, e[1] + 20); q.closePath();
+    p.addPath(q, new DOMMatrix().translate(x, y).scale(s, s));
     return p;
   }
 
   /** the tsukimi still-life's shadow: 三方 with a stepped pyramid of dango, the jug with a susuki spray */
-  function offeringsPath(T, x, y, s) {
+  function offeringsPath(T, x, y, s, mirror) {
     const p = new Path2D();
-    const add = (q) => p.addPath(q, new DOMMatrix().translate(x, y).scale(s, s));
+    const MX = new DOMMatrix().translate(x, y).scale(mirror ? -s : s, s);
+    const add = (q) => p.addPath(q, MX);
     const q = new Path2D();
     // 三方: tray with a rim, a pedestal with its eye-shaped 繰形 hole of light
     q.rect(-2, -30, 74, 6);
@@ -166,17 +188,16 @@
       for (const i of [9, 13, 16]) { const q2 = pts[i]; st.moveTo(q2[0] + 3, q2[1] + 4); st.arc(q2[0], q2[1] + 4, 3, 0, U.TAU); }
     }
     add(st);
-    return { path: p, hole: h, M: new DOMMatrix().translate(x, y).scale(s, s) };
+    return { path: p, hole: h, M: MX };
   }
 
-  /** 小夜's soft 紅絞り heko-obi bow (anchor = the knot): two drooping loops, two long tails */
+  /** 小夜's soft 紅絞り heko-obi bow (anchor = the knot): two drooping loops, two long tails — muted in the dark */
   function drawBow(c, x, y, s, T) {
     const sw = Math.sin(T * 0.8) * 0.5;
     c.save();
     c.translate(x, y);
     c.scale(s, s);
-    const body = (k) => {
-      // loops: soft, heavy cloth — they sag outward and down
+    const loops = (k) => {
       for (const dir of [-1, 1]) {
         k.beginPath();
         k.moveTo(dir * 3, -3);
@@ -186,30 +207,22 @@
         k.closePath();
         k.fill();
       }
-      // tails, uneven, hanging
-      for (const [dir, L] of [[-1, 40], [1, 33]]) {
-        k.beginPath();
-        k.moveTo(dir * 2, 3);
-        k.bezierCurveTo(dir * 10, 12, dir * 9, L * 0.6, dir * 13 + sw, L);
-        k.lineTo(dir * 4 + sw, L + 2);
-        k.bezierCurveTo(dir * 3, L * 0.6, dir * 0, 12, dir * -2, 4);
-        k.closePath();
-        k.fill();
-      }
-      k.beginPath(); k.ellipse(0, 1, 6, 5.5, 0, 0, U.TAU); k.fill();
     };
-    c.fillStyle = U.mix(C.beni, C.sumi, 0.55);
-    body(c);
-    // shibori: faint resist dots on the loops
-    c.fillStyle = U.rgba(U.mix(C.beni, C.gofun, 0.25), 0.32);
-    const r = U.rng(911);
-    for (let i = 0; i < 40; i++) {
-      const dir = r() < 0.5 ? -1 : 1;
-      c.fillRect(dir * U.lerp(6, 30, r()), U.lerp(-9, 7, r()), 1, 1);
+    c.fillStyle = U.mix(C.beni, C.sumi, 0.72);
+    loops(c);
+    for (const [dir, L] of [[-1, 34], [1, 28]]) {
+      c.beginPath();
+      c.moveTo(dir * 2, 3);
+      c.bezierCurveTo(dir * 10, 12, dir * 9, L * 0.6, dir * 13 + sw, L);
+      c.lineTo(dir * 4 + sw, L + 2);
+      c.bezierCurveTo(dir * 3, L * 0.6, dir * 0, 12, dir * -2, 4);
+      c.closePath();
+      c.fill();
     }
-    // the thin line of moonlight along the loops' upper edges
-    c.strokeStyle = U.rgba(U.mix(C.beni, C.gofun, 0.6), 0.85);
-    c.lineWidth = 1 / s * 1.3;
+    c.beginPath(); c.ellipse(0, 1, 6, 5.5, 0, 0, U.TAU); c.fill();
+    // the thin line of moonlight along the loops' upper edges only
+    c.strokeStyle = U.rgba(U.mix(C.beni, C.gofun, 0.45), 0.7);
+    c.lineWidth = 1.2 / s;
     c.beginPath();
     c.moveTo(-4, -4); c.bezierCurveTo(-12, -14, -28, -13, -32, -4);
     c.moveTo(4, -4); c.bezierCurveTo(12, -14, 28, -13, 32, -4);
@@ -218,114 +231,200 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Kaguya on the cut-out engawa (panel 1): a dark card — eave, 御簾      */
+  /* with its slits of light, post, boards, 高欄 — and she a hole of light */
+  /* ------------------------------------------------------------------ */
+  function engawaCard(L, T, raise) {
+    const X = ENGAWA.x, Y = ENGAWA.y;
+    const r = E.inOutSine(U.clamp(raise));
+    const sw = Math.sin(T * 0.9) * 0.6;
+    L.save();
+    L.fillStyle = AINEZU;
+    // the dark room behind her, from under the blind's border to the boards
+    L.fillRect(X - 72, Y - 206, 146, 196);
+    // the blind's border (御簾の帽額), a thin paper gap above it under the eave
+    L.fillRect(X - 76, Y - 213, 152, 6);
+    // the eave: a thin roof edge overhanging to the left, its tip turned up
+    const ev = new Path2D();
+    ev.moveTo(X - 112, Y - 238); ev.quadraticCurveTo(X - 98, Y - 224, X - 76, Y - 223);
+    ev.lineTo(X + 76, Y - 226); ev.lineTo(X + 76, Y - 217); ev.lineTo(X - 78, Y - 215);
+    ev.quadraticCurveTo(X - 100, Y - 216, X - 116, Y - 234); ev.closePath();
+    L.fill(ev);
+    // the post, and the boards (簀子) with a line of paper between two planks
+    L.fillRect(X - 90, Y - 222, 10, 222);
+    L.fillRect(X - 100, Y - 11, 176, 6);
+    L.fillRect(X - 100, Y - 3, 176, 5);
+    // light: the blind's slits — thin lines of paper across its upper part
+    L.save();
+    L.globalCompositeOperation = 'destination-out';
+    for (let y = Y - 202; y < Y - 118; y += 6.5) L.fillRect(X - 68, y, 138, 1.3);
+    L.restore();
+    // her figure: cut out of the card (feet on the boards at (fx, fy)), facing the glow (+x)
+    const fx = X + 8, fy = Y - 12;
+    const P = (x, y) => [fx + x, fy + y];
+    const bow = U.deg(15) * (0.35 + 0.65 * r);
+    const neck = P(4, -162);
+    const R = (x, y) => { const q = P(x, y), dx = q[0] - neck[0], dy = q[1] - neck[1]; return [neck[0] + dx * Math.cos(bow) - dy * Math.sin(bow), neck[1] + dx * Math.sin(bow) + dy * Math.cos(bow)]; };
+    const poly = (pts) => { const q = new Path2D(); pts.forEach((p, i) => (i ? q.lineTo(p[0], p[1]) : q.moveTo(p[0], p[1]))); q.closePath(); return q; };
+    const smooth = (pts) => {
+      const q = new Path2D(), n = pts.length;
+      q.moveTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2);
+      for (let i = 1; i <= n; i++) { const a = pts[i % n], b = pts[(i + 1) % n]; q.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
+      q.closePath(); return q;
+    };
+    // robe (uchiki over the hakama): narrow shoulders, a gentle flare, the train behind
+    const robe = smooth([P(-10, -158), P(8, -160), P(13, -146), P(14, -110), P(18, -62), P(24, -14), P(27, -2), P(6, 0), P(-22, 0), P(-38, 3), P(-27, -8), P(-19, -48), P(-15, -104), P(-13, -146)]);
+    // hair: over the crown and down her back to the boards, trailing past her train
+    const hair = smooth([R(-3, -191), R(-12, -188), R(-16, -178), P(-16, -160), P(-20, -120), P(-23, -72), P(-28, -28), P(-42, -4), P(-64, 2), P(-48, -6), P(-32, -14), P(-25, -50), P(-19, -100), P(-14, -142), R(-11, -162), R(-7, -178)]);
+    // head: a small profile, bowed (brow, nose, lips, chin — behind the sleeve once it is raised)
+    const head = poly([R(-9, -186), R(-2, -191), R(6, -189), R(11, -184), R(13, -179), R(13.5, -176), R(17, -172), R(13.5, -170), R(14, -167), R(12, -165), R(12.8, -163), R(9, -160), R(3, -158), R(-4, -162), R(-9, -172)]);
+    // the near sleeve (袂): hanging at her side → raised before her bowed face
+    const lerpP = (a, b) => [U.lerp(a[0], b[0], r), U.lerp(a[1], b[1], r)];
+    const sl = [lerpP(P(4, -154), P(16, -185)), lerpP(P(18, -150), P(37, -183 + sw)), lerpP(P(22, -96), P(40, -112 + sw)), lerpP(P(6, -92), P(19, -106))];
+    const sleeve = smooth([sl[0], L2(sl[0], sl[1], 0.5), sl[1], L2(sl[1], sl[2], 0.5), sl[2], L2(sl[2], sl[3], 0.5), sl[3], L2(sl[3], sl[0], 0.5)]);
+    // the forearm that lifts it (hidden by the sleeve when raised; along the robe when down)
+    const arm = poly([P(6, -152), P(13, -152), lerpP(P(18, -112), P(25, -178)), lerpP(P(10, -112), P(18, -181))]);
+    L.save();
+    L.globalCompositeOperation = 'destination-out';
+    for (const q of [robe, hair, head, sleeve, arm]) L.fill(q);
+    L.restore();
+    // lines of card left standing inside her (paper bridges): the hair parted from the robe,
+    // the gap between the raised sleeve and her face, two layered hems (重ね)
+    L.strokeStyle = AINEZU; L.lineCap = 'round'; L.lineJoin = 'round';
+    L.lineWidth = 2.6;
+    L.beginPath(); { const pts = [R(-11, -168), P(-14, -150), P(-17, -110), P(-21, -52), P(-30, -8)]; pts.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); } L.stroke();
+    if (r > 0.25) {
+      L.lineWidth = 3.4 * U.clamp((r - 0.25) / 0.4);
+      L.beginPath(); L.moveTo(sl[0][0] - 1, sl[0][1] + 3); L.lineTo(sl[3][0] - 1, sl[3][1] - 2); L.stroke();
+    }
+    L.lineWidth = 1.6;
+    for (const y of [-7, -14]) { L.beginPath(); L.moveTo(P(4, y)[0], P(4, y)[1]); L.lineTo(P(30, y + 2)[0], P(30, y + 2)[1]); L.stroke(); }
+    // the 高欄 before her: rails, two posts with 擬宝珠, dark across her hem
+    L.fillRect(X - 100, Y - 50, 176, 5);
+    L.fillRect(X - 100, Y - 28, 176, 3);
+    for (const px of [X - 94, X + 70]) {
+      L.fillRect(px - 3.5, Y - 58, 7, 50);
+      L.beginPath(); L.ellipse(px, Y - 62, 5, 6, 0, 0, U.TAU); L.fill();
+      L.beginPath(); L.moveTo(px - 2, Y - 67); L.lineTo(px, Y - 73); L.lineTo(px + 2, Y - 67); L.fill();
+    }
+    L.restore();
+  }
+
+  /* ------------------------------------------------------------------ */
   /* the shadow-play                                                     */
   /* ------------------------------------------------------------------ */
+  /** the paper moon's hand: grip below the disc (the stick short), the forearm off to the lower right */
+  function moonGrip(pm) { return [pm.x + 92, pm.y + 322]; }
+
   function shadows(c, T) {
     // ---------- たけ: body and arm, far from the paper (soft, lighter) ----------
-    const liftMoon = U.seg(T, 59.6, 60.6, E.inOutSine) * 0.62;
     const liftBamboo = U.env(T, 40.9, 41.7, 42.1, 42.9) * 0.34;
-    const lift = Math.max(liftMoon, liftBamboo);
+    const reach = U.seg(T, 59.6, 60.4, E.inOutSine) * 0.22;         // her arm goes out low, off the paper, to the moon
+    const lift = Math.max(liftBamboo, reach);
     const breath = Math.sin(T * 1.3) * 0.6;
-    let takeRet = null;
-    const soft = SB.shadowBuf(c, 'soft');
-    SB.softStamp(soft, (s2) => {
-      takeRet = CAST.grandma(s2, TAKE.x, TAKE.y + breath, TAKE.s, { pose: 'hold-puppet', facing: -1, lift, arms: 'both', stick: 12, silhouette: AINEZU, t: T, look: -0.05 });
-    }, 8, [TAKE.x - 260, TAKE.y - 400, TAKE.x + 150, TAKE.y + 20]);
-    // the hand-shadow that carries Kaguya (50–57), soft
-    if (T >= 49.6 && T < 57.4) {
+    const soft = SB.softLayer(c, 'take', [TAKE.x - 300, TAKE.y - 420, G.panels[3][1], G.bottom], 0.28);
+    CAST.grandma(soft, TAKE.x, TAKE.y + breath, TAKE.s, { pose: 'hold-puppet', facing: -1, lift, arms: 'both', stick: 12, silhouette: AINEZU, t: T, look: -0.05 });
+    // the hand that carries Kaguya (49.6–57.2): a fist on her card's stick, the forearm from the lower right
+    let carryGrip = null;
+    if (T >= 49.6 && T < 57.3) {
       const node = bambooNode(T);
       const k = kaguyaCarry(T, node);
-      const up = U.seg(T, 49.6, 50.2, E.outCubic) * (1 - U.seg(T, 56.6, 57.4, E.inCubic));
-      const grip = [k.pos[0] + 10 * k.s, k.pos[1] + 50 + (1 - up) * 160];
-      const open = T > 56.5;
-      SB.softStamp(soft, (s2) => { s2.fill(handPath(grip[0], grip[1], 1.05, -0.42, open)); }, 6, [grip[0] - 90, grip[1] - 60, grip[0] + 160, grip[1] + 260]);
+      const kp = CAST.puppet('kaguya', null, k.pos[0], k.pos[1], k.s, { card: 'oval', grow: k.grow, t: T, stickAngle: 0.5, stickLen: 70 });
+      const up = U.seg(T, 49.6, 50.2, E.outCubic) * (1 - U.seg(T, 56.5, 57.3, E.inCubic));
+      const g = kp.ends && kp.ends[0] ? kp.ends[0] : [k.pos[0] + 20, k.pos[1] + 60];
+      carryGrip = [g[0], g[1] + (1 - up) * 220];
+      const hl = SB.softLayer(c, 'hand', [carryGrip[0] - 70, carryGrip[1] - 60, carryGrip[0] + 280, Math.min(G.bottom + 40, carryGrip[1] + 330)], 0.34);
+      hl.fill(fistPath(carryGrip[0], carryGrip[1], 1.15, 1.05, T > 56.6));
     }
-    c.save();
-    SB.paperClip(c);
-    SB.shadowComposite(c, T, 'soft', { alpha: 0.6 });
-    c.restore();
+    // the hand that holds up the paper moon (60–)
+    const pm = paperMoon(T);
+    let moonHand = null;
+    if (pm.on) moonHand = moonGrip(pm);
+    // one soft layer for both hands and たけ: they never compound
+    const pushFade = 1 - U.seg(T, 64.1, 65.3, E.inOutSine);
+    if (moonHand && pushFade > 0.01) {
+      const hl2 = SB.softLayer(c, 'mhand', [moonHand[0] - 70, moonHand[1] - 60, Math.min(G.panels[3][1], moonHand[0] + 300), G.bottom + 40], 0.34);
+      hl2.fill(fistPath(moonHand[0], moonHand[1], 1.3, 1.12, false));
+      SB.softPrint(c, T, 'mhand', { alpha: 0.6 * pushFade });
+    }
+    SB.softPrint(c, T, 'take', { alpha: 0.6 });
+    if (carryGrip) SB.softPrint(c, T, 'hand', { alpha: 0.6 });
 
-    // ---------- puppets held against the paper (sharp) ----------
-    const sh = SB.shadowBuf(c, 'shadow');
-    // the offerings still-life, bottom-left of panel 1
+    // ---------- the offerings' shadow: the real still-life on the engawa, panel 1 bottom-left ----------
     {
-      const o = offeringsPath(T, 652, 958, 0.86);
-      sh.save();
-      SB.softFill(sh, o.path, 1.6);
-      // the pedestal's eye-shaped hole lets the light through
-      sh.globalCompositeOperation = 'destination-out';
-      sh.setTransform(sh.getTransform().multiply(o.M));
-      sh.fill(o.hole);
-      sh.restore();
+      const o = offeringsPath(T, 404, 958, 0.74, true);
+      PRINT.with(c, 'P4', T, (k) => {
+        k.save();
+        SB.paperClip(k, [[G.panels[0][0], G.panels[0][1]]]);
+        const clipPath = new Path2D(); clipPath.rect(0, 0, 1920, 1080); clipPath.addPath(o.hole, o.M);
+        k.clip(clipPath, 'evenodd');
+        k.globalCompositeOperation = 'multiply';
+        k.fillStyle = AINEZU;
+        k.fill(o.path);
+        k.restore();
+      });
     }
+    // ---------- puppets held against the paper (sharp): one union layer ----------
+    const S = SB.sharpLayer(c, 'puppets', [G.panels[0][0], G.top, G.panels[3][1], G.bottom]);
     // the bamboo grove (41: lifted into panel 4)
     const bRise = E.outBack(U.seg(T, 41.0, 42.1));
     if (T >= 40.95) {
       const base = U.lerp(1540, BAMBOO.base, U.clamp(bRise, 0, 1.08));
       const shine = U.seg(T, 46.0, 46.5, E.outCubic);
       const split = U.seg(T, 48.0, 50.0, E.inOutSine);
-      const pb = CAST.puppet('bamboo', sh, BAMBOO.x, base, BAMBOO.s, { t: T, wind: 0.3, shine, split, stickAngle: 0.04, stickLen: 180 });
-      SB.softFill(sh, pb.path, 1, pb.rule);
-      if (pb.sticks) sh.fill(pb.sticks);
+      const pb = CAST.puppet('bamboo', null, BAMBOO.x, base, BAMBOO.s, { t: T, wind: 0.3, shine, split, stickAngle: 0.04, stickLen: 180 });
+      S.fill(pb.path, pb.rule);
+      if (pb.sticks) S.fill(pb.sticks);
     }
-    // the bamboo-cutter (43: walks in along the bottom rail; no axe)
+    // the bamboo-cutter (43: walks in along the bottom rail; no axe — the tale has none)
     if (T >= 42.9) {
       const u = U.seg(T, 43.0, 45.8);
       const x = U.lerp(OKINA.x0, OKINA.x1, E.outSine(u));
       const walking = u < 1;
       const phase = walking ? (T - 43) * 0.9 : 2.52 + U.seg(T, 45.8, 46.3) * 0.2;
       const bow = U.seg(T, 48.2, 49.4, E.inOutSine);   // he bends to the shining culm
-      const ok = CAST.puppet('okina', sh, x, OKINA.y + bow * 2, OKINA.s, { pose: 'walk', phase, facing: -1, t: T, stickAngle: 0.1, stickLen: 70 });
-      sh.save();
-      if (bow > 0) { sh.translate(x, OKINA.y); sh.rotate(-bow * 0.12); sh.translate(-x, -OKINA.y); }
-      // stamp him alone, then cut away the hatchet (the tale has none)
-      SB.softStamp(sh, (s2) => {
-        s2.fill(ok.path, ok.rule);
-        if (ok.sticks) s2.fill(ok.sticks);
-        s2.save();
-        s2.globalCompositeOperation = 'destination-out';
-        s2.lineCap = 'round';
-        s2.lineWidth = 6.5;
-        s2.beginPath(); s2.moveTo(ok.hand[0] - 2, ok.hand[1] + 4); s2.lineTo(ok.blade[0], ok.blade[1]); s2.stroke();
-        s2.beginPath(); s2.arc(ok.blade[0], ok.blade[1] + 1, 6.5, 0, U.TAU); s2.fill();
-        s2.restore();
-      }, 0.8, [x - 50, OKINA.y - 80, x + 50, OKINA.y + 90]);
-      sh.restore();
+      const ok = CAST.puppet('okina', null, x, OKINA.y + bow * 2, OKINA.s, { pose: 'walk', phase, facing: -1, t: T, stickAngle: 0.1, stickLen: 70 });
+      const O = SB.sharpLayer(c, 'okina', [x - 200, OKINA.y - 260, x + 200, G.bottom]);
+      O.save();
+      if (bow > 0) { O.translate(x, OKINA.y); O.rotate(-bow * 0.12); O.translate(-x, -OKINA.y); }
+      O.fill(ok.path, ok.rule);
+      if (ok.sticks) O.fill(ok.sticks);
+      // cut the hatchet away (haft and blade), then close his hand round nothing
+      const hx = ok.hand[0], hy = ok.hand[1], bx = ok.blade[0], by = ok.blade[1];
+      const d = Math.hypot(bx - hx, by - hy) || 1, px = -(by - hy) / d * 3.6, py = (bx - hx) / d * 3.6;
+      O.globalCompositeOperation = 'destination-out';
+      O.beginPath(); O.moveTo(hx + px, hy + py); O.lineTo(bx + px, by + py); O.lineTo(bx - px, by - py); O.lineTo(hx - px, hy - py); O.closePath(); O.fill();
+      O.beginPath(); O.arc(bx, by + 1, 8, 0, U.TAU); O.fill();
+      O.globalCompositeOperation = 'source-over';
+      O.beginPath(); O.ellipse(hx, hy, 5.5, 5, 0, 0, U.TAU); O.fill();
+      O.restore();
+      const RO = O.canvas.__region;
+      S.drawImage(O.canvas, 0, 0, RO.w, RO.h, RO.x0, RO.y0, RO.w / RO.s, RO.h / RO.s);
     }
+    // the paper moon (a disc cut from card) and its stick: short, from the disc's lower rim into the fist
+    if (pm.on) {
+      S.beginPath(); S.arc(pm.x, pm.y, pm.r, 0, U.TAU); S.fill();
+      const g = L2([pm.x + 40, pm.y + pm.r - 6], moonHand, pushFade);
+      const r0 = [pm.x + 40, pm.y + pm.r - 6];
+      const dx = g[0] - r0[0], dy = g[1] - r0[1], dl = Math.hypot(dx, dy) || 1, nx = -dy / dl * 1.9, ny = dx / dl * 1.9;
+      S.beginPath(); S.moveTo(r0[0] + nx, r0[1] + ny); S.lineTo(g[0] + nx * 1.2, g[1] + ny * 1.2); S.lineTo(g[0] - nx * 1.2, g[1] - ny * 1.2); S.lineTo(r0[0] - nx, r0[1] - ny); S.closePath(); S.fill();
+    }
+    SB.softPrint(c, T, 'puppets', { mode: 'multiply' });
     // Kaguya: the oval card (48–57), then the cut-out engawa (56.4–)
     const swap = U.seg(T, 56.4, 57.0, E.inOutSine);
     if (T >= 48.0 && swap < 1) {
       const node = bambooNode(T);
       const k = kaguyaCarry(T, node);
       const reveal = U.seg(T, 48.2, 49.6, E.inOutSine);
-      const kp = CAST.puppet('kaguya', sh, k.pos[0], k.pos[1], k.s, { card: 'oval', grow: k.grow, t: T, stickAngle: -0.42, stickLen: 120 * k.s + 40 });
-      // pulled from the paper at the swap: softer, fainter
-      SB.softStamp(sh, (s2) => { s2.fill(kp.path, kp.rule); if (kp.sticks && T >= 49.8) s2.fill(kp.sticks); }, 1 + swap * 9, [kp.bbox[0] - 10, kp.bbox[1] - 10, kp.bbox[2] + 10, kp.bbox[3] + 10], reveal * (1 - swap));
+      const kp = CAST.puppet('kaguya', null, k.pos[0], k.pos[1], k.s, { card: 'oval', grow: k.grow, t: T, stickAngle: 0.5, stickLen: 70 });
+      SB.sharpFill(c, T, [[kp.path, kp.rule], [T >= 49.8 ? kp.sticks : null, 'nonzero']], { alpha: reveal * (1 - swap) });
     }
     if (swap > 0) {
-      const raise = U.seg(T, 57.0, 58.5, E.inOutSine);
-      const ke = CAST.puppet('kaguya-engawa', sh, ENGAWA.x, ENGAWA.y, ENGAWA.s, { raise, t: T, stickAngle: 0.05, stickLen: 70 });
-      SB.softStamp(sh, (s2) => { s2.fill(ke.path, ke.rule); if (ke.sticks) s2.fill(ke.sticks); }, 1 + (1 - swap) * 8, [ke.bbox[0] - 12, ke.bbox[1] - 12, ke.bbox[2] + 12, ke.bbox[3] + 12], swap);
+      const raise = U.seg(T, 57.0, 58.5);
+      const K2 = SB.sharpLayer(c, 'engawa', [ENGAWA.x - 140, ENGAWA.y - 250, ENGAWA.x + 120, G.bottom]);
+      engawaCard(K2, T, raise);
+      SB.softPrint(c, T, 'engawa', { mode: 'multiply', alpha: swap });
     }
-    // the paper moon on its stick (60–)
-    const pm = paperMoon(T);
-    if (pm.on) {
-      const hand = takeRet && takeRet.hand ? takeRet.hand : [TAKE.x - 110, TAKE.y - 160];
-      const moonPath = new Path2D();
-      moonPath.arc(pm.x, pm.y, pm.r, 0, U.TAU);
-      SB.softFill(sh, moonPath, 2);
-      // the stick from the disc's rim toward her raised hand
-      const a = Math.atan2(hand[1] - pm.y, hand[0] - pm.x);
-      const g0 = [pm.x + Math.cos(a) * (pm.r - 6), pm.y + Math.sin(a) * (pm.r - 6)];
-      sh.save();
-      sh.lineCap = 'round';
-      sh.lineWidth = 3.4;
-      sh.beginPath(); sh.moveTo(g0[0], g0[1]); sh.lineTo(hand[0], hand[1]); sh.stroke();
-      sh.restore();
-    }
-    c.save();
-    SB.paperClip(c);
-    SB.shadowComposite(c, T, 'shadow', { alpha: 1 });
     // the paper moon: a flat black disc (藍鼠 deepening to 墨), its rim the only softness
     if (pm.on) {
       PRINT.with(c, 'K', T, (k) => {
@@ -336,26 +435,34 @@
         g.addColorStop(0.82, U.rgba(C.sumi, 0.74 * d));
         g.addColorStop(1, U.rgba(C.sumi, 0.34 * d));
         k.fillStyle = g;
+        k.save();
+        SB.paperClip(k);
         k.beginPath(); k.arc(pm.x, pm.y, pm.r - 0.5, 0, U.TAU); k.fill();
+        k.restore();
       });
     }
-    c.restore();
-    // the shining culm's slit: a 胡粉 point with kira (46–48.6, until the culm opens)
-    const spark = U.seg(T, 46.0, 46.4, E.outCubic) * (1 - U.seg(T, 48.2, 48.9));
+    // the shining culm's slit: one 胡粉 point of light, and a few mica specks (46 – 48.3)
+    const spark = U.seg(T, 46.0, 46.4, E.outCubic) * (1 - U.seg(T, 47.9, 48.3));
     if (spark > 0.001) {
       const n = bambooNode(T);
+      PRINT.with(c, 'P7', T, (k) => {
+        k.globalCompositeOperation = 'lighter';
+        const g = k.createRadialGradient(n[0], n[1], 0, n[0], n[1], 7);
+        g.addColorStop(0, U.rgba(C.gofun, 0.95 * spark));
+        g.addColorStop(1, U.rgba(C.gofun, 0));
+        k.fillStyle = g;
+        k.save(); k.translate(n[0], n[1]); k.scale(0.55, 1.4); k.translate(-n[0], -n[1]);
+        k.beginPath(); k.arc(n[0], n[1], 7, 0, U.TAU); k.fill();
+        k.restore();
+      });
       PRINT.with(c, 'P8', T, (k) => {
         k.globalCompositeOperation = 'lighter';
-        const tw = 0.6 + 0.4 * Math.sin(T * 7.3) * Math.sin(T * 3.1 + 1);
-        const L = 9 + 5 * tw;
-        k.strokeStyle = U.rgba(C.gofun, 0.8 * spark);
-        k.lineWidth = 1.2;
-        k.beginPath();
-        k.moveTo(n[0] - L, n[1]); k.lineTo(n[0] + L, n[1]);
-        k.moveTo(n[0], n[1] - L * 1.3); k.lineTo(n[0], n[1] + L * 1.3);
-        k.stroke();
-        k.fillStyle = U.rgba(C.gofun, 0.95 * spark);
-        k.beginPath(); k.arc(n[0], n[1], 2.2, 0, U.TAU); k.fill();
+        for (let i = 0; i < 3; i++) {
+          const a = 0.5 + 0.5 * Math.sin(T * (4.1 + i * 1.3) + i * 2);
+          const ox = [-7, 6, -2][i], oy = [-12, -5, 13][i];
+          k.fillStyle = U.rgba(C.gofun, 0.7 * a * spark);
+          k.beginPath(); k.arc(n[0] + ox, n[1] + oy, 1.1, 0, U.TAU); k.fill();
+        }
       });
     }
   }
@@ -390,25 +497,66 @@
   /* 小夜 in the foreground                                              */
   /* ------------------------------------------------------------------ */
   function sayo(c, T) {
-    const up = U.seg(T, 58.5, 59.1, E.inOutSine) * (1 - U.seg(T, 60.0, 60.8, E.inOutSine));
-    const look = up * 0.85;
-    const x = 962, y = 1122, s = 2.45;
-    // a thin rim of moonlight where her head and shoulders meet the paper's glow
-    PRINT.with(c, 'P7', T, (k) => CAST.child(k, x, y - 2.4, s, { pose: 'kneel-back', look, silhouette: U.rgba(C.geppaku, 0.5), t: T }));
-    // the figure in its own colours, then sunk into the dark: backlit, only the 紺 and the red hinted
-    const b = SB.shadowBuf(c, 'sayo');
-    CAST.child(b, x, y, s, { pose: 'kneel-back', look, t: T, outline: 0.9 });
-    b.save();
-    b.globalCompositeOperation = 'source-atop';
-    b.fillStyle = U.rgba(C.sumi, 0.88);
-    b.fillRect(x - 200, y - 330, 400, 340);
-    b.restore();
-    const by = y - 40 * s;
-    SB.shadowComposite(c, T, 'sayo', { tint: false, mode: 'source-over', plate: 'K' });
-    PRINT.with(c, 'P2', T, (k) => drawBow(k, x, by + 2, 1.05, T));
+    // 58.5 she tips her head back toward the round window; 60 she lowers it (the paper moon rises)
+    const up = U.seg(T, 58.5, 59.1, E.inOutSine) * (1 - U.seg(T, 60.0, 60.7, E.inOutSine));
+    const down = U.seg(T, 60.0, 60.8, E.inOutSine);
+    const X = 962, br = Math.sin(T * 1.2) * 0.6;
+    const hy = 934 + 8 * up + 5 * down + br * 0.3;               // head centre
+    const sy = 1 - 0.1 * up;                                     // tipped back: the dome foreshortens
+    const hemY = 960 + 4 * up - 3 * down;
+    const flare = 3 * up;
+    // the okappa from behind: a dome, the hem cut straight but not quite (a little ragged)
+    const head = new Path2D();
+    head.moveTo(X - 27 - flare, hemY);
+    head.bezierCurveTo(X - 33 - flare, hy - 6 * sy, X - 29, hy - 27 * sy, X, hy - 27 * sy);
+    head.bezierCurveTo(X + 29, hy - 27 * sy, X + 33 + flare, hy - 6 * sy, X + 27 + flare, hemY);
+    const teeth = 10;
+    for (let i = teeth; i >= 0; i--) {
+      const x = X - 27 - flare + ((54 + 2 * flare) * i) / teeth;
+      head.lineTo(x, hemY + (i % 2 ? 1.6 : -0.4) + Math.sin(i * 2.7) * 0.8);
+    }
+    head.closePath();
+    // shoulders and the kneeling back (no neck: the bob sits on the collar); sleeves at the sides
+    const body = new Path2D();
+    body.moveTo(X - 15, hemY - 4);
+    body.lineTo(X - 17, hemY + 3);
+    body.bezierCurveTo(X - 36, hemY + 5 + br, X - 50, hemY + 12, X - 56, 1002);
+    body.bezierCurveTo(X - 62, 1024, X - 64, 1050, X - 76, 1090);
+    body.lineTo(X + 76, 1090);
+    body.bezierCurveTo(X + 64, 1050, X + 62, 1024, X + 56, 1002);
+    body.bezierCurveTo(X + 50, hemY + 12, X + 36, hemY + 5 + br, X + 17, hemY + 3);
+    body.lineTo(X + 15, hemY - 4);
+    body.closePath();
+    // the figure: a near-pure 墨 silhouette against the lit paper …
+    PRINT.with(c, 'K', T, (k) => {
+      k.fillStyle = U.mix(C.sumi, C.kon, 0.12);
+      k.fill(body); k.fill(head);
+    });
+    // … with a thin rim of moonlight just inside its upper edges (head and shoulders)
+    PRINT.with(c, 'P7', T, (k) => {
+      k.save();
+      k.strokeStyle = U.rgba(C.geppaku, 0.55);
+      k.lineWidth = 3;
+      k.save(); k.clip(head);
+      k.beginPath();
+      k.moveTo(X - 31 - flare, hy - 6 * sy);
+      k.bezierCurveTo(X - 29, hy - 27 * sy, X - 14, hy - 27 * sy, X, hy - 27 * sy);
+      k.bezierCurveTo(X + 14, hy - 27 * sy, X + 29, hy - 27 * sy, X + 31 + flare, hy - 6 * sy);
+      k.stroke();
+      k.restore();
+      k.clip(body);
+      k.beginPath();
+      k.moveTo(X - 18, hemY + 3); k.bezierCurveTo(X - 36, hemY + 7, X - 50, 984, X - 56, 1004);
+      k.moveTo(X + 18, hemY + 3); k.bezierCurveTo(X + 36, hemY + 7, X + 50, 984, X + 56, 1004);
+      k.stroke();
+      k.restore();
+    });
+    // the heko-obi bow at the small of her back, below the subtitle band
+    PRINT.with(c, 'P2', T, (k) => drawBow(k, X, 1054, 0.95, T));
   }
 
   TSUKI.scene('kage-e-taketori', {
+    init(S) { TSUKI.SHOTS.warmFlat('B', 50, S.k || 1); },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
       ctx.imageSmoothingQuality = 'low';
@@ -426,9 +574,8 @@
       const ecl = E.inOutSine(U.seg(T, 61.0, 63.2));
       SB.draw(ctx, T, {
         between: {
-          room: (c) => { SB.tokonomaShade(c, T, 0.7 + 0.2 * ecl); SB.moonInWindow(c, T); },
-          paper: (c) => { SB.light(c, T, { eclipse: ecl }); nodeGlow(c, T); shadows(c, T); },
-          floor: (c) => sayo(c, T),
+          base: (c) => { SB.moonInWindow(c, T); SB.light(c, T, { eclipse: ecl }); nodeGlow(c, T); shadows(c, T); },
+          ink: (c) => { SB.tokonomaShade(c, T, 0.7 + 0.2 * ecl); sayo(c, T); },
         },
       });
     },

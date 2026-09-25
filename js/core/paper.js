@@ -15,6 +15,7 @@
 
   /** Build textures at logical size (default 1920×1080). ~60–120ms once. */
   P.build = (W = 1920, H = 1080) => {
+    fitW = fitH = 0;
     // work at half resolution for the noise, upscale smoothly: washi mottling
     // is low-frequency, and fibres are drawn as vectors at full resolution.
     const w = Math.ceil(W / 2), h = Math.ceil(H / 2);
@@ -84,19 +85,38 @@
     }
   };
 
+  // Copies of the textures resampled once to the stage's backing size, so
+  // each frame composites them 1:1 (no per-frame resampling).
+  let fitW = 0, fitH = 0, grainFit = null, lightFit = null;
+  P.fit = (bw, bh) => {
+    if (!grain) P.build();
+    if (bw === fitW && bh === fitH && grainFit) return;
+    fitW = bw; fitH = bh;
+    const scaled = (src) => {
+      const c = B.canvas(bw, bh), x = c.getContext('2d');
+      x.imageSmoothingQuality = 'high';
+      x.drawImage(src, 0, 0, bw, bh);
+      return c;
+    };
+    grainFit = scaled(grain);
+    lightFit = scaled(light);
+  };
+
   /**
-   * Apply the paper finish to a context already scaled to logical units.
+   * Apply the paper finish over the whole backing store of ctx.
    * strength 0..1 (engine default 1).
    */
-  P.apply = (ctx, strength = 1, W = 1920, H = 1080) => {
-    if (!grain) P.build(W, H);
+  P.apply = (ctx, strength = 1) => {
+    const cv = ctx.canvas;
+    P.fit(cv.width, cv.height);
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = 'multiply';
     ctx.globalAlpha = 0.9 * strength;
-    ctx.drawImage(grain, 0, 0, W, H);
+    ctx.drawImage(grainFit, 0, 0);
     ctx.globalCompositeOperation = 'screen';
     ctx.globalAlpha = 0.8 * strength;
-    ctx.drawImage(light, 0, 0, W, H);
+    ctx.drawImage(lightFit, 0, 0);
     ctx.restore();
   };
 

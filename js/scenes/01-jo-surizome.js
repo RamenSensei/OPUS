@@ -22,7 +22,7 @@
   /* the title panels: 短冊 (x 1680–1790, y 60–470), 色紙 (x 1560–1660,  */
   /* y 60–160) with 十五夜摺, and the 縁 seal (朱文) at the tanzaku's foot  */
   /* ------------------------------------------------------------------ */
-  const PANEL = { x0: 1540, y0: 40, x1: 1810, y1: 490 };
+  const PANEL = { x0: 1540, y0: 40, x1: 1810, y1: 496 };
   const SEAL_TEXT = '縁';
   const SHIKISHI_TEXT = ['十五', '夜摺'];     // right column, left column
   let panelCv = null, panelK = 0, panelFontsOk = false;
@@ -34,7 +34,7 @@
   function paintPanels(c) {
     const r = U.rng(1414);
     // 短冊: 生成 ground, a 1.5 px 紅 border, faint 山吹 砂子
-    const tz = { x: 1680, y: 60, w: 110, h: 410 };
+    const tz = { x: 1680, y: 60, w: 110, h: 422 };
     c.fillStyle = C.kinari;
     c.fillRect(tz.x, tz.y, tz.w, tz.h);
     // the faintest 打曇 of age at head and foot (paper, not ink)
@@ -66,16 +66,19 @@
     c.strokeStyle = U.rgba(C.sumi, 0.25);
     c.lineWidth = 0.8;
     c.strokeRect(tz.x + 0.4, tz.y + 0.4, tz.w - 0.8, tz.h - 0.8);
-    // 縁 — 朱文: 朱 characters on the paper ground, with a 2 px inset 朱 outline
-    const sx = 1721, sy = 434, ss = 28;
+    // 縁 — 朱文: 朱 characters on the paper ground, with a 2 px inset 朱 outline;
+    // 24 px, clear of the title column's last glyph (which ends ≈ y 443)
+    const sx = 1723, sy = 448, ss = 24;
     c.strokeStyle = C.shu;
-    c.lineWidth = 2;
+    c.lineWidth = 1.8;
     c.strokeRect(sx + 1, sy + 1, ss - 2, ss - 2);
     c.fillStyle = C.shu;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    c.font = `${ss * 0.76}px "Yuji Syuku", "Shippori Mincho B1", serif`;
+    c.font = `${ss * 0.74}px "Yuji Syuku", "Shippori Mincho B1", serif`;
     c.fillText(SEAL_TEXT, sx + ss / 2, sy + ss / 2 + 1);
+    // the seal's ink sits unevenly: a few pores where the paste did not take
+    for (let i = 0; i < 26; i++) { c.fillStyle = U.rgba(C.kinari, U.lerp(0.3, 0.8, r())); c.fillRect(sx + 1 + r() * (ss - 2), sy + 1 + r() * (ss - 2), U.lerp(0.5, 1.2, r()), U.lerp(0.5, 1.2, r())); }
     // 色紙 with 十五夜摺 as a 2 × 2 block, centred (1610,110)
     const sk = { x: 1560, y: 60, w: 100, h: 100 };
     c.fillStyle = C.kinari;
@@ -138,9 +141,11 @@
     const edge = [];
     const M = 40;
     const rag = (u, sd) => (U.noise1(u * 0.045, sd) - 0.5) * 10 + (U.noise1(u * 0.4, sd + 9) - 0.5) * 3.2;
+    // the bottom-right corner is trimmed square: the sheet is laid into the 鉤見当 there
+    const cut = (d) => 1 - U.smoothstep(96, 150, d);
     for (let x = M; x < W - M; x += 4) edge.push([x, M + rag(x, 3)]);
-    for (let y = M; y < H - M; y += 4) edge.push([W - M + rag(y, 5), y]);
-    for (let x = W - M; x > M; x -= 4) edge.push([x, H - M + rag(x, 7)]);
+    for (let y = M; y < H - M; y += 4) edge.push([W - M + rag(y, 5) * (1 - cut(H - M - y)), y]);
+    for (let x = W - M; x > M; x -= 4) edge.push([x, H - M + rag(x, 7) * (1 - cut(W - M - x))]);
     for (let y = H - M; y > M; y -= 4) edge.push([M + rag(y, 11), y]);
     const sheet = new Path2D();
     sheet.moveTo(edge[0][0], edge[0][1]);
@@ -196,46 +201,263 @@
     return cv;
   }
 
+  /** the 鉤見当: a karazuri L embossed 3 px inside the sheet's trimmed corner; a raking light runs along it 0.8–2.0 */
+  const KENTO = { x: 1877, y: 1037, L: 46 };
   function kento(ctx, T, a) {
     if (a <= 0.002) return;
-    const x = 1840, y = 1040, L = 46;
-    // raking light across the notch at 0.8 s: 0.2 → 0.6 → 0.35 over 1.2 s
+    const { x, y, L } = KENTO;
+    // the notch catches the light: 0.2 → 0.6 → 0.35 over 1.2 s
     const hi = T < 0.8 ? 0.2 : T < 1.4 ? U.lerp(0.2, 0.6, U.ease.inOutSine(U.seg(T, 0.8, 1.4))) : T < 2.0 ? U.lerp(0.6, 0.35, U.ease.inOutSine(U.seg(T, 1.4, 2.0))) : 0.35;
     ctx.save();
     ctx.globalAlpha *= a;
-    ctx.lineCap = 'square';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = U.rgba(C.gofun, Math.min(1, hi * 1.4));
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+    // the embossed ridge: 墨 shadow below-right, 胡粉 highlight above-left
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = U.rgba(C.sumi, 0.15);
     ctx.beginPath();
-    ctx.moveTo(x - L - 1, y - 1); ctx.lineTo(x - 1, y - 1); ctx.lineTo(x - 1, y - L - 1);
+    ctx.moveTo(x - L + 1.2, y + 1.2); ctx.lineTo(x + 1.2, y + 1.2); ctx.lineTo(x + 1.2, y - L + 1.2);
     ctx.stroke();
-    ctx.strokeStyle = U.rgba(C.sumi, 0.12 + hi * 0.06);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = U.rgba(C.gofun, Math.min(1, 0.25 + hi));
     ctx.beginPath();
-    ctx.moveTo(x - L + 1, y + 1); ctx.lineTo(x + 1, y + 1); ctx.lineTo(x + 1, y - L + 1);
+    ctx.moveTo(x - L, y - 1); ctx.lineTo(x - 1, y - 1); ctx.lineTo(x - 1, y - L);
     ctx.stroke();
+    // the raking gleam: a 40 px bright run sliding along the arms, 0.8 → 2.0
+    const g = U.seg(T, 0.8, 2.0, U.ease.inOutSine);
+    if (g > 0 && g < 1) {
+      const tot = 2 * L, pos = g * (tot + 40) - 20;
+      const pt = (d) => (d < L ? [x - L + d, y - 1] : [x - 1, y - 1 - (d - L)]);
+      ctx.lineWidth = 2.4;
+      for (let d = Math.max(0, pos - 20); d < Math.min(tot, pos + 20); d += 2) {
+        const w = 1 - Math.abs(d - pos) / 20;
+        const [px, py] = pt(d), [qx, qy] = pt(Math.min(tot, d + 2));
+        ctx.strokeStyle = U.rgba('#fffaf0', 0.85 * w * w * Math.sin(g * Math.PI));
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy); ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
+  /* ------------------------------------------------------------------ */
+  /* 2–6 s: only the key block exists yet. Every layer's K plate goes into */
+  /* one sheet and the baren spiral (PRINT's keyReveal) masks it once.    */
+  /* ------------------------------------------------------------------ */
+  let maskCv = null, seamCv = null;
+  const SPIRAL = { cx: 1180, cy: 560, pitch: 160 };
+  const wAt = (th) => SPIRAL.pitch * (1.0 + 0.18 * (U.noise1(th * 1.7, 5) - 0.5)) + 6;
+  /** the starved seams between the baren's turns: goma-zuri dots fixed to the spiral (built once) */
+  function seamTexture(cw, ch) {
+    if (seamCv && seamCv.width === cw && seamCv.height === ch) return seamCv;
+    seamCv = B.canvas(cw, ch);
+    const c = seamCv.getContext('2d'), k = cw / W;
+    c.setTransform(k, 0, 0, k, 0, 0);
+    const b = SPIRAL.pitch / TAU, r = U.rng(606);
+    const p1 = new Path2D(), p2 = new Path2D();
+    for (let th = TAU * 0.5; th < 60; th += 0.004) {
+      const rr = r(), rr2 = r();
+      if (rr > 0.3) continue;
+      const rad = b * th + SPIRAL.pitch / 2 + U.lerp(-5, 5, rr2);
+      const x = SPIRAL.cx + Math.cos(th) * rad, y = SPIRAL.cy + Math.sin(th) * rad;
+      if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue;
+      (rr < 0.12 ? p1 : p2).rect(x, y, U.lerp(1, 2, r()), U.lerp(1, 2, r()));
+    }
+    c.fillStyle = 'rgba(0,0,0,0.85)'; c.fill(p1);
+    c.fillStyle = 'rgba(0,0,0,0.55)'; c.fill(p2);
+    return seamCv;
+  }
+  function barenMask(like, kr) {
+    const cv = like.canvas;
+    if (!maskCv || maskCv.width !== cv.width || maskCv.height !== cv.height) maskCv = B.canvas(cv.width, cv.height);
+    const m = maskCv.getContext('2d');
+    m.setTransform(1, 0, 0, 1, 0, 0);
+    m.globalCompositeOperation = 'source-over';
+    m.globalAlpha = 1;
+    m.clearRect(0, 0, maskCv.width, maskCv.height);
+    const k = cv.width / W;
+    m.setTransform(k, 0, 0, k, 0, 0);
+    m.lineCap = 'round';
+    m.lineJoin = 'round';
+    m.strokeStyle = '#000';
+    const b = SPIRAL.pitch / TAU;
+    const thMax = kr.reach / b;
+    const lead = Math.max(0, thMax - 1.25 * TAU);
+    const P = (th) => [SPIRAL.cx + Math.cos(th) * b * th, SPIRAL.cy + Math.sin(th) * b * th];
+    // the full pressure, in short runs of one width each; then the leading turn
+    // and a quarter as a lighter, narrower first pass
+    const run = (t0, t1, wk, a) => {
+      const step = 0.07, span = Math.max(0.35, Math.min(0.9, 60 / (b * Math.max(1, t0))));
+      m.globalAlpha = a;
+      for (let th = t0; th < t1; th += span) {
+        const e = Math.min(t1, th + span);
+        m.lineWidth = wAt((th + e) / 2) * wk;
+        m.beginPath();
+        let p = P(th);
+        m.moveTo(p[0], p[1]);
+        for (let u = th + step; u <= e + 1e-6; u += step) { p = P(u); m.lineTo(p[0], p[1]); }
+        m.stroke();
+      }
+    };
+    run(0, lead, 1, 1);
+    run(lead, thMax, 0.82, 0.6);
+    m.globalAlpha = 1;
+    m.globalCompositeOperation = 'destination-out';
+    // the seams, inside the turns already rubbed
+    if (lead > TAU * 0.5) {
+      m.save();
+      const R = b * lead + SPIRAL.pitch * 0.45;
+      m.beginPath();
+      m.arc(SPIRAL.cx, SPIRAL.cy, R, 0, TAU);
+      m.clip();
+      m.setTransform(1, 0, 0, 1, 0, 0);
+      const tex = seamTexture(maskCv.width, maskCv.height);
+      const x0 = Math.max(0, Math.floor((SPIRAL.cx - R) * k)), y0 = Math.max(0, Math.floor((SPIRAL.cy - R) * k));
+      const x1 = Math.min(tex.width, Math.ceil((SPIRAL.cx + R) * k)), y1 = Math.min(tex.height, Math.ceil((SPIRAL.cy + R) * k));
+      if (x1 > x0 && y1 > y0) m.drawImage(tex, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+      m.restore();
+    }
+    // the rubbed, not cut, outer edge of the leading turn
+    const edge = new Path2D();
+    for (let i = Math.ceil(lead / 0.01); i * 0.01 < thMax; i++) {
+      const th = i * 0.01, rr = U.hash(i * 3 + 1), off = U.hash(i * 3 + 2), sz = U.hash(i * 3 + 3);
+      if (rr > 0.45) continue;
+      const rad = b * th + wAt(th) * 0.82 / 2 - off * 12;
+      edge.rect(SPIRAL.cx + Math.cos(th) * rad, SPIRAL.cy + Math.sin(th) * rad, 1 + sz, 1 + sz * 0.6);
+    }
+    m.fillStyle = 'rgba(0,0,0,0.9)';
+    m.fill(edge);
+    return maskCv;
+  }
+
+  // the whole key block of Shot A, flattened once into one sheet (the K plates do not move in 序)
+  let keySheet = null;
+  function keySheetFor(ctx, T) {
+    const cv = ctx.canvas;
+    if (keySheet && keySheet.width === cv.width && keySheet.height === cv.height) return keySheet;
+    keySheet = B.canvas(cv.width, cv.height);
+    const s = keySheet.getContext('2d');
+    s.setTransform(cv.width / W, 0, 0, cv.width / W, 0, 0);
+    s.imageSmoothingEnabled = false;
+    const bare = Object.assign({}, PRINT.state(3), { keyReveal: null });
+    for (const l of ['far', 'grove', 'house', 'field', 'pond', 'banks', 'still']) PRINT.drawLayer(s, 'A', l, T, { state: bare, only: ['K'] });
+    return keySheet;
+  }
+  function keyBlockOnly(ctx, T) {
+    const st = PRINT.state(T);
+    const kr = st.keyReveal;
+    if (!kr || kr.reach <= 1) return;
+    // the baren: an Archimedean spiral out of the house (same law as PRINT's),
+    // rubbed by hand — its pressure breathes along the stroke, the seams where
+    // one turn meets the next stay a little starved (goma-zuri), the leading
+    // turn is a lighter first pass and its outer edge is rubbed, not cut
+    const m = barenMask(ctx, kr).getContext('2d');
+    m.save();
+    m.setTransform(1, 0, 0, 1, 0, 0);
+    m.globalAlpha = 1;
+    m.globalCompositeOperation = 'source-in';
+    m.drawImage(keySheetFor(ctx, T), 0, 0);
+    m.restore();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(maskCv, 0, 0);
+    ctx.restore();
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* the moon before the moon: a 山吹 warmth on the bare paper (no disc),  */
+  /* and the disc only as a karazuri — a blind-embossed rim               */
+  /* ------------------------------------------------------------------ */
+  let glowCv = null;
+  const GLOW = { x0: -130, y0: 460, w: 620, h: 400, cx: 180, cy: 770 };
+  function glowSprite(k) {
+    if (glowCv && glowCv.k === k) return glowCv.cv;
+    const cv = B.canvas(GLOW.w * k, GLOW.h * k), c = cv.getContext('2d');
+    c.setTransform(k, 0, 0, k, -GLOW.x0 * k, -GLOW.y0 * k);
+    const g = c.createRadialGradient(GLOW.cx, GLOW.cy, 60, GLOW.cx, GLOW.cy, 300);
+    g.addColorStop(0, U.rgba(C.yamabuki, 0.35));
+    g.addColorStop(0.4, U.rgba(C.yamabuki, 0.13));
+    g.addColorStop(1, U.rgba(C.yamabuki, 0));
+    c.fillStyle = g;
+    c.fillRect(GLOW.x0, GLOW.y0, GLOW.w, GLOW.h);
+    // its foot feathered away into the (still unprinted) bank — no ruled edge
+    c.globalCompositeOperation = 'destination-out';
+    const f = c.createLinearGradient(0, 800, 0, 842);
+    f.addColorStop(0, 'rgba(0,0,0,0)');
+    f.addColorStop(1, 'rgba(0,0,0,1)');
+    c.fillStyle = f;
+    c.fillRect(GLOW.x0, 800, GLOW.w, GLOW.y0 + GLOW.h - 800);
+    glowCv = { cv, k };
+    return cv;
+  }
+  function moonBefore(ctx, T, k, glow, rim) {
+    if (glow > 0.002) {
+      const br = 1 + 0.06 * Math.sin((TAU * T) / 7);
+      ctx.save();
+      ctx.globalAlpha *= glow * br;
+      ctx.drawImage(glowSprite(k), GLOW.x0, GLOW.y0, GLOW.w, GLOW.h);
+      ctx.restore();
+    }
+    if (rim > 0.002) {
+      const m = TSUKI.MOON.A(T);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(m.x - m.r - 4, m.y - m.r - 4, m.r * 2 + 8, A.GEO.bankY(m.x) - 3 - (m.y - m.r - 4));
+      ctx.clip();
+      ctx.globalAlpha *= rim;
+      ctx.lineCap = 'round';
+      // highlight on the upper-left, where the raking light meets the embossed edge
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = U.rgba(C.gofun, 0.9);
+      ctx.beginPath(); ctx.arc(m.x - 0.6, m.y - 0.6, m.r, Math.PI * 0.98, Math.PI * 1.62); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = U.rgba(C.gofun, 0.35);
+      ctx.beginPath(); ctx.arc(m.x - 0.6, m.y - 0.6, m.r, Math.PI * 1.62, Math.PI * 1.8); ctx.stroke();
+      // the faint shadow on the lower-right
+      ctx.strokeStyle = U.rgba(C.sumi, 0.08);
+      ctx.beginPath(); ctx.arc(m.x + 0.8, m.y + 0.8, m.r, Math.PI * 1.72, Math.PI * 2.02); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   TSUKI.scene('jo-surizome', {
+    init(S) {
+      glowSprite(Math.min(2, Math.max(0.5, S.k || 1)));
+      seamTexture(Math.round(W * (S.k || 1)), Math.round(H * (S.k || 1)));
+    },
     draw(ctx, t, S) {
       const T = S.seg.start + t;
-      // the moon before the moon: a faint 山吹 warmth as the spiral passes (from 2 s),
-      // the dry disc when the colour arrives (6 → 9.6)
-      const warm = T < 2 ? 0 : T < 6 ? 0.3 * U.seg(T, 2, 3.4, U.ease.inOutSine) : U.lerp(0.3, 1, U.seg(T, 6, 9.6, U.ease.inOutSine));
-      A.drawGarden(ctx, T, {
-        still: T < 13,             // near susuki, 萩, sōzu from the carved block until the first gust
-        figures: false,
-        moonAlpha: warm,
-        glow: warm,
-      });
+      const k = Math.min(2, Math.max(0.5, S.k || 1));
+      const st = PRINT.state(T);
+      // the warmth arrives with the spiral (2 → 3.4) at ×0.3 and grows as the colour lands;
+      // until the sky block lands (9.0) it lies on the bare paper, then the sky carries it
+      const warm = T < 2 ? 0 : T < 6 ? 0.38 * U.seg(T, 2, 3.4, U.ease.inOutSine) : U.lerp(0.38, 1, U.seg(T, 6, 9.6, U.ease.inOutSine));
+      const skyA = st.alpha.P6 == null ? 1 : st.alpha.P6;
+      // the dry disc: nothing but its embossed rim until the first block lands; then its glaze
+      const glaze = U.seg(T, 6.0, 9.6, U.ease.inOutSine);
+      const rim = U.seg(T, 2.2, 3.6, U.ease.inOutSine) * (1 - U.seg(T, 6.4, 8.4, U.ease.inOutSine));
+      const k0 = ctx.getTransform().a;
+      if (T < PRINT.TIMES.keyDone) {
+        moonBefore(ctx, T, k, warm, rim);
+        const se = ctx.imageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = Math.abs(k0 - ctx.canvas.width / W) > 1e-3;
+        keyBlockOnly(ctx, T);
+        ctx.imageSmoothingEnabled = se;
+      } else {
+        moonBefore(ctx, T, k, warm * (1 - skyA), rim);
+        A.drawGarden(ctx, T, {
+          still: T < 13,             // near susuki, 萩, sōzu from the carved block until the first gust
+          figures: false,
+          moonAlpha: glaze,
+          glow: warm * skyA,
+        });
+      }
       A.titlePanels(ctx, T, 1);
       // the sheet's deckle and the 見当 (visible to 6 s, gone into the frame by 9 s)
       const da = 1 - U.seg(T, 6, 9, U.ease.inOutSine);
       if (da > 0.002) {
-        const k = S.k || 1;
         ctx.save();
         ctx.globalAlpha *= da;
-        ctx.drawImage(deckleSprite(Math.min(1.5, Math.max(0.5, k))), 0, 0, W, H);
+        ctx.drawImage(deckleSprite(Math.min(1.5, k)), 0, 0, W, H);
         ctx.restore();
         kento(ctx, T, da);
       }

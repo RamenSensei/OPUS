@@ -24,8 +24,10 @@ const FAMILIES = [
 
 function collectText() {
   const files = [
-    'index.html', 'js/script.js', 'js/main.js', 'js/core/engine.js', 'js/core/brush.js',
-    ...fs.readdirSync(path.join(ROOT, 'js/scenes')).filter((f) => f.endsWith('.js')).map((f) => 'js/scenes/' + f),
+    'index.html', 'js/script.js', 'js/main.js',
+    ...fs.readdirSync(path.join(ROOT, 'js/core')).filter((f) => f.endsWith('.js')).map((f) => 'js/core/' + f),
+    ...['js/scenes', 'js/shots'].flatMap((d) =>
+      fs.existsSync(path.join(ROOT, d)) ? fs.readdirSync(path.join(ROOT, d)).filter((f) => f.endsWith('.js')).map((f) => d + '/' + f) : []),
   ];
   let text = '';
   for (const f of files) {

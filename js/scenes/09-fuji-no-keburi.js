@@ -26,32 +26,64 @@
 
   /* ------------------------------------------------------------------ */
   /* the seal 忘れじ — 白文: the characters are cut out of the 朱 to the   */
-  /* paper (like the moon, they are absence). Carved as vector strokes so */
-  /* the stamp never depends on a font; built once.                      */
+  /* paper (like the moon, they are absence). The characters are the     */
+  /* outlines of Shippori Mincho B1 ExtraBold (SIL OFL, the film's own   */
+  /* mincho), embedded so the stamp never waits on a font subset: 忘 in  */
+  /* the right column, れ over じ in the left, as a seal is laid out.    */
+  /* Coordinates: font units, y down (baseline at 880); [bbox], path.    */
   /* ------------------------------------------------------------------ */
-  // strokes in a 100-unit square: right column 忘, left column れ over じ
-  const GLYPHS = [
-    // 忘 — 亡
-    { w: 6.6, pts: [[72.5, 7.5], [73.2, 16.5]] },
-    { w: 6.4, pts: [[54, 21], [91, 20.2]] },
-    { w: 6.4, pts: [[61, 26], [61, 43.5], [91, 43.5]] },
-    // 忘 — 心
-    { w: 6.2, pts: [[54, 62], [57, 74]] },
-    { w: 6.6, pts: [[66.5, 53.5], [66.5, 83.5], [69.5, 88.5], [90.5, 88.5], [90.5, 78.5]] },
-    { w: 6.0, pts: [[75, 51], [78, 62]] },
-    { w: 6.0, pts: [[84.5, 52], [88, 63.5]] },
-    // れ — the stem; then one stroke: across, back down to the stem, the hump, the flick
-    { w: 5.6, pts: [[12, 7.5], [11.5, 29], [12.3, 50.5]] },
-    { w: 5.0, pts: [[4, 20], [20.5, 16.5], [13, 38.5], [17.5, 33.5], [22, 29], [27.5, 25], [33, 23], [38.5, 24.5], [41, 30], [41.5, 38], [41.5, 44], [43.5, 48.5], [48, 48.8]] },
-    // じ
-    { w: 6.2, pts: [[15.5, 56], [15.5, 78.5], [18.5, 87], [26.5, 90.5], [35, 88], [42.5, 80]] },
-    { w: 5.0, pts: [[31, 56], [33, 64]] },
-    { w: 5.0, pts: [[39, 54], [41, 62]] },
-  ];
+  const GLYPHS = {
+    '忘': [[61, 28, 951, 946],
+      'M776 168 795 140Q800 134 808 122Q816 110 822 104Q827 99 831 99Q839 99 878 131Q917 163 933 183Q938 188 93' +
+      '8 194Q938 200 932 205Q925 210 913 210H355Q345 210 340 216Q334 221 334 231V369Q334 378 338 382Q341 387 35' +
+      '3 388Q365 390 391 390H569Q661 390 713 388L756 383Q770 381 784 377Q799 374 801 374Q807 374 811 375Q840 38' +
+      '3 852 394Q864 406 864 424Q864 454 842 468Q820 482 756 488Q693 494 560 494H386Q318 494 284 486Q250 479 23' +
+      '6 458Q221 437 221 394V231Q221 221 216 216Q210 210 200 210H171Q136 211 101 219Q98 220 93 220Q81 220 74 20' +
+      '7L70 200Q67 194 67 188Q67 182 72 178Q77 175 86 176Q120 179 189 181H419Q440 181 440 160Q438 92 433 48V46Q' +
+      '433 35 440 30Q446 26 457 29Q578 55 578 69Q578 73 571 78L568 80Q554 89 554 105V160Q554 170 560 176Q565 18' +
+      '1 575 181H751Q767 181 776 168ZM421 533Q425 531 430 531Q436 531 441 532Q510 540 554 562Q599 584 619 612Q6' +
+      '39 640 639 668Q639 695 622 713Q606 731 581 731Q568 731 553 725Q542 721 535 705Q520 667 492 626Q464 586 4' +
+      '32 552Q426 545 422 540Q419 535 421 533ZM297 719Q297 653 292 612V610Q292 599 298 594Q305 590 316 593Q430 ' +
+      '618 430 631Q430 636 424 639L423 640Q409 650 409 665V820Q409 831 416 835Q423 839 447 839H553Q609 839 639 ' +
+      '837Q650 836 656 834Q661 831 666 823Q673 814 684 786Q694 759 706 725Q712 708 717 708Q719 708 721 714Q723 ' +
+      '719 723 729L725 810Q725 825 742 834Q755 842 760 852Q766 861 766 875Q766 901 746 916Q727 932 678 939Q630 ' +
+      '946 541 946H426Q371 946 344 938Q318 930 308 909Q297 888 297 846ZM721 600Q721 596 728 596Q733 596 742 599' +
+      'Q850 631 900 686Q951 740 951 795Q951 829 934 851Q916 873 889 873Q869 873 849 860Q837 852 836 836Q829 780' +
+      ' 800 722Q772 664 732 618Q721 604 721 600ZM194 603Q200 603 206 620Q224 675 224 727Q224 776 208 812Q192 84' +
+      '9 166 868Q147 883 121 883Q102 883 87 874Q72 864 65 847Q61 833 61 826Q61 806 72 789Q84 772 104 761Q132 74' +
+      '3 156 705Q180 667 186 623Q188 603 194 603Z'],
+    'れ': [[103, 101, 990, 908],
+      'M990 609Q990 612 986 624Q981 635 978 641Q892 846 775 846Q722 846 687 824Q652 802 636 768Q619 734 619 696' +
+      'Q619 654 626 610Q632 567 647 491Q669 388 669 344Q669 316 658 298Q648 280 625 280Q577 280 502 346Q426 413' +
+      ' 362 502Q354 514 354 528Q356 622 366 708L374 768Q375 774 378 796Q381 819 381 840Q381 869 366 888Q352 908' +
+      ' 329 908Q305 908 292 898Q280 888 276 877Q272 866 267 841Q261 808 251 768Q246 751 237 751Q232 751 228 758' +
+      'Q220 772 211 784Q200 799 182 810Q164 821 149 821Q131 821 117 803Q103 785 103 757Q103 715 138 669Q151 652' +
+      ' 174 623Q180 614 180 607Q180 600 177 593Q149 541 136 508Q122 475 122 442Q122 399 151 378Q172 362 213 344' +
+      'Q254 327 296 316Q314 310 314 292V262Q314 220 306 190Q299 160 276 138Q263 127 249 118Q235 109 235 106Q235' +
+      ' 101 252 101Q272 101 302 109Q342 124 374 149Q407 174 407 206Q407 217 401 240Q395 264 387 291Q386 294 386' +
+      ' 298Q386 307 396 319Q409 332 409 352Q409 358 408 361Q407 366 407 373Q407 380 410 380Q414 380 423 371Q486' +
+      ' 307 552 268Q617 228 673 228Q727 228 752 262Q777 296 777 347Q777 384 772 422Q767 461 757 516Q747 573 742' +
+      ' 607Q737 641 737 676Q737 713 756 730Q776 746 800 746Q840 746 876 724Q913 702 961 634Q965 628 974 616Q982' +
+      ' 604 986 604Q990 604 990 609ZM185 569Q191 581 200 581Q208 581 215 572Q270 506 296 463Q309 440 309 432Q30' +
+      '9 427 306 425Q304 423 298 423Q264 423 234 433Q203 443 184 460Q166 477 166 495Q166 528 185 569ZM297 718V6' +
+      '88L298 664V662Q298 653 295 647Q292 641 287 641Q282 641 277 649Q273 656 263 679Q259 689 259 693Q259 696 2' +
+      '63 706Q266 710 270 718Q276 730 282 740Q289 751 293 751Q296 751 296 742Q297 732 297 718Z'],
+    'じ': [[170, 112, 862, 905],
+      'M222 617Q222 563 226 516Q230 469 237 402Q247 302 247 265Q247 220 227 188Q207 155 181 140Q176 137 173 135' +
+      'Q170 133 170 130Q170 123 199 118Q228 112 251 112Q322 112 352 142Q382 173 382 231Q382 265 374 308Q365 351' +
+      ' 349 409Q319 519 319 604Q319 705 362 748Q406 792 498 792Q576 792 660 753Q744 714 831 627Q842 616 849 616' +
+      'Q851 616 851 618Q851 624 841 640Q675 905 462 905Q222 905 222 617ZM761 248Q731 207 710 186Q689 166 661 15' +
+      '5Q653 152 642 148Q632 144 628 142Q624 139 624 136Q624 131 654 129Q684 127 699 127Q767 127 814 150Q862 17' +
+      '3 862 222Q862 254 844 264Q826 275 811 275Q780 275 761 248ZM618 341Q604 301 588 272Q571 244 544 217Q538 2' +
+      '11 530 204Q523 198 523 196Q523 191 532 191Q556 191 605 207Q654 223 693 254Q732 284 732 327Q732 357 716 3' +
+      '70Q700 384 679 384Q633 384 618 341Z'],
+  };
+  // cells in a 100-unit stone, 8.5 units of margin all round
+  const CELLS = { '忘': [52.5, 8.5, 39, 83], 'れ': [8.5, 8.5, 38, 39], 'じ': [8.5, 53, 38, 38.5] };
 
   let sealSprite = null;
   function buildSeal() {
-    const N = 256, sc = N / 100;
+    const N = 320, sc = N / 100;
     const cv = TSUKI.B.canvas(N, N);
     const c = cv.getContext('2d');
     c.scale(sc, sc);
@@ -62,15 +94,15 @@
     const side = (x0, y0, x1, y1, n) => {
       for (let i = 0; i < n; i++) {
         const s = i / n;
-        const j = (r() - 0.5) * 1.3 + (r() < 0.08 ? -1.6 * r() : 0);
+        const j = (r() - 0.5) * 1.1 + (r() < 0.08 ? -1.5 * r() : 0);
         const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
         edge.push([U.lerp(x0, x1, s) - (dy / L) * j, U.lerp(y0, y1, s) + (dx / L) * j]);
       }
     };
-    side(2.2, 2.6, 97.6, 2.0, 26);
-    side(97.6, 2.0, 98.0, 97.4, 26);
-    side(98.0, 97.4, 2.4, 97.8, 26);
-    side(2.4, 97.8, 2.2, 2.6, 26);
+    side(2.2, 2.6, 97.6, 2.0, 30);
+    side(97.6, 2.0, 98.0, 97.4, 30);
+    side(98.0, 97.4, 2.4, 97.8, 30);
+    side(2.4, 97.8, 2.2, 2.6, 30);
     c.moveTo(edge[0][0], edge[0][1]);
     for (const p of edge) c.lineTo(p[0], p[1]);
     c.closePath();
@@ -83,7 +115,7 @@
       const x = r() * 100, y = r() * 100, rr = U.lerp(4, 16, r());
       const g = c.createRadialGradient(x, y, 0, x, y, rr);
       const deep = r() < 0.55;
-      const col = deep ? U.mix(C.shu, C.akane, 0.55) : U.mix(C.shu, C.yamabuki, 0.25);
+      const col = deep ? U.mix(C.shu, C.akane, 0.55) : U.mix(C.shu, C.yamabuki, 0.22);
       const a = U.lerp(0.06, 0.2, r());
       g.addColorStop(0, U.rgba(col, a));
       g.addColorStop(1, U.rgba(col, 0));
@@ -91,39 +123,44 @@
       c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
     }
     c.restore();
-    // cut the characters out to the paper (carved: a little irregular)
+    // cut the characters out to the paper. A carver's strokes are more even
+    // than a brush's: the mincho's hairlines are thickened a little.
     c.save();
     c.globalCompositeOperation = 'destination-out';
-    c.lineCap = 'round';
-    c.lineJoin = 'round';
+    c.fillStyle = '#000';
     c.strokeStyle = '#000';
-    for (const g of GLYPHS) {
-      c.lineWidth = g.w;
-      c.beginPath();
-      g.pts.forEach((p, i) => {
-        const jx = (U.hash(i * 13 + g.pts.length * 7 + p[0] * 3) - 0.5) * 0.5;
-        const jy = (U.hash(i * 17 + p[1] * 5) - 0.5) * 0.5;
-        if (i === 0) c.moveTo(p[0] + jx, p[1] + jy); else c.lineTo(p[0] + jx, p[1] + jy);
-      });
-      c.stroke();
+    c.lineJoin = 'round';
+    for (const ch of Object.keys(CELLS)) {
+      const [[a, b, e, f], d] = GLYPHS[ch];
+      const [cx, cy, cw, chh] = CELLS[ch];
+      const sx = cw / (e - a), sy = chh / (f - b);
+      const p = new Path2D(d);
+      c.save();
+      c.translate(cx, cy);
+      c.scale(sx, sy);
+      c.translate(-a, -b);
+      c.fill(p);
+      c.lineWidth = 1.25 / Math.sqrt(sx * sy);
+      c.stroke(p);
+      c.restore();
     }
     // a pressed stamp never inks perfectly: small voids, more toward the rim
-    for (let i = 0; i < 260; i++) {
+    for (let i = 0; i < 300; i++) {
       const x = r() * 100, y = r() * 100;
       const dEdge = Math.min(x, y, 100 - x, 100 - y);
-      if (r() > 0.25 + 0.75 * Math.exp(-dEdge / 7)) continue;
+      if (r() > 0.22 + 0.78 * Math.exp(-dEdge / 7)) continue;
       c.globalAlpha = U.lerp(0.35, 1, r());
-      const s = U.lerp(0.3, 1.3, r());
+      const s = U.lerp(0.3, 1.2, r());
       c.beginPath();
       c.ellipse(x, y, s, s * U.lerp(0.5, 1, r()), r() * Math.PI, 0, TAU);
       c.fill();
     }
     // two faint hairline cracks in the stone, as old seals have
     c.globalAlpha = 0.9;
-    c.lineWidth = 0.7;
+    c.lineWidth = 0.6;
     c.beginPath();
-    c.moveTo(2, 61); c.lineTo(6, 60.2); c.lineTo(9, 61.4);
-    c.moveTo(98, 30); c.lineTo(94.5, 31.2);
+    c.moveTo(2, 61); c.lineTo(5.5, 60.3); c.lineTo(8, 61.2);
+    c.moveTo(98, 30); c.lineTo(95, 31);
     c.stroke();
     c.restore();
     sealSprite = cv;
@@ -310,11 +347,14 @@
       // every sprite and plate here is carved at (or near) the stage resolution:
       // bilinear is indistinguishable, and avoids the slow high-quality resampler
       ctx.imageSmoothingQuality = 'low';
-      // the paper remembers what was pressed into it: relief under the ink
-      drawKarazuri(ctx, T, U.seg(T, 226, 228, U.ease.inOutSine));
+      // the sheet: yellowed and foxed in the late impression, clean again at the end
+      E.age(ctx, T);
+      // the paper remembers what was pressed into it: relief under the ink,
+      // surfacing only as the last key lines clear
+      drawKarazuri(ctx, T, U.seg(T, 226.6, 228, U.ease.inCubic));
       drawNotch(ctx, U.seg(T, 225.4, 227.4, U.ease.inOutSine));
       // the print (後摺 + 東雲), lifting away 222–228 in fugitive-pigment order
-      if (T < 228.05) E.draw(ctx, T);
+      if (T < 228.05) E.draw(ctx, T, { age: false });
       // the last paper
       drawSeal(ctx, T);
       drawColophon(ctx, T);

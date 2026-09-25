@@ -542,7 +542,11 @@
     if (STILL) document.body.classList.add('still');
     document.body.classList.add('paused');
     requestAnimationFrame(frame);
-    const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    // Load every face up front: subset faces load lazily for DOM text, but
+    // canvas text (seals, the painted title panel) needs them in memory too.
+    const fontsReady = document.fonts && document.fonts.ready
+      ? Promise.all([...document.fonts].map((f) => f.load().catch(() => null))).then(() => document.fonts.ready)
+      : Promise.resolve();
     // warm-up: carve every shot's blocks and run every scene's init() now,
     // so nothing stalls mid-film.
     const warm = () => new Promise((res) => {

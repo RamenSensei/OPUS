@@ -95,73 +95,106 @@
 
   /* ---------------- the maria (rabbit plate R) ------------------------- */
   /**
-   * Paint the rabbit maria clipped to the disc. The shape here is THE
-   * rabbit: the smoke in 四 settles into exactly this path — fourteen brush
-   * strokes of a rabbit (left, facing right) pounding with a 杵 into the 臼
-   * (right). Each stroke is a 6-point ribbon with per-point widths, in unit
-   * disc coordinates (authored on Shot D's moon: centre (960,430), r 260).
-   * The strokes are filled as ONE union (flat 薄墨, no darker overlaps).
+   * Paint the rabbit maria on the disc (x, y, r). The shape here is THE
+   * rabbit: the smoke in 四 settles into exactly these fourteen brush strokes
+   * — a rabbit standing on the left, facing right, holding the 横杵 over a
+   * squat 臼 on the right. Each stroke is a 6-point ribbon with per-point
+   * widths, in unit-disc coordinates (authored on Shot D's moon: centre
+   * (960,430), r 260), with 2–6 px of paper between neighbours.
+   * The strokes are printed as ONE flat 薄墨 impression from a carved block:
+   * baked once per ink into a sprite (union of the strokes, a 1–2 px ragged
+   * edge, one kasure break per stroke, goma-zuri speckle, a paper eye) and
+   * blitted — so every moon from T 106 carries the same printed rabbit.
    * opts (optional): { pestle: radians — the 杵 swung about the paws (四),
-   *                    strokes: [indices] to draw only some }
-   * MOON.maria.STROKES / .PIVOT / .PESTLE / .ribbon(path, pts, ws) expose the
-   * shape so the smoke in 四 can ease into it.
+   *                    strokes: [indices] — draw only some (plain vector fill) }
+   * MOON.maria.STROKES / .PIVOT / .PESTLE / .swing / .ribbon expose the shape
+   * so the smoke in 四 can ease into it.
    */
   MOON.maria = (ctx, x, y, r, alpha, color = C.sumi, opts) => {
     if (alpha <= 0 || r <= 0) return;
     const M = MOON.maria;
     const pest = opts && opts.pestle ? opts.pestle : 0;
     const only = opts && opts.strokes;
-    const path = new Path2D();
-    const k = r;
-    M.STROKES.forEach((st, i) => {
-      if (only && only.indexOf(i) < 0) return;
-      let pts = st.p;
-      if (pest && M.PESTLE.indexOf(i) >= 0) pts = M.swing(pts, pest);
-      M.ribbon(path, pts.map((q) => [x + q[0] * k, y + q[1] * k]), st.w.map((w) => w * k), st.flat);
-    });
+    if (only) {
+      // a plain vector fill of some strokes (no texture)
+      const path = new Path2D();
+      M.STROKES.forEach((st, i) => {
+        if (only.indexOf(i) < 0) return;
+        let pts = st.p;
+        if (pest && M.PESTLE.indexOf(i) >= 0) pts = M.swing(pts, pest);
+        M.ribbon(path, pts.map((q) => [x + q[0] * r, y + q[1] * r]), st.w.map((w) => w * r), st.flat);
+      });
+      ctx.save();
+      ctx.fillStyle = U.rgba(color, alpha);
+      ctx.fill(path);
+      ctx.restore();
+      return;
+    }
+    // device px of the disc radius → sprite level
+    const tf = ctx.getTransform ? ctx.getTransform() : null;
+    const dev = r * (tf ? Math.hypot(tf.a, tf.b) : 1);
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, U.TAU);
-    ctx.clip();
-    ctx.fillStyle = U.rgba(color, alpha);
-    ctx.fill(path);
+    ctx.globalAlpha *= alpha;
+    if (Math.abs(pest) < 1e-4) {
+      const s = M.sprite(color, 'all', dev);
+      ctx.drawImage(s.cv, x - r * s.ext, y - r * s.ext, 2 * r * s.ext, 2 * r * s.ext);
+    } else {
+      // the body and the swung pestle composited opaque first, then printed once
+      const sb = M.sprite(color, 'body', dev), sp = M.sprite(color, 'pestle', dev);
+      const n = sb.cv.width;
+      if (!M._mix || M._mix.width < n) { M._mix = B.canvas(n, n); }
+      const mx = M._mix.getContext('2d');
+      mx.setTransform(1, 0, 0, 1, 0, 0);
+      mx.globalCompositeOperation = 'source-over';
+      mx.clearRect(0, 0, n, n);
+      mx.drawImage(sb.cv, 0, 0);
+      const k = n / (2 * sb.ext);                       // sprite px per unit
+      const [px, py] = M.PIVOT;
+      mx.translate(n / 2 + px * k, n / 2 + py * k);
+      mx.rotate(pest);
+      mx.translate(-(n / 2 + px * k), -(n / 2 + py * k));
+      mx.drawImage(sp.cv, 0, 0, n, n);
+      ctx.drawImage(M._mix, 0, 0, n, n, x - r * sb.ext, y - r * sb.ext, 2 * r * sb.ext, 2 * r * sb.ext);
+    }
     ctx.restore();
   };
   (() => {
     const M = MOON.maria;
     const D = (x, y) => [(x - 960) / 260, (y - 430) / 260];   // Shot D px → unit disc
     const W = (w) => w / 260;
-    const S = (pts, ws) => ({ p: pts.map((q) => D(q[0], q[1])), w: ws.map(W) });
+    const S = (pts, ws, flat) => ({ p: pts.map((q) => D(q[0], q[1])), w: ws.map(W), flat: !!flat });
+    // the rabbit (left, facing right) · the 横杵 · the 臼 (right); Shot D px
+    const ox = -8, oy = 2;                                     // the figure, centred on the face
+    const P = (pts) => pts.map(([a, b]) => [a + ox, b + oy]);
     M.STROKES = [
-      /* 0 far ear   */ S([[912, 402], [898, 374], [884, 348], [869, 324], [855, 305], [844, 292]], [10, 15, 18, 17, 12, 3]),
-      /* 1 near ear  */ S([[926, 398], [918, 368], [909, 341], [899, 316], [889, 297], [880, 284]], [11, 17, 21, 20, 14, 4]),
-      /* 2 head      */ S([[906, 418], [920, 405], [937, 400], [953, 404], [966, 411], [975, 420]], [22, 32, 37, 34, 26, 15]),
-      /* 3 jaw       */ S([[912, 423], [928, 425], [944, 426], [957, 425], [967, 423], [975, 421]], [24, 26, 24, 20, 16, 10]),
-      /* 4 back      */ S([[906, 428], [884, 450], [866, 478], [854, 510], [848, 540], [852, 566]], [16, 28, 36, 40, 38, 28]),
-      /* 5 chest     */ S([[934, 446], [942, 474], [941, 504], [933, 534], [920, 560], [905, 580]], [18, 28, 34, 36, 30, 20]),
-      /* 6 body      */ S([[912, 446], [908, 476], [902, 506], [894, 536], [885, 562], [876, 580]], [30, 44, 52, 54, 48, 30]),
-      /* 7 haunch    */ S([[850, 560], [857, 582], [874, 594], [896, 597], [918, 596], [940, 593]], [18, 28, 30, 24, 17, 10]),
-      /* 8 tail      */ S([[848, 532], [838, 536], [832, 543], [830, 551], [834, 558], [842, 560]], [8, 14, 16, 16, 12, 5]),
-      /* 9 arms      */ S([[930, 462], [941, 468], [951, 472], [959, 474], [965, 473], [971, 470]], [16, 17, 16, 14, 13, 12]),
-      /* 10 杵 handle */ S([[968, 470], [986, 463], [1003, 457], [1021, 450], [1038, 443], [1055, 437]], [9, 10, 10, 10, 10, 10]),
-      /* 11 杵 head   */ S([[1046, 410], [1049, 421], [1052, 431], [1055, 442], [1058, 453], [1061, 464]], [17, 21, 22, 22, 21, 17]),
-      /* 12 臼 rim    */ S([[978, 498], [1003, 491], [1030, 488], [1056, 488], [1082, 491], [1106, 498]], [12, 16, 18, 18, 16, 12]),
-      /* 13 臼 body   */ Object.assign(S([[1042, 493], [1042, 513], [1042, 534], [1042, 554], [1042, 574], [1042, 592]], [100, 86, 74, 72, 82, 98]), { flat: true }),
+      /* 0 far ear   */ S(P([[906, 340], [899, 327], [891, 315], [883, 305], [876, 298], [870, 293]]), [8, 12, 13, 11, 7, 2]),
+      /* 1 near ear  */ S(P([[921, 337], [917, 322], [912, 309], [906, 298], [900, 290], [894, 285]]), [9, 13, 15, 13, 8, 2]),
+      /* 2 head      */ S(P([[899, 367], [909, 358], [921, 354], [934, 355], [945, 359], [953, 366]]), [24, 32, 35, 33, 28, 20]),
+      /* 3 back      */ S(P([[890, 386], [876, 406], [867, 430], [862, 455], [862, 480], [867, 503]]), [10, 18, 24, 28, 32, 32]),
+      /* 4 belly     */ S(P([[909, 392], [914, 413], [916, 436], [915, 459], [910, 481], [901, 501]]), [8, 16, 24, 30, 32, 30]),
+      /* 5 餅        */ S(P([[1013, 471], [1023, 467], [1034, 465], [1045, 465], [1055, 467], [1063, 471]]), [4, 8, 10, 10, 8, 4]),
+      /* 6 haunch    */ S(P([[866, 512], [879, 524], [895, 531], [911, 534], [926, 534], [938, 531]]), [24, 32, 34, 31, 26, 17]),
+      /* 7 foot      */ S(P([[907, 553], [922, 556], [938, 557], [952, 556], [963, 554], [971, 551]]), [10, 12, 12, 11, 9, 7]),
+      /* 8 tail      */ S(P([[849, 506], [843, 512], [840, 519], [841, 526], [846, 531], [852, 532]]), [7, 11, 13, 12, 8, 3]),
+      /* 9 arms      */ S(P([[921, 429], [932, 434], [942, 439], [951, 443], [959, 447], [966, 451]]), [12, 13, 13, 12, 12, 11]),
+      /* 10 杵 handle */ S(P([[952, 459], [969, 453], [986, 447], [1003, 441], [1019, 436], [1033, 432]]), [8, 9, 9, 9, 9, 8]),
+      /* 11 杵 head   */ S(P([[1029, 411], [1031, 419], [1033, 427], [1035, 435], [1037, 443], [1039, 451]]), [20, 22, 22, 22, 22, 20], true),
+      /* 12 臼 lip    */ S(P([[989, 486], [1008, 484], [1027, 483], [1046, 483], [1065, 484], [1084, 486]]), [15, 19, 20, 20, 19, 15]),
+      /* 13 臼 body   */ S(P([[1036, 499], [1036, 509], [1036, 519], [1036, 529], [1036, 539], [1036, 549]]), [78, 72, 68, 70, 78, 86], true),
     ];
     M.PESTLE = [10, 11];
-    M.PIVOT = D(968, 470);
+    M.PIVOT = D(966 + ox, 452 + oy);
+    M.EYE = D(931 + ox, 358 + oy);
+    /** the order the smoke settles in (四): mortar → body → head → ears → pestle */
+    M.ORDER = [13, 12, 5, 7, 6, 8, 3, 4, 9, 2, 1, 0, 10, 11];
     /** The pestle strokes swung by angle a (radians, + = down toward the mortar) about the paws. */
     M.swing = (pts, a) => {
       const [px, py] = M.PIVOT, c = Math.cos(a), s = Math.sin(a);
       return pts.map(([qx, qy]) => [px + (qx - px) * c - (qy - py) * s, py + (qx - px) * s + (qy - py) * c]);
     };
-    /**
-     * Add one brush ribbon to a Path2D: a Catmull-Rom spine through pts with
-     * per-point widths ws, round ends, wound clockwise so a nonzero fill of
-     * many ribbons is their exact union.
-     */
-    M.ribbon = (path, pts, ws, flat) => {
-      const n = pts.length, sub = 5, sp = [], sw = [];
+    /** Spine & edges of one ribbon (Catmull-Rom through pts, per-point widths ws). */
+    const outline = (pts, ws, rough) => {
+      const n = pts.length, sub = 6, sp = [], sw = [];
       const g = (i) => pts[Math.max(0, Math.min(n - 1, i))];
       for (let i = 0; i < n - 1; i++) {
         const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
@@ -176,17 +209,28 @@
       }
       sp.push(pts[n - 1]);
       sw.push(ws[n - 1]);
-      const m = sp.length, L = [], R = [];
+      const m = sp.length, L = [], R = [], N = [];
       for (let i = 0; i < m; i++) {
         const a = sp[Math.max(0, i - 1)], b = sp[Math.min(m - 1, i + 1)];
         let dx = b[0] - a[0], dy = b[1] - a[1];
         const len = Math.hypot(dx, dy) || 1;
         dx /= len; dy /= len;
-        const h = sw[i] / 2;
-        L.push([sp[i][0] - dy * h, sp[i][1] + dx * h]);
-        R.push([sp[i][0] + dy * h, sp[i][1] - dx * h]);
+        N.push([-dy, dx]);
+        const hl = sw[i] / 2 + (rough ? rough(i, 0) : 0), hr = sw[i] / 2 + (rough ? rough(i, 1) : 0);
+        L.push([sp[i][0] - dy * hl, sp[i][1] + dx * hl]);
+        R.push([sp[i][0] + dy * hr, sp[i][1] - dx * hr]);
       }
-      let poly = L.concat(R.reverse());
+      return { sp, sw, L, R, N };
+    };
+    /**
+     * Add one brush ribbon to a Path2D: a Catmull-Rom spine through pts with
+     * per-point widths ws, round ends (flat: square ends), wound clockwise so
+     * a nonzero fill of many ribbons is their exact union.
+     */
+    M.ribbon = (path, pts, ws, flat, rough) => {
+      const { sp, sw, L, R } = outline(pts, ws, rough);
+      const m = sp.length;
+      let poly = L.concat(R.slice().reverse());
       let area = 0;
       for (let i = 0; i < poly.length; i++) {
         const q = poly[i], w = poly[(i + 1) % poly.length];
@@ -203,8 +247,102 @@
         path.arc(sp[e][0], sp[e][1], h, 0, U.TAU, false);
       }
     };
-  })();
 
+    /* ---- the carved block: one printed sprite per ink, three cuts ------ */
+    // 'all' = the rabbit at rest; 'body' = without the pestle; 'pestle' alone
+    const EXT = 0.62;                  // sprite half-size in disc radii (the figure lies within ±0.5)
+    const LEVELS = [512, 256, 128, 64]; // device px of the disc radius per mip
+    const cache = new Map();
+    function carve(color, cut, R) {
+      const n = Math.ceil(2 * R * EXT) + 2;
+      const cv = B.canvas(n, n), c = cv.getContext('2d');
+      const k = R;                                     // sprite px per unit
+      const cx = n / 2, cy = n / 2;
+      const px = 260 / R;                              // Shot-D px per sprite px
+      const idx = M.STROKES.map((_, i) => i).filter((i) => (cut === 'all' ? true : cut === 'pestle' ? M.PESTLE.indexOf(i) >= 0 : M.PESTLE.indexOf(i) < 0));
+      // 1. the union of the strokes, with a 1–2 px ragged (noise-displaced) edge
+      const path = new Path2D();
+      for (const i of idx) {
+        const st = M.STROKES[i];
+        const rough = (j, side) => (U.fbm2(j * 0.45 + i * 7.3, side * 5.1 + i, 3, 71) - 0.5) * 3.2 / 260;
+        M.ribbon(path, st.p.map((q) => [cx + q[0] * k, cy + q[1] * k]), st.w.map((w) => w * k), st.flat,
+          (j, side) => rough(j, side) * k);
+      }
+      c.fillStyle = color;
+      c.fill(path);
+      // 2. kasure: one dry-brush break per stroke — paper streaks along the tail
+      c.globalCompositeOperation = 'destination-out';
+      c.lineCap = 'round';
+      for (const i of idx) {
+        const st = M.STROKES[i];
+        if (st.w[2] * 260 < 9) continue;
+        const o = outline(st.p.map((q) => [cx + q[0] * k, cy + q[1] * k]), st.w.map((w) => w * k));
+        const m = o.sp.length;
+        const r = U.rng(3100 + i * 17);
+        const lines = st.flat ? 3 : 2;
+        for (let l = 0; l < lines; l++) {
+          const side = U.lerp(-0.34, 0.34, (l + 0.5) / lines) + U.lerp(-0.08, 0.08, r());
+          const a0 = Math.floor(m * U.lerp(0.5, 0.7, r())), a1 = m - 1 - Math.floor(m * U.lerp(0.02, 0.1, r()));
+          c.strokeStyle = `rgba(0,0,0,${U.lerp(0.55, 0.85, r())})`;
+          c.lineWidth = Math.max(0.6, U.lerp(0.9, 1.7, r()) / px);
+          c.beginPath();
+          for (let j = a0; j <= a1; j++) {
+            const q = o.sp[j], nn = o.N[j], h = o.sw[j] * side;
+            const X = q[0] + nn[0] * h, Y = q[1] + nn[1] * h;
+            if (j === a0) c.moveTo(X, Y); else c.lineTo(X, Y);
+          }
+          c.stroke();
+        }
+      }
+      // 3. the paper eye
+      if (cut !== 'pestle') {
+        c.fillStyle = '#000';
+        c.beginPath();
+        c.ellipse(cx + M.EYE[0] * k, cy + M.EYE[1] * k, 2.6 / px, 3.0 / px, -0.3, 0, U.TAU);
+        c.fill();
+      }
+      c.globalCompositeOperation = 'source-over';
+      // 4. goma-zuri: the pigment lies unevenly (alpha × 0.8–1.0) with paper pores
+      const img = c.getImageData(0, 0, n, n), d = img.data;
+      for (let yy = 0; yy < n; yy++) for (let xx = 0; xx < n; xx++) {
+        const o = (yy * n + xx) * 4 + 3;
+        if (!d[o]) continue;
+        const X = xx * px, Y = yy * px;              // in Shot-D px, so every mip matches
+        let f = U.clamp(0.8 + 0.4 * U.fbm2(X / 34, Y / 34, 3, 57), 0, 1);
+        const pore = U.fbm2(X / 2.2, Y / 2.2, 1, 58);
+        if (pore > 0.8) f *= 0.55;
+        d[o] = Math.round(d[o] * f);
+      }
+      c.putImageData(img, 0, 0);
+      return { cv, ext: n / 2 / k };
+    }
+    /** The printed sprite for ink `color`, cut 'all'|'body'|'pestle', at device radius dev. */
+    M.sprite = (color, cut, dev) => {
+      let lv = LEVELS[0];
+      for (const L of LEVELS) if (L >= dev * 0.9) lv = L;
+      const key = `${color}|${cut}|${lv}`;
+      let s = cache.get(key);
+      if (!s) {
+        // carve the biggest level once; smaller mips are reductions of it (same grain)
+        const bigKey = `${color}|${cut}|${LEVELS[0]}`;
+        let big = cache.get(bigKey);
+        if (!big) { big = carve(color, cut, LEVELS[0]); cache.set(bigKey, big); }
+        if (lv === LEVELS[0]) return big;
+        let src = big, R = LEVELS[0];
+        while (R > lv) {
+          const R2 = R / 2, n2 = Math.ceil(src.cv.width / 2);
+          const cv = B.canvas(n2, n2), c = cv.getContext('2d');
+          c.imageSmoothingQuality = 'high';
+          c.drawImage(src.cv, 0, 0, n2, n2);
+          src = { cv, ext: src.ext };
+          R = R2;
+          cache.set(`${color}|${cut}|${R}`, src);
+        }
+        s = cache.get(key);
+      }
+      return s;
+    };
+  })();
   /**
    * Draw the paper moon at (x, y, r) for film time T.
    * opts:
