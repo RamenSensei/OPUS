@@ -22,7 +22,7 @@
   /* the last paper (screenplay: segments[結].layers['the last paper']) */
   const KARA = { x: 960, y: 360, r: 150 };
   const NOTCH = { x: 1840, y: 1040, arm: 46 };
-  const SEAL = { x: 1300, y: 820, size: 90 };
+  const SEAL = { cx: 1300, cy: 820, size: 90 };       // centre, like the karazuri circle
 
   /* ------------------------------------------------------------------ */
   /* the seal 忘れじ — 白文: the characters are cut out of the 朱 to the   */
@@ -32,21 +32,21 @@
   // strokes in a 100-unit square: right column 忘, left column れ over じ
   const GLYPHS = [
     // 忘 — 亡
-    { w: 6.6, pts: [[71.5, 8.5], [72.5, 17.5]] },
-    { w: 6.4, pts: [[54.5, 21.5], [90, 20.5]] },
-    { w: 6.4, pts: [[60.5, 26], [60.5, 43], [90, 43]] },
+    { w: 6.6, pts: [[72.5, 7.5], [73.2, 16.5]] },
+    { w: 6.4, pts: [[54, 21], [91, 20.2]] },
+    { w: 6.4, pts: [[61, 26], [61, 43.5], [91, 43.5]] },
     // 忘 — 心
-    { w: 6.2, pts: [[54.5, 64], [57.5, 76]] },
-    { w: 6.6, pts: [[65, 55], [65, 84.5], [68, 88], [89.5, 88], [89.5, 79]] },
-    { w: 6.0, pts: [[73.5, 52], [76.5, 63]] },
-    { w: 6.0, pts: [[83, 53], [86.5, 65]] },
-    // れ
-    { w: 6.2, pts: [[18, 8.5], [17.2, 30], [18, 49]] },
-    { w: 6.0, pts: [[8.5, 23], [27, 20.5], [17.8, 35], [26, 26], [33.5, 23.5], [37.5, 30], [37.5, 43], [40.5, 47.5], [47.5, 44]] },
+    { w: 6.2, pts: [[54, 62], [57, 74]] },
+    { w: 6.6, pts: [[66.5, 53.5], [66.5, 83.5], [69.5, 88.5], [90.5, 88.5], [90.5, 78.5]] },
+    { w: 6.0, pts: [[75, 51], [78, 62]] },
+    { w: 6.0, pts: [[84.5, 52], [88, 63.5]] },
+    // れ — the stem; then one stroke: across, back down to the stem, the hump, the flick
+    { w: 5.6, pts: [[12, 7.5], [11.5, 29], [12.3, 50.5]] },
+    { w: 5.0, pts: [[4, 20], [20.5, 16.5], [13, 38.5], [17.5, 33.5], [22, 29], [27.5, 25], [33, 23], [38.5, 24.5], [41, 30], [41.5, 38], [41.5, 44], [43.5, 48.5], [48, 48.8]] },
     // じ
-    { w: 6.4, pts: [[17.5, 54.5], [17.5, 79], [20.5, 87], [29, 90], [37, 87], [44, 79]] },
-    { w: 5.2, pts: [[33.5, 55], [35.5, 63.5]] },
-    { w: 5.2, pts: [[41, 53], [43, 61.5]] },
+    { w: 6.2, pts: [[15.5, 56], [15.5, 78.5], [18.5, 87], [26.5, 90.5], [35, 88], [42.5, 80]] },
+    { w: 5.0, pts: [[31, 56], [33, 64]] },
+    { w: 5.0, pts: [[39, 54], [41, 62]] },
   ];
 
   let sealSprite = null;
@@ -137,82 +137,125 @@
     const a = 0.92 * U.ease.outCubic(p);
     const s = U.lerp(1.06, 1.0, U.ease.outCubic(p));
     const spr = sealSprite || buildSeal();
-    const { x, y, size } = SEAL;
-    const cx = x + size / 2, cy = y + size / 2;
+    const { cx, cy, size } = SEAL;
     ctx.save();
+    ctx.imageSmoothingQuality = 'high';       // a small, heavily reduced sprite: resample well
     ctx.globalAlpha = a;
     ctx.translate(cx, cy);
     ctx.scale(s, s);
     ctx.rotate(-0.012);                       // stamped by hand, never quite square
     ctx.drawImage(spr, -size / 2, -size / 2, size, size);
     ctx.restore();
-    // the press leaves a faint bruise in the paper around the stamp
-    if (p >= 1) {
-      ctx.save();
-      ctx.strokeStyle = U.rgba(C.sumi, 0.05);
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x - 1.5, y - 1.5, size + 3, size + 3);
-      ctx.restore();
-    }
   }
 
   /* ------------------------------------------------------------------ */
   /* the karazuri moon and the 見当 notch: relief in the bare paper       */
   /* ------------------------------------------------------------------ */
+  /**
+   * The rabbit's carbon, as ink that soaked into the fibres sixty years ago:
+   * the maria shape (TSUKI.MOON.maria), softened and uneven, built once.
+   */
+  let carbon = null;
+  function buildCarbon() {
+    const { r } = KARA;
+    const q = 1.5, pad = 12, S = Math.ceil((r * 2 + pad * 2) * q);
+    const shape = TSUKI.B.canvas(S, S);
+    const c = shape.getContext('2d');
+    c.scale(q, q);
+    TSUKI.MOON.maria(c, r + pad, r + pad, r, 1, '#000000');
+    // soften the cut edge: carbon bleeds a hair into the paper
+    const soft = TSUKI.B.canvas(S, S);
+    const s2 = soft.getContext('2d');
+    s2.filter = 'blur(2.2px)';
+    s2.drawImage(shape, 0, 0);
+    s2.filter = 'none';
+    s2.globalAlpha = 0.55;
+    s2.drawImage(shape, 0, 0);
+    // uneven density: the ink lies heavier in some fibres than others
+    const img = TSUKI.B.canvas(S, S);
+    const ic = img.getContext('2d');
+    const d = ic.createImageData(S, S);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const v = 0.55 * U.fbm2(x / 38, y / 38, 4, 91) + 0.3 * U.fbm2(x / 7, y / 11, 2, 92) + 0.15 * U.hash2(x, y);
+      d.data[(y * S + x) * 4 + 3] = U.clamp(0.35 + v * 0.95) * 255;
+    }
+    ic.putImageData(d, 0, 0);
+    s2.globalAlpha = 1;
+    s2.globalCompositeOperation = 'destination-in';
+    s2.drawImage(img, 0, 0);
+    // tint it 墨
+    s2.globalCompositeOperation = 'source-in';
+    s2.fillStyle = C.sumi;
+    s2.fillRect(0, 0, S, S);
+    carbon = { cv: soft, pad, q, S };
+    return carbon;
+  }
+
   function drawKarazuri(ctx, T, k) {
     if (k <= 0.001) return;
     const { x, y, r } = KARA;
     const L = -3 * Math.PI / 4;                // raking light from the upper left
     ctx.save();
     ctx.globalAlpha = k;
-    // 3% sheen of the raised disc
+    // the raised disc's paper sheen (≈3%)
     const sh = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
-    sh.addColorStop(0, U.rgba(C.gofun, 0.07));
-    sh.addColorStop(0.7, U.rgba(C.gofun, 0.03));
-    sh.addColorStop(1, U.rgba(C.gofun, 0.015));
+    sh.addColorStop(0, U.rgba(C.gofun, 0.09));
+    sh.addColorStop(0.7, U.rgba(C.gofun, 0.035));
+    sh.addColorStop(1, U.rgba(C.gofun, 0.02));
     ctx.fillStyle = sh;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
-    // the rabbit's carbon: the one thing given to the moon, kept (α 0.10)
-    TSUKI.MOON.maria(ctx, x, y, r, 0.1);
+    // the rabbit's carbon: the one thing given to the moon, and kept (墨 α 0.10)
+    const cb = carbon || buildCarbon();
+    ctx.save();
+    ctx.imageSmoothingQuality = 'high';
+    ctx.globalAlpha = k * 0.1 / 0.82;          // the sprite's mean density ≈ 0.82
+    ctx.drawImage(cb.cv, x - r - cb.pad, y - r - cb.pad, cb.S / cb.q, cb.S / cb.q);
+    ctx.restore();
     // soft cast shade just outside the lower-right rim
     const cs = ctx.createConicGradient(L, x, y);
     cs.addColorStop(0, U.rgba(C.sumi, 0));
     cs.addColorStop(0.3, U.rgba(C.sumi, 0));
-    cs.addColorStop(0.5, U.rgba(C.sumi, 0.07));
+    cs.addColorStop(0.5, U.rgba(C.sumi, 0.08));
     cs.addColorStop(0.7, U.rgba(C.sumi, 0));
     cs.addColorStop(1, U.rgba(C.sumi, 0));
     ctx.strokeStyle = cs;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 6;
     ctx.beginPath();
-    ctx.arc(x + 1, y + 1, r + 3, 0, TAU);
+    ctx.arc(x + 1.2, y + 1.2, r + 3.5, 0, TAU);
     ctx.stroke();
-    // the rim: 胡粉 highlight on the upper-left slope, 墨 shadow on the lower-right
-    const hi = ctx.createConicGradient(L, x, y);
-    hi.addColorStop(0, U.rgba(C.gofun, 0.55));
-    hi.addColorStop(0.18, U.rgba(C.gofun, 0.34));
-    hi.addColorStop(0.3, U.rgba(C.gofun, 0));
-    hi.addColorStop(0.7, U.rgba(C.gofun, 0));
-    hi.addColorStop(0.82, U.rgba(C.gofun, 0.34));
-    hi.addColorStop(1, U.rgba(C.gofun, 0.55));
-    ctx.strokeStyle = hi;
-    ctx.lineWidth = 2.2;
+    // the fold of the emboss: a hairline that keeps the circle whole at the sides
+    ctx.strokeStyle = U.rgba(C.sumi, 0.07);
+    ctx.lineWidth = 0.9;
     ctx.beginPath();
-    ctx.arc(x - 0.6, y - 0.6, r - 1.1, 0, TAU);
+    ctx.arc(x, y, r + 0.3, 0, TAU);
+    ctx.stroke();
+    // the rim: 胡粉 highlight on the upper-left slope, 墨 shadow on the lower-right (±2 px)
+    const hi = ctx.createConicGradient(L, x, y);
+    hi.addColorStop(0, U.rgba(C.gofun, 0.9));
+    hi.addColorStop(0.12, U.rgba(C.gofun, 0.62));
+    hi.addColorStop(0.26, U.rgba(C.gofun, 0));
+    hi.addColorStop(0.74, U.rgba(C.gofun, 0));
+    hi.addColorStop(0.88, U.rgba(C.gofun, 0.62));
+    hi.addColorStop(1, U.rgba(C.gofun, 0.9));
+    ctx.strokeStyle = hi;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(x - 0.7, y - 0.7, r - 1.2, 0, TAU);
     ctx.stroke();
     const lo = ctx.createConicGradient(L, x, y);
     lo.addColorStop(0, U.rgba(C.sumi, 0));
-    lo.addColorStop(0.24, U.rgba(C.sumi, 0));
-    lo.addColorStop(0.38, U.rgba(C.sumi, 0.14));
-    lo.addColorStop(0.5, U.rgba(C.sumi, 0.22));
-    lo.addColorStop(0.62, U.rgba(C.sumi, 0.14));
-    lo.addColorStop(0.76, U.rgba(C.sumi, 0));
+    lo.addColorStop(0.22, U.rgba(C.sumi, 0));
+    lo.addColorStop(0.36, U.rgba(C.sumi, 0.16));
+    lo.addColorStop(0.5, U.rgba(C.sumi, 0.26));
+    lo.addColorStop(0.64, U.rgba(C.sumi, 0.16));
+    lo.addColorStop(0.78, U.rgba(C.sumi, 0));
     lo.addColorStop(1, U.rgba(C.sumi, 0));
     ctx.strokeStyle = lo;
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.4;
     ctx.beginPath();
-    ctx.arc(x + 0.6, y + 0.6, r + 0.4, 0, TAU);
+    ctx.arc(x + 0.7, y + 0.7, r + 0.2, 0, TAU);
     ctx.stroke();
     ctx.restore();
   }
@@ -254,6 +297,7 @@
   TSUKI.scene('fuji-no-keburi', {
     init() {
       buildSeal();
+      buildCarbon();
       // ask the browser for the glyphs the canvas will need at the end
       try {
         if (document.fonts && document.fonts.load) document.fonts.load('22px "Shippori Mincho B1"', COLOPHON + SEAL_TEXT).catch(() => {});
@@ -263,6 +307,9 @@
     draw(ctx, t, S) {
       const T = S.seg.start + t;
       const E = TSUKI.SHOTS.E;
+      // every sprite and plate here is carved at (or near) the stage resolution:
+      // bilinear is indistinguishable, and avoids the slow high-quality resampler
+      ctx.imageSmoothingQuality = 'low';
       // the paper remembers what was pressed into it: relief under the ink
       drawKarazuri(ctx, T, U.seg(T, 226, 228, U.ease.inOutSine));
       drawNotch(ctx, U.seg(T, 225.4, 227.4, U.ease.inOutSine));

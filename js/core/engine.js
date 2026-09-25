@@ -455,7 +455,10 @@
     }
   }
   function start() {
+    const first = !started;
     ensureStarted();
+    // the curtain shows the poster frame; the film itself begins at 0
+    if (first && !params.has('t') && !params.has('seg')) seek(0);
     play();
   }
   function showEnd(on) {

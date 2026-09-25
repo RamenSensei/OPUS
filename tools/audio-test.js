@@ -165,6 +165,24 @@ function safety(name, s, { rmsLo = -60, strict = true } = {}) {
         { t: 9.0, inst: 'hyoshigi', pitch: 1.3, count: 3, gap: 0.2 },
         { t: 9.5, inst: 'hyoshigi', kizami: true, kizamiDur: 1.5 },
         { t: 9.9, inst: 'nonesuch', note: 'D4' },
+        // film instruments (js/score.js)
+        { t: 0.2, inst: 'sozu', vel: 0.8 }, { t: 1.4, inst: 'sozu', dry: true, vel: 0.5 },
+        { t: 0.5, inst: 'kento', vel: 1, rev: 0.02 }, { t: 0.6, inst: 'kento', take: 1 },
+        { t: 0.7, inst: 'baren', dur: 2, stroke: 0.5, vel: 0.4 },
+        { t: 1.0, inst: 'geese', birds: 3, honks: 3, gap: 0.3, f: 400, echo: 0.5, spread: 0.3 },
+        ...['brush', 'rustle', 'crack', 'peel', 'press', 'grass', 'hiss', 'cloth'].map((kind, i) => ({ t: 2 + i * 0.4, inst: 'swish', kind, bright: i / 7 })),
+        { t: 3.1, inst: 'plink', f0: 2100, f1: 1500, glide: 0.06, hollow: 1, splash: 0.5 },
+        { t: 3.3, inst: 'splash', kind: 'hand', drops: 5 }, { t: 3.6, inst: 'splash', kind: 'gush', dur: 0.3 },
+        { t: 4.2, inst: 'pestle', vel: 0.6 }, { t: 4.4, inst: 'puff', dur: 0.4, gutter: 1 },
+        { t: 4.6, inst: 'pour', dur: 0.8, f0: 600, f1: 1400, tickAt: 1.0 },
+        { t: 5.0, inst: 'mushi', kind: 'suzu', f: 4400, dur: 1.2, pulses: 3 }, { t: 5.5, inst: 'mushi', kind: 'matsu', f: 3300 },
+        { t: 6.1, inst: 'glass', note: ['A6', 'B6', 'E7'], swell: 0.8, dur: 1.5, release: 1 },
+        { t: 6.3, inst: 'glass', grains: 12, lo: 2500, hi: 4500, spread: 0.8 },
+        { t: 6.6, inst: 'koto', note: 'A5', harm: true }, { t: 6.8, inst: 'koto', note: ['A4', 'D5'], worn: true, press: 1 },
+        { t: 7.2, inst: 'shakuhachi', note: 'A4', air: true, dur: 0.6, bendFrom: 1, fall: -2 },
+        { t: 7.5, inst: 'bonsho', note: 'D4', partials: 'dawn', decay: 6 },
+        { t: 7.6, inst: 'bonsho', note: 'D3', partials: [[0.5, 0.5, 1.2, 0.7], [1, 1, 1, 0], [2.4, 0.3, 0.5, 1.1]], decay: 4 },
+        { t: 8.6, inst: 'sho', aitake: 'ichi', root: 'A4', dur: 2, release: 0.05, levels: [[0, 0], [0.5, 0.3], [1.5, 1]] },
       ];
       const beds = [
         { inst: 'drone', from: 0, to: 12, notes: 'D2+A2+D3', beat: 0.3, bright: 1, level: 0.4, pan: -0.5 },
@@ -174,13 +192,21 @@ function safety(name, s, { rmsLo = -60, strict = true } = {}) {
         { inst: 'insects', from: 2, to: 12, density: 0, suzumushi: 0, matsumushi: 1, field: 0, level: 0.5, pan: 0.8 },
         { inst: 'fire', from: 0, to: 12, crackle: 1, roar: 1, level: 0.5 },
         { inst: 'night', from: 0, air: 1, level: 1 },
+        { inst: 'wind', from: 0.5, to: 11, lo: 800, hi: 2000, q: 1.3, rumble: 0.3, air: 0.2, gusts: [1, [4, 0.5]], gustAmt: 0.7, gustRise: 0.8, gustFall: 2, level: 0.3, muffle: 2500 },
+        { inst: 'trickle', from: 0, to: 12, f: 1000, q: 5, fill: [[0, 900], [10, 1500]], bubbles: 1, level: 0.4, lp: 3000 },
+        { inst: 'insects', from: 1, to: 12, nSuzu: 1, nMatsu: 1, fSuzu: 4400, fMatsu: 3300, first: 0.2, activity: 0.3, vamp: 0.8, field: 0, level: 0.3 },
+        { inst: 'insects', from: 0, to: 12, nSuzu: 0, nMatsu: 0, field: 1, level: 0.2, muffle: 1500 },
       ];
       let st = null;
       try {
-        const buf = await A.renderOffline(0, 12, 44100, { events: ev, beds });
+        const master = [[0, 0], [0.3, 1], [10.5, 1], [10.6, 0], [11, 0], [11.2, 1]], room = [[3, 1], [3.05, 0], [4, 0], [4.3, 1]];
+        const buf = await A.renderOffline(0, 12, 44100, { events: ev, beds, master, room });
+        const q = T.analyze({ sampleRate: 44100, length: Math.round(0.4 * 44100), numberOfChannels: 2,
+          getChannelData: (c) => buf.getChannelData(c).subarray(Math.round(10.6 * 44100), Math.round(11 * 44100)) }, []);
+        ok(q.peakDb < -200, 'master 0 is not digital silence: ' + q.peakDb);
         st = T.analyze(buf, ev.map((e) => e.t));
         delete st.perSec;
-        const b2 = await A.renderOffline(4.5, 12, 22050, { events: ev.map((e) => Object.assign({}, e, { resume: true })), beds });
+        const b2 = await A.renderOffline(4.5, 12, 22050, { events: ev.map((e) => Object.assign({}, e, { resume: true })), beds, master, room });
         const s2 = T.analyze(b2, []);
         ok(s2.nan === 0, 'resume render NaN');
       } catch (e) { errs.push('render: ' + e.stack); }

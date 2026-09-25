@@ -96,19 +96,114 @@
   /* ---------------- the maria (rabbit plate R) ------------------------- */
   /**
    * Paint the rabbit maria clipped to the disc. The shape here is THE
-   * rabbit: the smoke in 四 settles into exactly this path.
+   * rabbit: the smoke in 四 settles into exactly this path — fourteen brush
+   * strokes of a rabbit (left, facing right) pounding with a 杵 into the 臼
+   * (right). Each stroke is a 6-point ribbon with per-point widths, in unit
+   * disc coordinates (authored on Shot D's moon: centre (960,430), r 260).
+   * The strokes are filled as ONE union (flat 薄墨, no darker overlaps).
+   * opts (optional): { pestle: radians — the 杵 swung about the paws (四),
+   *                    strokes: [indices] to draw only some }
+   * MOON.maria.STROKES / .PIVOT / .PESTLE / .ribbon(path, pts, ws) expose the
+   * shape so the smoke in 四 can ease into it.
    */
-  MOON.maria = (ctx, x, y, r, alpha, color = C.sumi) => {
-    if (alpha <= 0) return;
+  MOON.maria = (ctx, x, y, r, alpha, color = C.sumi, opts) => {
+    if (alpha <= 0 || r <= 0) return;
+    const M = MOON.maria;
+    const pest = opts && opts.pestle ? opts.pestle : 0;
+    const only = opts && opts.strokes;
+    const path = new Path2D();
+    const k = r;
+    M.STROKES.forEach((st, i) => {
+      if (only && only.indexOf(i) < 0) return;
+      let pts = st.p;
+      if (pest && M.PESTLE.indexOf(i) >= 0) pts = M.swing(pts, pest);
+      M.ribbon(path, pts.map((q) => [x + q[0] * k, y + q[1] * k]), st.w.map((w) => w * k), st.flat);
+    });
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, r, 0, U.TAU);
     ctx.clip();
-    ctx.translate(x, y);
     ctx.fillStyle = U.rgba(color, alpha);
-    B.rabbitMaria(ctx, r * 0.92);
+    ctx.fill(path);
     ctx.restore();
   };
+  (() => {
+    const M = MOON.maria;
+    const D = (x, y) => [(x - 960) / 260, (y - 430) / 260];   // Shot D px → unit disc
+    const W = (w) => w / 260;
+    const S = (pts, ws) => ({ p: pts.map((q) => D(q[0], q[1])), w: ws.map(W) });
+    M.STROKES = [
+      /* 0 far ear   */ S([[912, 402], [898, 374], [884, 348], [869, 324], [855, 305], [844, 292]], [10, 15, 18, 17, 12, 3]),
+      /* 1 near ear  */ S([[926, 398], [918, 368], [909, 341], [899, 316], [889, 297], [880, 284]], [11, 17, 21, 20, 14, 4]),
+      /* 2 head      */ S([[906, 418], [920, 405], [937, 400], [953, 404], [966, 411], [975, 420]], [22, 32, 37, 34, 26, 15]),
+      /* 3 jaw       */ S([[912, 423], [928, 425], [944, 426], [957, 425], [967, 423], [975, 421]], [24, 26, 24, 20, 16, 10]),
+      /* 4 back      */ S([[906, 428], [884, 450], [866, 478], [854, 510], [848, 540], [852, 566]], [16, 28, 36, 40, 38, 28]),
+      /* 5 chest     */ S([[934, 446], [942, 474], [941, 504], [933, 534], [920, 560], [905, 580]], [18, 28, 34, 36, 30, 20]),
+      /* 6 body      */ S([[912, 446], [908, 476], [902, 506], [894, 536], [885, 562], [876, 580]], [30, 44, 52, 54, 48, 30]),
+      /* 7 haunch    */ S([[850, 560], [857, 582], [874, 594], [896, 597], [918, 596], [940, 593]], [18, 28, 30, 24, 17, 10]),
+      /* 8 tail      */ S([[848, 532], [838, 536], [832, 543], [830, 551], [834, 558], [842, 560]], [8, 14, 16, 16, 12, 5]),
+      /* 9 arms      */ S([[930, 462], [941, 468], [951, 472], [959, 474], [965, 473], [971, 470]], [16, 17, 16, 14, 13, 12]),
+      /* 10 杵 handle */ S([[968, 470], [986, 463], [1003, 457], [1021, 450], [1038, 443], [1055, 437]], [9, 10, 10, 10, 10, 10]),
+      /* 11 杵 head   */ S([[1046, 410], [1049, 421], [1052, 431], [1055, 442], [1058, 453], [1061, 464]], [17, 21, 22, 22, 21, 17]),
+      /* 12 臼 rim    */ S([[978, 498], [1003, 491], [1030, 488], [1056, 488], [1082, 491], [1106, 498]], [12, 16, 18, 18, 16, 12]),
+      /* 13 臼 body   */ Object.assign(S([[1042, 493], [1042, 513], [1042, 534], [1042, 554], [1042, 574], [1042, 592]], [100, 86, 74, 72, 82, 98]), { flat: true }),
+    ];
+    M.PESTLE = [10, 11];
+    M.PIVOT = D(968, 470);
+    /** The pestle strokes swung by angle a (radians, + = down toward the mortar) about the paws. */
+    M.swing = (pts, a) => {
+      const [px, py] = M.PIVOT, c = Math.cos(a), s = Math.sin(a);
+      return pts.map(([qx, qy]) => [px + (qx - px) * c - (qy - py) * s, py + (qx - px) * s + (qy - py) * c]);
+    };
+    /**
+     * Add one brush ribbon to a Path2D: a Catmull-Rom spine through pts with
+     * per-point widths ws, round ends, wound clockwise so a nonzero fill of
+     * many ribbons is their exact union.
+     */
+    M.ribbon = (path, pts, ws, flat) => {
+      const n = pts.length, sub = 5, sp = [], sw = [];
+      const g = (i) => pts[Math.max(0, Math.min(n - 1, i))];
+      for (let i = 0; i < n - 1; i++) {
+        const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
+        for (let j = 0; j < sub; j++) {
+          const t = j / sub, t2 = t * t, t3 = t2 * t;
+          sp.push([
+            0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
+            0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3),
+          ]);
+          sw.push(ws[i] + (ws[i + 1] - ws[i]) * (t * t * (3 - 2 * t)));
+        }
+      }
+      sp.push(pts[n - 1]);
+      sw.push(ws[n - 1]);
+      const m = sp.length, L = [], R = [];
+      for (let i = 0; i < m; i++) {
+        const a = sp[Math.max(0, i - 1)], b = sp[Math.min(m - 1, i + 1)];
+        let dx = b[0] - a[0], dy = b[1] - a[1];
+        const len = Math.hypot(dx, dy) || 1;
+        dx /= len; dy /= len;
+        const h = sw[i] / 2;
+        L.push([sp[i][0] - dy * h, sp[i][1] + dx * h]);
+        R.push([sp[i][0] + dy * h, sp[i][1] - dx * h]);
+      }
+      let poly = L.concat(R.reverse());
+      let area = 0;
+      for (let i = 0; i < poly.length; i++) {
+        const q = poly[i], w = poly[(i + 1) % poly.length];
+        area += q[0] * w[1] - w[0] * q[1];
+      }
+      if (area < 0) poly = poly.reverse();
+      path.moveTo(poly[0][0], poly[0][1]);
+      for (let i = 1; i < poly.length; i++) path.lineTo(poly[i][0], poly[i][1]);
+      path.closePath();
+      for (const e of flat ? [] : [0, m - 1]) {
+        const h = sw[e] / 2;
+        if (h < 0.3) continue;
+        path.moveTo(sp[e][0] + h, sp[e][1]);
+        path.arc(sp[e][0], sp[e][1], h, 0, U.TAU, false);
+      }
+    };
+  })();
 
   /**
    * Draw the paper moon at (x, y, r) for film time T.

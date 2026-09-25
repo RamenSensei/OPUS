@@ -17,6 +17,7 @@
        beds:   [{ inst, from, to, level, fadeIn, fadeOut, automation }] }
    `master` is a film-time gain curve applied AFTER the whole master chain
    (reverb, compressor, clip): a 0 there is digital silence, tails included.
+   `room` ([[t, gain], ...]) scales the shared reverb's return: 0 = dry air.
    Composer helpers: phrase(), scale(), hirajoshi(), note(), freq().
    All randomness is seeded from the event, so renders are repeatable.
 
@@ -368,11 +369,11 @@
   /* ------------------------------------------------------------------ */
   const PLUCK = {
     // bright tsume attack, paulownia body, long natural ring
-    koto: { gain: 0.7, bright: 0.62, pos: 0.13, sawari: 0, pick: 0.28, second: 0.3, lp: 8500,
+    koto: { gain: 0.7, bright: 0.62, pos: 0.13, sawari: 0, pick: 0.22, second: 0.3, lp: 7000,
       t60: (f) => clamp(5.6 * Math.pow(147 / f, 0.45), 1.8, 6),
       body: [[205, 1.1, 4], [470, 1.3, 3], [1250, 1.8, 2], [3400, 1.0, -4]] },
     // big bachi near the bridge, buzzing sawari, shorter ring
-    biwa: { gain: 0.6, bright: 0.72, pos: 0.07, sawari: 0.6, pick: 0.45, second: 0.2, lp: 7000,
+    biwa: { gain: 0.6, bright: 0.72, pos: 0.07, sawari: 0.6, pick: 0.4, second: 0.2, lp: 6200,
       t60: (f) => clamp(4.2 * Math.pow(110 / f, 0.4), 1.6, 4.5),
       body: [[150, 1.0, 5], [410, 1.4, 3.5], [1700, 2.0, 2.5], [4000, 1.0, -5]] },
     // 後摺: the same koto sixty years on — dull strings, more loss, a false beat
@@ -380,7 +381,7 @@
       t60: (f) => clamp(2.4 * Math.pow(147 / f, 0.45), 0.9, 2.6),
       body: [[205, 1.1, 4], [470, 1.3, 3], [1250, 1.8, 1], [3400, 1.0, -7]] },
     // a touched-node harmonic: nearly pure, glassy, rings long
-    kotoHarm: { gain: 0.6, harm: true, lp: 7000,
+    kotoHarm: { gain: 0.36, harm: true, lp: 7000,
       t60: (f) => clamp(4.4 * Math.pow(440 / f, 0.3), 2.4, 5),
       body: [[205, 1.1, 2], [470, 1.3, 2], [1250, 1.8, 1], [3400, 1.0, -6]] },
   };
@@ -538,7 +539,7 @@
     return c;
   }
 
-  /** music → hp → shelf → compressor → trim → safety clip → mute → out */
+  /** music → hp → shelf → compressor → trim → safety clip → auto (score master) → mute → out */
   function makeGraph(ctx) {
     const G = { ctx, sr: ctx.sampleRate };
     const gain = (v) => { const g = ctx.createGain(); g.gain.value = v; return g; };
@@ -557,10 +558,34 @@
     const clip = ctx.createWaveShaper();
     clip.curve = softClipCurve();
     clip.oversample = 'none';
+    G.auto = gain(1);          // TSUKI.SCORE.master: after everything, so 0 is digital silence
     G.mute = gain(1);
     G.music.connect(hp); hp.connect(shelf); shelf.connect(comp); comp.connect(trim);
-    trim.connect(clip); clip.connect(G.mute); G.mute.connect(ctx.destination);
+    trim.connect(clip); clip.connect(G.auto); G.auto.connect(G.mute); G.mute.connect(ctx.destination);
     return G;
+  }
+
+  /** The score's master curve [[t, gain], ...] (linear between points) at film time t. */
+  function masterAt(pts, t) {
+    if (!pts || !pts.length) return 1;
+    if (t <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) {
+      if (t < pts[i][0]) {
+        const [a, va] = pts[i - 1], [b, vb] = pts[i];
+        return b <= a ? vb : va + ((vb - va) * (t - a)) / (b - a);
+      }
+    }
+    return pts[pts.length - 1][1];
+  }
+  /** Schedule the master curve from film time T0 (ctx time of film t = c(t)); glide from the current value. */
+  function scheduleMaster(param, pts, T0, c, now, glide) {
+    param.cancelScheduledValues(now);
+    const v0 = masterAt(pts, T0);
+    if (glide > 0) { param.setValueAtTime(param.value, now); param.linearRampToValueAtTime(v0, now + glide); }
+    else param.setValueAtTime(v0, now);
+    for (const [t, v] of pts || []) {
+      if (t > T0 && c(t) > now + glide) param.linearRampToValueAtTime(v, c(t));
+    }
   }
 
   /** A session is everything started by one play(); killed as a whole. */
@@ -573,8 +598,10 @@
     S.conv = ctx.createConvolver();
     S.conv.normalize = false;
     S.conv.buffer = reverbIR(G.sr);
+    S.room = ctx.createGain();          // the reverb return: TSUKI.SCORE.room can hold the air's breath
     S.send.connect(S.conv);
-    S.conv.connect(S.out);
+    S.conv.connect(S.room);
+    S.room.connect(S.out);
     return S;
   }
 
@@ -607,7 +634,7 @@
     setTimeout(() => {
       for (const v of S.voices) freeKit(v);
       for (const b of S.beds) b.free();
-      for (const n of [S.out, S.send, S.conv]) { try { n.disconnect(); } catch (e) { /* gone */ } }
+      for (const n of [S.out, S.send, S.conv, S.room]) { try { n.disconnect(); } catch (e) { /* gone */ } }
     }, (fade + 0.2) * 1000);
   }
 
@@ -897,7 +924,7 @@
 
     // breath: pitched hollow noise (following the bends) + high air; muraiki bursts at the attack
     const nz = K.noise('white', when, p.seed);
-    const bp = K.filter('bandpass', f, air ? 3.5 : 6), hp = K.filter('highpass', 1400, 0.5), blp = K.filter('lowpass', air ? 4200 : 5500, 0.5);
+    const bp = K.filter('bandpass', f, air ? 3.5 : 6), hp = K.filter('highpass', 1400, 0.5), blp = K.filter('lowpass', air ? 4000 : 4800, 0.5);
     applyEnv(bp.detune, when, pitch, off);
     const g1 = K.gain(air ? 14 : 8), g2 = K.gain((1.0 + mur) * (air ? 0.7 : 1)), benv = K.gain(0);
     nz.connect(bp); bp.connect(g1); g1.connect(benv);
@@ -932,7 +959,7 @@
       const fr = f * r;
       if (fr > 12000) continue;
       const tau = (o.decay * ds) / 6.9, att = r < 1.2 ? o.att : o.att * 0.4;
-      for (const [df, w] of [[(-sp * o.beat) / 2, 1], [(sp * o.beat) / 2, 0.72]]) {
+      for (const [df, w] of sp ? [[(-sp * o.beat) / 2, 1], [(sp * o.beat) / 2, 0.72]] : [[0, 1.72]]) {
         const osc = K.osc('sine', fr + df, when), g = K.gain(0);
         applyEnv(g.gain, when, [[0, 0], [att, a * w], [att, 0, tau]], off);
         osc.connect(g);
@@ -946,13 +973,18 @@
     [4.18, 0.3, 0.33, 1.2], [5.43, 0.22, 0.24, 3.1], [6.72, 0.15, 0.17, 2.0], [8.1, 0.1, 0.12, 2.7], [10.2, 0.06, 0.09, 3.5],
     [12.6, 0.04, 0.07, 4.2]];
   const RIN = [[1, 1, 1, 0.7], [2.74, 0.42, 0.55, 1.4], [5.18, 0.18, 0.3, 2.2], [8.4, 0.07, 0.18, 3.3]];
+  // the dawn bell of the sound bible: 0.5 1 1.18 1.5 2.0 2.74 3.76 over the hum; only the
+  // hum pair is split (0.7 Hz 唸り). With note D4 the hum is D3 and the 2.0 partial is D5.
+  const BONSHO_DAWN = [[0.5, 0.6, 1.35, 0.7], [1, 1, 1, 0], [1.18, 0.4, 0.7, 0], [1.5, 0.46, 0.75, 0],
+    [2.0, 0.58, 0.9, 0], [2.74, 0.28, 0.45, 0], [3.76, 0.16, 0.3, 0]];
 
   inst('bonsho', { rev: 0.45, resumable: true }, (ctx, dest, when, p) => {
     const K = kit(ctx, dest);
     const f = freqOf(def(p.note, 'G2')), vel = clamp(def(p.vel, 0.7)), off = p.off || 0;
     const decay = def(p.decay, 16), bright = clamp(def(p.bright, 0.5));
+    const parts = Array.isArray(p.partials) ? p.partials : p.partials === 'dawn' ? BONSHO_DAWN : BONSHO;
     const lp = K.filter('lowpass', lerp(1600, 5200, bright), 0.5);
-    const mix = bell(K, when, off, f, BONSHO, { gain: 0.085 * Math.pow(vel, 1.1), decay, beat: def(p.beat, 1), att: 0.03 });
+    const mix = bell(K, when, off, f, parts, { gain: 0.085 * Math.pow(vel, 1.1), decay, beat: def(p.beat, 1), att: 0.03 });
     mix.connect(lp);
     lp.connect(K.out);
     if (off < 0.05) {
@@ -1081,8 +1113,16 @@
     const R = U.rng(p.seed), n = notes.length;
     const lp = K.filter('lowpass', 900, 0.4), sh = K.filter('highshelf', 5000, 0.7, -5);
     const wob = K.gain(1), env = K.gain(0), top = lerp(2200, 4500, bright);
-    applyEnv(lp.frequency, when, mono([[0, 700], [swell, top], [dur, top * 0.9], [dur + rel, 700]]), off);
-    applyEnv(env.gain, when, mono([[0, 0], [swell * 0.45, 0.45], [swell, 1], [dur, 0.92], [dur, 0, rel / 4]]), off);
+    if (p.levels && p.levels.length) {
+      // an explicit dynamic curve [[dt, 0–1], ...]: the reeds open as the breath grows
+      const lv = mono(p.levels.map(([t, v]) => [clamp(t, 0, dur), clamp(v, 0, 1.5)]));
+      const last = lv[lv.length - 1][1], bf = (v) => 700 + (top - 700) * Math.pow(clamp(v), 0.8);
+      applyEnv(env.gain, when, mono([[0, 0], ...lv, [dur, last], [dur, 0, rel / 4]]), off);
+      applyEnv(lp.frequency, when, mono([[0, 700], ...lv.map(([t, v]) => [t, bf(v)]), [dur, bf(last)], [dur + rel, 700]]), off);
+    } else {
+      applyEnv(lp.frequency, when, mono([[0, 700], [swell, top], [dur, top * 0.9], [dur + rel, 700]]), off);
+      applyEnv(env.gain, when, mono([[0, 0], [swell * 0.45, 0.45], [swell, 1], [dur, 0.92], [dur, 0, rel / 4]]), off);
+    }
     // te-utsuri: the breath turns over every few seconds — a small dip
     const wp = [[0, 1]];
     for (let t = swell + lerp(2.5, 5, R()); t < dur - 1; t += lerp(3.5, 6, R())) wp.push([t - 0.25, 1], [t, 0.8], [t + 0.4, 1]);
@@ -1137,10 +1177,462 @@
   }, (p) => (p.kizami ? def(p.kizamiDur, 4) : def(p.count, 1) * def(p.gap, 0.9)) + 0.5);
 
   /* ------------------------------------------------------------------ */
+  /* one-shots rendered in JS: wood, water, paper, breath, birds, insects */
+  /* Each is a pure function of its params (seeded), cached in the LRU,   */
+  /* started from an offset when resumed after a seek.                    */
+  /* ------------------------------------------------------------------ */
+  /** Seeded xorshift white noise in [−1, 1). */
+  function noiseGen(seed) {
+    let x = (Math.imul((seed | 0) + 0x632be5ab, 2654435761) ^ 0x9e3779b9) | 0 || 1;
+    return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) * 4.656612873077393e-10 - 1; };
+  }
+  /** Zero-delay state-variable filter, safe to sweep per sample. step(x, f, q) → unity-peak band; .lo .hi */
+  function SVF(sr) {
+    let s1 = 0, s2 = 0, gf = -1, gq = -1, a1 = 0, a2 = 0, a3 = 0, k = 1;
+    const o = { lo: 0, hi: 0 };
+    o.step = (x, f, q) => {
+      if (f !== gf || q !== gq) {
+        gf = f; gq = q;
+        const g = Math.tan((Math.PI * Math.min(Math.max(f, 10), sr * 0.45)) / sr);
+        k = 1 / q; a1 = 1 / (1 + g * (g + k)); a2 = g * a1; a3 = g * a2;
+      }
+      const v3 = x - s2, v1 = a1 * s1 + a2 * v3, v2 = s2 + a2 * s1 + a3 * v3;
+      s1 = 2 * v1 - s1; s2 = 2 * v2 - s2;
+      o.lo = v2; o.hi = x - k * v1 - v2;
+      return k * v1;
+    };
+    return o;
+  }
+  /** Hann-windowed band of noise: a grain of paper, grass, crackle. */
+  function addGrain(d, sr, i0, dur, f, q, amp, rnd) {
+    const n = Math.max(8, Math.round(dur * sr)), F = SVF(sr);
+    for (let j = 0; j < n && i0 + j < d.length; j++) {
+      if (i0 + j < 0) { F.step(rnd(), f, q); continue; }
+      d[i0 + j] += F.step(rnd(), f, q) * (0.5 - 0.5 * Math.cos((TAU * j) / n)) * amp;
+    }
+  }
+  /** A decaying sine that glides f0 → f1 (exponentially) over `glide` s: drops, plops. */
+  function addGlide(d, sr, i0, f0, f1, glide, amp, tau, att) {
+    const n = Math.min(d.length - i0, Math.round(sr * (att + tau * 7))), ng = Math.max(1, glide * sr);
+    const ga = Math.log(f1 / f0) / ng, na = Math.max(1, Math.round(att * sr)), dk = Math.exp(-1 / (tau * sr));
+    let ph = 0, env = amp;
+    for (let j = 0; j < n; j++) {
+      ph += (TAU * (j < ng ? f0 * Math.exp(ga * j) : f1)) / sr;
+      d[i0 + j] += Math.sin(ph) * env * (j < na ? 0.5 - 0.5 * Math.cos((Math.PI * j) / na) : 1);
+      if (j >= na) env *= dk;
+    }
+  }
+  const sm01 = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+  /** Rendered, cached buffer: fill(chs, sr, len) writes Float32Arrays. */
+  function sketch(key, sr, secs, chans, fill) {
+    return cacheLru(key + ':' + sr, () => {
+      const len = Math.max(16, Math.round(secs * sr)), chs = [];
+      for (let c = 0; c < chans; c++) chs.push(new Float32Array(len));
+      fill(chs, sr, len);
+      for (const d of chs) {          // never let a NaN out
+        let sum = 0;
+        for (let i = 0; i < len; i++) sum += d[i];
+        if (!Number.isFinite(sum)) for (let i = 0; i < len; i++) if (!Number.isFinite(d[i])) d[i] = 0;
+      }
+      const b = newBuf(chans, len, sr);
+      chs.forEach((d, c) => b.copyToChannel(d, c));
+      return b;
+    });
+  }
+  const finish = (chs, sr, peak = 0.9, fin = 0.0004, fout = 0.04) => {
+    peakNorm(chs, peak);
+    for (const d of chs) fadeEnds(d, sr, fin, fout);
+  };
+  const v4 = (p, n = 4) => Math.abs(Math.round(def(p.seed, 0))) % n;   // a few seeded takes per sound
+
+  /**
+   * Register a buffer instrument. buf(sr, p) → AudioBuffer (cached, also used by prewarm),
+   * amp(p) → linear gain. Resumable: a seek starts the buffer part-way through.
+   */
+  function oneShot(name, defaults, buf, amp, len) {
+    inst(name, Object.assign({ resumable: true }, defaults), (ctx, dest, when, p) => {
+      const K = kit(ctx, dest), b = buf(ctx.sampleRate, p), off = Math.max(0, p.off || 0);
+      if (off >= b.duration - 0.02) return K.done(when);
+      const s = K.buf(b, when, { offset: off }), g = K.gain(amp(p));
+      if (off > 0) { g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(amp(p), when + 0.03); }
+      s.connect(g);
+      g.connect(K.out);
+      return K.done(when + b.duration - off + 0.01);
+    }, len);
+    INST[name].warm = buf;
+  }
+  const velAmp = (k, e = 1.2) => (p) => k * Math.pow(clamp(def(p.vel, 0.7), 0.02, 1), e);
+
+  /* ---------- 鹿威し sōzu: the KON (and the cracked, dry tube of the 後摺) ---------- */
+  oneShot('sozu', { rev: 0.72 }, (sr, p) => {
+    const dry = !!p.dry, v = v4(p, 3);
+    return sketch(`sozu:${dry ? 1 : 0}:${v}`, sr, dry ? 0.7 : 1.5, 1, ([d]) => {
+      const R = U.rng(4400 + v * 13 + (dry ? 99 : 0)), rnd = noiseGen(77 + v);
+      const f = (dry ? 305 : 200) * (1 + (R() - 0.5) * 0.02), tau = dry ? 0.035 : 0.13, na = Math.round(sr * 0.0016);
+      let ph = 0;
+      for (let i = 0; i < d.length; i++) {     // the thump: the tube's body, pitch settling after impact
+        const t = i / sr;
+        ph += (TAU * f * (1 + 0.17 * Math.exp(-t / 0.012))) / sr;
+        d[i] += Math.sin(ph) * (i < na ? i / na : 1) * Math.exp(-t / tau);
+      }
+      addPartial(d, sr, 0, f * 2.32, dry ? 0.16 : 0.4, dry ? 0.016 : 0.055, 0.001);   // hollow tube modes
+      addPartial(d, sr, 0, f * 3.91, dry ? 0.09 : 0.19, dry ? 0.01 : 0.026, 0.0008);
+      addPartial(d, sr, 0, f * 5.6, 0.07, 0.012, 0.0006);
+      addPartial(d, sr, 0, 1650 * (1 + (R() - 0.5) * 0.04), dry ? 0.5 : 0.32, 0.006, 0.0003);  // bamboo on stone
+      addPartial(d, sr, 0, 2950, 0.16, 0.0035, 0.0002);
+      addGrain(d, sr, 0, 0.004, 2400, 0.9, dry ? 0.9 : 0.55, rnd);
+      if (dry) for (let k = 1; k <= 4; k++) {   // a split tube rattles
+        addGrain(d, sr, Math.round(sr * (0.009 + k * 0.011 + R() * 0.004)), 0.005, 1900 + R() * 900, 1.5, 0.42 * Math.pow(0.6, k), rnd);
+      }
+      biquad(d, 'highpass', 60, 0.7, 0, sr);
+      finish([d], sr, 0.9, 0.0002, 0.12);
+    });
+  }, velAmp(0.62), (p) => (p.dry ? 0.7 : 1.5));
+
+  /* ---------- 見当 kentō: a block settling into register — the CLICK ---------- */
+  oneShot('kento', { rev: 0.16 }, (sr, p) => {
+    const v = def(p.take, 0);
+    return sketch(`kento:${v}`, sr, 0.3, 1, ([d]) => {
+      const R = U.rng(5150 + v * 17), f = 1200 * (1 + (R() - 0.5) * 0.01);
+      addPartial(d, sr, 0, f, 1, 0.0034, 0.0003);            // the tick: cherry wood, 12 ms
+      addPartial(d, sr, 0, f * 2.81, 0.26, 0.0016, 0.0002);
+      addPartial(d, sr, 0, f * 4.37, 0.09, 0.0009, 0.0002);
+      addPartial(d, sr, 0, 180, 0.8, 0.021, 0.0016);         // the thunk: the block sits down
+      addPartial(d, sr, 0, 180 * 2.31, 0.2, 0.009, 0.001);
+      addGrain(d, sr, 0, 0.0014, 3000, 0.7, 0.35, noiseGen(900 + v));
+      biquad(d, 'highpass', 70, 0.7, 0, sr);
+      finish([d], sr, 0.9, 0.0002, 0.06);
+    });
+  }, velAmp(0.62), () => 0.3);
+
+  /* ---------- 馬連 baren: the rub that pulls the print (circular strokes) ---------- */
+  oneShot('baren', { rev: 0.12, sustained: true }, (sr, p) => {
+    const dur = def(p.dur, 4), stroke = def(p.stroke, 0.7), v = v4(p);
+    return sketch(`baren:${dur}:${stroke}:${v}`, sr, dur + 0.05, 2, ([L, Rr]) => {
+      const rnd = noiseGen(3100 + v), tk = noiseGen(3300 + v), R = U.rng(31 + v), F = SVF(sr), F2 = SVF(sr);
+      const n = Math.round(dur * sr), hk = Math.exp((-TAU * 300) / sr), KR = 32;
+      let br = 0, hp = 0, hpx = 0, nextTick = 0, fc = 360, g = 0, pan = 0, speed = 0;
+      const tick = new Float32Array(L.length);
+      for (let i = 0; i < n; i++) {
+        if (i % KR === 0) {                                                    // control rate: every 32 samples
+          const t = i / sr, x = t / dur, ph = (t / stroke) % 1;
+          speed = Math.sin(Math.PI * x);                                       // the spiral's reach: slow, fast, slow
+          const circ = 0.5 + 0.5 * Math.pow(Math.sin(TAU * ph), 2);            // pressure turns twice a circle
+          fc = 360 + 760 * speed * (0.6 + 0.4 * Math.sin(TAU * ph + 0.6));
+          g = Math.pow(speed, 0.85) * circ * sm01(t / 0.12) * sm01((dur - t) / 0.2);
+          pan = 0.22 * Math.sin(TAU * ph);                                     // the pad circling
+        }
+        br = (br + 0.02 * rnd()) / 1.02;                                       // brown noise
+        let y = F.step(br * 3.2, fc, 0.8);
+        hp = hk * (hp + y - hpx); hpx = y; y = hp;                             // 300 Hz …
+        F2.step(y, 1200, 0.7); y = F2.lo;                                      // … 1200 Hz
+        L[i] += y * g * (1 - pan); Rr[i] += y * g * (1 + pan);
+        if (i >= nextTick) {                                                   // paper fibre catching the pad
+          addGrain(tick, sr, i, 0.002 + R() * 0.003, 1500 + R() * 1800, 1.4, 0.05 * speed, tk);
+          nextTick = i + Math.round((sr * (0.02 + R() * 0.12)) / (0.3 + speed));
+        }
+      }
+      for (let i = 0; i < L.length; i++) { L[i] += tick[i]; Rr[i] += tick[i] * 0.8; }
+      finish([L, Rr], sr, 0.85, 0.01, 0.05);
+    });
+  }, velAmp(0.5, 1), (p) => def(p.dur, 4) + 0.05);
+
+  /* ---------- geese: distant two-formant FM honks, echoing across the valley ---------- */
+  function honk(d, sr, i0, f, dur, amp, rnd) {
+    const n = Math.round(dur * sr), n1 = Math.max(2, Math.round(1050 / f)), n2 = Math.max(n1 + 1, Math.round(2350 / f)), F = SVF(sr);
+    let ph = 0;
+    for (let j = 0; j < n && i0 + j < d.length; j++) {
+      const x = j / n;
+      const fc = f * (0.8 + 0.2 * sm01(x / 0.16)) * (1 - 0.1 * sm01((x - 0.6) / 0.4));   // scoop up, sag at the end
+      ph += (TAU * fc) / sr;
+      const I = 1.1 + 2.4 * Math.sin(Math.PI * x), m = Math.sin(ph);
+      const v = 0.45 * Math.sin(ph + 0.6 * I * m) + Math.sin(n1 * ph + I * m) + 0.38 * Math.sin(n2 * ph + 0.8 * I * m);
+      const env = Math.sin((Math.PI / 2) * sm01(x / 0.12)) * Math.sin((Math.PI / 2) * sm01((1 - x) / 0.28));
+      d[i0 + j] += (v + 0.5 * F.step(rnd(), 1250, 1.2)) * env * amp;
+    }
+  }
+  oneShot('geese', { rev: 0.55, dist: 0.45 }, (sr, p) => {
+    const birds = Math.max(1, Math.round(def(p.birds, 2))), honks = Math.max(1, Math.round(def(p.honks, 2)));
+    const gap = def(p.gap, 0.36), f = def(p.f, 370), echo = clamp(def(p.echo, 0.35)), spread = def(p.spread, 0.2), v = v4(p);
+    const key = `geese:${birds}:${honks}:${gap}:${Math.round(f)}:${echo}:${spread}:${v}`;
+    const len = spread * birds + honks * gap + 0.5 + 0.24 * 4;
+    return sketch(key, sr, len, 2, ([L, Rr]) => {
+      const R = U.rng(6100 + v * 7 + birds * 31), rnd = noiseGen(6200 + v), m = new Float32Array(L.length);
+      for (let b = 0; b < birds; b++) {
+        const fb = f * (1 + (b ? (R() - 0.5) * 0.16 : 0)), pan = clamp(0.5 - b * 0.35 + (R() - 0.5) * 0.2, -0.9, 0.9);
+        const gl = Math.cos(((pan + 1) * Math.PI) / 4), gr = Math.sin(((pan + 1) * Math.PI) / 4);
+        m.fill(0);
+        for (let h = 0; h < honks; h++) {
+          const t = b * spread + R() * 0.06 + h * gap * lerp(0.9, 1.1, R());
+          honk(m, sr, Math.round(t * sr), fb * lerp(0.97, 1.03, R()), h % 2 ? lerp(0.2, 0.26, R()) : lerp(0.15, 0.2, R()), lerp(0.75, 1, R()), rnd);
+        }
+        for (let i = 0; i < m.length; i++) { L[i] += gl * m[i]; Rr[i] += gr * m[i]; }
+      }
+      // air absorption, then the far side of the valley answers: a ping-pong echo, darker each time
+      for (const d of [L, Rr]) biquad(d, 'lowpass', 2600, 0.6, 0, sr);
+      if (echo > 0) {
+        const dl = Math.round(0.24 * sr), k = Math.exp((-TAU * 1800) / sr);
+        let lL = 0, lR = 0;
+        for (let i = dl; i < L.length; i++) {
+          lL = k * lL + (1 - k) * Rr[i - dl]; lR = k * lR + (1 - k) * L[i - dl];
+          L[i] += echo * lL; Rr[i] += echo * lR;
+        }
+      }
+      finish([L, Rr], sr, 0.85, 0.001, 0.1);
+    });
+  }, velAmp(0.5, 1.1), (p) => def(p.spread, 0.2) * def(p.birds, 2) + def(p.honks, 2) * def(p.gap, 0.36) + 1.46);
+
+  /* ---------- paper and grass: brush, rustle, crack, peel, press, grass, hiss, cloth ---------- */
+  const SWISH = { brush: 0.08, rustle: 0.45, crack: 0.5, peel: 1.3, press: 0.22, grass: 0.8, hiss: 1.6, cloth: 0.7 };
+  oneShot('swish', { rev: 0.2 }, (sr, p) => {
+    const kind = SWISH[p.kind] !== undefined ? p.kind : 'brush', dur = def(p.dur, SWISH[kind]);
+    const br = Math.round(clamp(def(p.bright, 0.5)) * 4) / 4, v = v4(p, kind === 'brush' ? 6 : 4);
+    return sketch(`swish:${kind}:${dur}:${br}:${v}`, sr, dur + 0.06, 1, ([d]) => {
+      const R = U.rng(8100 + v * 19 + kind.length * 101), rnd = noiseGen(8200 + v * 7 + kind.length), F = SVF(sr);
+      const n = Math.round(dur * sr), bk = lerp(0.8, 1.25, br);
+      const grains = (count, t0, t1, fLo, fHi, dLo, dHi, aLo, aHi, weight) => {
+        for (let k = 0; k < count; k++) {
+          let x = R();
+          if (weight) x = weight(x);
+          addGrain(d, sr, Math.round((t0 + (t1 - t0) * x) * sr), lerp(dLo, dHi, R()), lerp(fLo, fHi, R()) * bk, 1.4, lerp(aLo, aHi, R()), rnd);
+        }
+      };
+      if (kind === 'brush') {            // a loaded brush drawn across washi
+        for (let i = 0; i < n; i++) {
+          const x = i / n, env = x < 0.25 ? Math.pow(Math.sin((Math.PI / 2) * (x / 0.25)), 2) : Math.pow(Math.cos((Math.PI / 2) * ((x - 0.25) / 0.75)), 2);
+          d[i] += F.step(rnd(), lerp(1800, 3300, x) * bk, 1.1) * env * (0.75 + 0.25 * rnd());
+        }
+        biquad(d, 'highpass', 1500, 0.7, 0, sr); biquad(d, 'lowpass', 4200, 0.7, 0, sr);
+      } else if (kind === 'rustle') {    // a paper cut-out lifted and turned
+        for (let i = 0; i < n; i++) d[i] += F.step(rnd(), 2100 * bk, 0.7) * 0.3 * Math.sin(Math.PI * (i / n));
+        grains(6 + Math.floor(R() * 4), 0.02, dur * 0.85, 1200, 5000, 0.006, 0.03, 0.4, 1, (x) => Math.pow(x, 1.4));
+      } else if (kind === 'crack') {     // a dry sheet cracking as the print jolts
+        const m = Math.round(0.06 * sr), hp = SVF(sr);
+        for (let i = 0; i < m; i++) {
+          const t = i / sr;
+          hp.step(rnd(), 2000, 0.7);
+          d[i] += hp.hi * Math.sin((Math.PI / 2) * sm01(t / 0.0012)) * Math.exp(-t / 0.013);
+        }
+        grains(3, 0, 0.022, 2500, 6000, 0.0015, 0.003, 0.5, 0.9);
+        grains(7, 0.07, dur * 0.95, 2500, 6000, 0.0015, 0.004, 0.06, 0.25, (x) => Math.pow(x, 1.6));
+      } else if (kind === 'peel') {      // a sheet peeled from the block: tack, then the release
+        for (let i = 0; i < n; i++) {
+          const x = i / n, env = sm01(x / 0.55) * (1 - sm01((x - 0.8) / 0.18));
+          const fwip = Math.exp(-Math.pow((x - 0.84) / 0.05, 2));
+          d[i] += F.step(rnd(), lerp(900, 2600, x) * bk * (1 + fwip), 0.9) * (0.35 * env + 0.9 * fwip);
+        }
+        grains(Math.round(40 * dur), 0.05, dur * 0.82, 1500, 5000, 0.0012, 0.0035, 0.05, 0.22, (x) => 1 - Math.pow(1 - x, 1.6));
+      } else if (kind === 'press') {     // the seal pressed into paper: felt, then the sheet giving
+        addPartial(d, sr, 0, 700, 0.5, 0.004, 0.0015);
+        addPartial(d, sr, 0, 1740, 0.2, 0.002, 0.001);
+        for (let i = 0; i < n; i++) { const t = i / sr; d[i] += F.step(rnd(), 520, 0.6) * sm01(t / 0.004) * Math.exp(-t / 0.028) * 0.9; }
+      } else if (kind === 'grass') {     // dry susuki brushed by something unseen
+        for (let i = 0; i < n; i++) d[i] += F.step(rnd(), 3200 * bk, 0.8) * 0.3 * Math.pow(Math.sin(Math.PI * (i / n)), 0.7);
+        grains(Math.round(120 * dur), 0.02, dur * 0.95, 1500, 6500, 0.002, 0.012, 0.05, 0.3, (x) => 0.5 - 0.5 * Math.cos(Math.PI * x));
+      } else if (kind === 'hiss') {      // an ember catching the incense
+        let a = 0;
+        for (let i = 0; i < n; i++) {
+          const x = i / n;
+          if ((i & 63) === 0) a = 0.6 + 0.4 * U.noise1(i / sr * 7, v + 3);
+          d[i] += F.step(rnd(), 4600 * bk, 1.2) * a * sm01(x / 0.1) * (1 - sm01((x - 0.5) / 0.5));
+        }
+        grains(8, 0.05, dur * 0.7, 900, 2800, 0.001, 0.002, 0.2, 0.5);
+      } else {                           // cloth: a haori laid down
+        for (let i = 0; i < n; i++) d[i] += F.step(rnd(), lerp(500, 1300, i / n) * bk, 0.8) * Math.pow(Math.sin(Math.PI * (i / n)), 1.3);
+        grains(5, 0.1, dur * 0.8, 800, 2000, 0.01, 0.04, 0.2, 0.4);
+      }
+      // paper is bright, but never hiss: a ceiling per kind (the brush is already band-limited)
+      const ceil = { rustle: 5500, crack: 6500, peel: 6000, press: 2800, grass: 6500, hiss: 7000, cloth: 2800 }[kind];
+      if (ceil) { biquad(d, 'lowpass', ceil * bk, 0.6, 0, sr); biquad(d, 'lowpass', ceil * bk, 0.6, 0, sr); }
+      finish([d], sr, 0.85, 0.0006, 0.02);
+    });
+  }, velAmp(0.42), (p) => def(p.dur, SWISH[p.kind] || 0.08) + 0.06);
+
+  /* ---------- water: a drop, a dew plink into dry bamboo, a hand splash, a gush ---------- */
+  oneShot('plink', { rev: 0.4 }, (sr, p) => {
+    const f0 = Math.round(def(p.f0, 1800)), f1 = Math.round(def(p.f1, 1200)), gl = def(p.glide, 0.08);
+    const hollow = Math.round(clamp(def(p.hollow, 0)) * 4) / 4, spl = Math.round(clamp(def(p.splash, 0)) * 4) / 4, v = v4(p);
+    return sketch(`plink:${f0}:${f1}:${gl}:${hollow}:${spl}:${v}`, sr, gl * 4 + (hollow ? 0.45 : 0.1), 1, ([d]) => {
+      const R = U.rng(7700 + v), rnd = noiseGen(7800 + v);
+      addGlide(d, sr, 0, f0, f1, gl, 1, gl * 0.55, 0.0012);
+      addGlide(d, sr, 0, f0 * 2.4, f1 * 2.4, gl, 0.12, gl * 0.25, 0.0008);
+      if (hollow) {                      // the empty bamboo answers
+        addPartial(d, sr, Math.round(sr * 0.002), 610 * lerp(0.98, 1.02, R()), 0.45 * hollow, 0.075, 0.0015);
+        addPartial(d, sr, Math.round(sr * 0.002), 1490, 0.16 * hollow, 0.03, 0.001);
+        addGrain(d, sr, 0, 0.003, 1200, 1, 0.3 * hollow, rnd);
+      }
+      if (spl) addGrain(d, sr, 0, 0.01, 3000, 0.8, 0.35 * spl, rnd);
+      finish([d], sr, 0.9, 0.0004, 0.03);
+    });
+  }, velAmp(0.4), (p) => def(p.glide, 0.08) * 4 + (p.hollow ? 0.45 : 0.1));
+
+  oneShot('splash', { rev: 0.35 }, (sr, p) => {
+    const kind = p.kind === 'gush' ? 'gush' : 'hand', drops = Math.round(def(p.drops, kind === 'hand' ? 7 : 3)), v = v4(p);
+    const dur = kind === 'gush' ? def(p.dur, 0.3) : def(p.dur, 0.04);
+    return sketch(`splash:${kind}:${drops}:${dur}:${v}`, sr, dur + 1.0, 1, ([d]) => {
+      const R = U.rng(9100 + v), rnd = noiseGen(9200 + v), F = SVF(sr), n = Math.round(sr * (dur + 0.05));
+      let a = 0.5;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        if (kind === 'gush') {           // the tube tips: water pours out onto stone
+          if ((i & 31) === 0) a = 0.45 + 0.55 * U.noise1(t * 38, v + 11);
+          d[i] += F.step(rnd(), lerp(1300, 700, t / dur), 0.8) * a * sm01(t / 0.02) * (1 - sm01(t / dur));
+        } else {                         // small hands plunge in
+          d[i] += F.step(rnd(), 2200, 0.6) * sm01(t / 0.002) * Math.exp(-t / 0.012);
+        }
+      }
+      addGlide(d, sr, 0, kind === 'gush' ? 260 : 330, 150, 0.05, kind === 'gush' ? 0.3 : 0.55, 0.03, 0.002);
+      for (let k = 0; k < drops; k++) {  // droplets falling back
+        const t = dur + 0.04 + Math.pow(R(), 1.5) * 0.75;
+        addGlide(d, sr, Math.round(t * sr), lerp(1400, 3000, R()), lerp(900, 1800, R()), 0.05, lerp(0.08, 0.3, R()) * (1 - k / (drops + 2)), 0.02, 0.001);
+      }
+      biquad(d, 'lowpass', 5500, 0.6, 0, sr);
+      finish([d], sr, 0.9, 0.0005, 0.05);
+    });
+  }, velAmp(0.45), (p) => def(p.dur, p.kind === 'gush' ? 0.3 : 0.04) + 1.0);
+
+  /* ---------- ぺったん: the moon rabbit's pestle, a soft damp thud ---------- */
+  oneShot('pestle', { rev: 0.3 }, (sr, p) => {
+    const v = v4(p, 3);
+    return sketch(`pestle:${v}`, sr, 0.45, 1, ([d]) => {
+      const R = U.rng(4800 + v), rnd = noiseGen(4900 + v), na = Math.round(sr * 0.003);
+      let ph = 0;
+      for (let i = 0; i < d.length; i++) {  // 90 Hz, 0.15 s
+        const t = i / sr;
+        ph += (TAU * 90 * (1 + 0.3 * Math.exp(-t / 0.01))) / sr;
+        d[i] += Math.sin(ph) * (i < na ? i / na : 1) * Math.exp(-t / 0.05);
+      }
+      addPartial(d, sr, 0, 185, 0.18, 0.03, 0.002);
+      addGrain(d, sr, Math.round(sr * 0.001), 0.022, 1000 * lerp(0.95, 1.05, R()), 0.8, 0.5, rnd);   // the wet slap
+      finish([d], sr, 0.9, 0.0003, 0.05);
+    });
+  }, velAmp(0.62), () => 0.45);
+
+  /* ---------- a breath: the andon blown out (and its flame guttering) ---------- */
+  oneShot('puff', { rev: 0.25 }, (sr, p) => {
+    const dur = def(p.dur, 0.3), gut = Math.round(clamp(def(p.gutter, 0.7)) * 4) / 4, v = v4(p);
+    return sketch(`puff:${dur}:${gut}:${v}`, sr, dur + 0.8, 1, ([d]) => {
+      const rnd = noiseGen(5500 + v), F = SVF(sr), G = SVF(sr), n = Math.round(dur * sr);
+      for (let i = 0; i < n; i++) {
+        const x = i / n;
+        d[i] += F.step(rnd(), lerp(1500, 650, x), 0.7) * Math.sin((Math.PI / 2) * sm01(x / 0.15)) * Math.pow(1 - x, 1.5);
+      }
+      if (gut) {
+        const i0 = Math.round(dur * 0.35 * sr);
+        for (let i = i0; i < d.length; i++) {
+          const t = (i - i0) / sr;
+          G.step(rnd(), 260, 0.7);
+          d[i] += G.lo * 2.2 * gut * (0.5 + 0.5 * Math.sin(TAU * 13 * t)) * sm01(t / 0.03) * Math.exp(-t / 0.13);
+        }
+      }
+      biquad(d, 'lowpass', 3200, 0.6, 0, sr);
+      finish([d], sr, 0.85, 0.003, 0.05);
+    });
+  }, velAmp(0.4), (p) => def(p.dur, 0.3) + 0.8);
+
+  /* ---------- tea poured into a cup (the cup filling), a small ceramic tick ---------- */
+  oneShot('pour', { rev: 0.25 }, (sr, p) => {
+    const dur = def(p.dur, 1.2), f0 = def(p.f0, 650), f1 = def(p.f1, 1500), tk = def(p.tickAt, dur + 0.3), v = v4(p);
+    return sketch(`pour:${dur}:${f0}:${f1}:${tk}:${v}`, sr, Math.max(dur, tk) + 0.25, 1, ([d]) => {
+      const rnd = noiseGen(6600 + v), F = SVF(sr), F2 = SVF(sr), H = SVF(sr), n = Math.round(dur * sr);
+      let b = 0;
+      for (let i = 0; i < n; i++) {
+        const x = i / n, f = lerp(f0, f1, Math.pow(x, 0.8)), w = rnd();
+        b += 0.0045 * (rnd() - b * 0.9);                             // bubbling: smooth random swell
+        const am = 0.55 + 0.45 * Math.tanh(b * 40);
+        const env = Math.pow(Math.sin((Math.PI / 2) * sm01(x / 0.06)), 2) * Math.pow(Math.cos((Math.PI / 2) * sm01((x - 0.87) / 0.13)), 2);
+        H.step(w, 3500, 0.7);
+        d[i] += (F.step(w, f, 3.5) + 0.35 * F2.step(rnd(), f * 2.2, 5) + 0.02 * H.hi) * am * env;
+      }
+      if (tk >= 0) {                                                  // the pot set down against the cup
+        const i0 = Math.round(tk * sr);
+        addPartial(d, sr, i0, 2750, 0.5, 0.012, 0.0006);
+        addPartial(d, sr, i0, 4130, 0.28, 0.008, 0.0005);
+        addPartial(d, sr, i0, 6100, 0.1, 0.004, 0.0004);
+      }
+      biquad(d, 'lowpass', 5200, 0.6, 0, sr);
+      finish([d], sr, 0.85, 0.005, 0.04);
+    });
+  }, velAmp(0.4), (p) => Math.max(def(p.dur, 1.2), def(p.tickAt, def(p.dur, 1.2) + 0.3)) + 0.25);
+
+  /* ---------- one insect, one call: 鈴虫 rīn · 松虫 chin-chirorin ---------- */
+  oneShot('mushi', { rev: 0.35 }, (sr, p) => {
+    const kind = p.kind === 'matsu' ? 'matsu' : 'suzu', f = Math.round(def(p.f, kind === 'suzu' ? 4400 : 3300));
+    const dur = def(p.dur, 1.2), pulses = Math.max(1, Math.round(def(p.pulses, 1))), am = def(p.am, 35);
+    return sketch(`mushi:${kind}:${f}:${dur}:${pulses}:${am}`, sr, kind === 'suzu' ? dur + 0.1 : 1.1, 1, ([d]) => {
+      if (kind === 'suzu') {
+        const pl = (dur / pulses) * (pulses > 1 ? 0.82 : 1);
+        for (let k = 0; k < pulses; k++) {
+          const i0 = Math.round((k * dur * sr) / pulses), n = Math.round(pl * sr);
+          let ph = 0;
+          for (let j = 0; j < n && i0 + j < d.length; j++) {
+            const t = j / sr, fr = f * (t < 0.06 ? 0.992 + 0.008 * (t / 0.06) : 1);
+            ph += (TAU * fr) / sr;
+            const env = Math.min(t / 0.025, 1) * lerp(1, 0.7, t / pl) * Math.min(1, (pl - t) / 0.05);
+            d[i0 + j] += Math.sin(ph) * (0.45 + 0.55 * Math.sin(TAU * am * t)) * env;
+          }
+        }
+      } else {
+        const notes = [[0, 0.07, 1.06, 1], [0.21, 0.04, 1, 0.8], [0.285, 0.045, 0.94, 0.75], [0.365, 0.16, 0.985, 0.85]];
+        for (const [t0, dd, fr, a] of notes) {
+          const i0 = Math.round(t0 * sr), n = Math.round(dd * sr);
+          let ph = 0;
+          for (let j = 0; j < n; j++) {
+            const t = j / sr, trill = dd > 0.1 ? 0.5 - 0.5 * Math.cos((TAU * t) / 0.022) : 1;
+            ph += (TAU * f * fr) / sr;
+            d[i0 + j] += Math.sin(ph) * a * trill * Math.min(1, t / 0.004, (dd - t) / 0.01);
+          }
+        }
+      }
+      biquad(d, 'highpass', 900, 0.7, 0, sr);
+      finish([d], sr, 0.8, 0.002, 0.03);
+    });
+  }, velAmp(0.2, 1), (p) => (p.kind === 'matsu' ? 1.1 : def(p.dur, 1.2) + 0.1));
+
+  /* ---------- glass: heaven's high sines (the fox window) and mica sparkle ---------- */
+  function glassGrains(sr, n, lo, hi, spread, v) {
+    return sketch(`glassg:${n}:${lo}:${hi}:${spread}:${v}`, sr, spread + 0.9, 2, ([L, Rr]) => {
+      const R = U.rng(2700 + v * 3 + n), m = new Float32Array(L.length);
+      for (let k = 0; k < n; k++) {
+        const t = spread * Math.pow(R(), 1.6), pan = R() * 1.6 - 0.8;
+        const gl = Math.cos(((pan + 1) * Math.PI) / 4), gr = Math.sin(((pan + 1) * Math.PI) / 4);
+        m.fill(0);
+        const end = addPartial(m, sr, Math.round(t * sr), lerp(lo, hi, R()), lerp(0.3, 1, R()) * (1 - 0.6 * (t / spread)), lerp(0.05, 0.22, R()), 0.002);
+        for (let i = Math.round(t * sr); i < end; i++) { L[i] += gl * m[i]; Rr[i] += gr * m[i]; }
+      }
+      finish([L, Rr], sr, 0.8, 0.001, 0.2);
+    });
+  }
+  inst('glass', { rev: 0.5, resumable: true, sustained: true }, (ctx, dest, when, p) => {
+    const K = kit(ctx, dest), off = p.off || 0, vel = clamp(def(p.vel, 0.5));
+    if (p.grains) {
+      const b = glassGrains(ctx.sampleRate, Math.round(p.grains), Math.round(def(p.lo, 2000)), Math.round(def(p.hi, 5000)), def(p.spread, 1.5), v4(p));
+      if (off >= b.duration - 0.02) return K.done(when);
+      const s = K.buf(b, when, { offset: off }), g = K.gain(0.3 * Math.pow(vel, 1.2));
+      s.connect(g); g.connect(K.out);
+      return K.done(when + b.duration - off);
+    }
+    const notes = noteList(def(p.note, ['A6', 'B6', 'E7'])), n = notes.length, R = U.rng(p.seed);
+    const swell = def(p.swell, 1.5), dur = Math.max(swell + 0.1, def(p.dur, 3)), rel = def(p.release, 2);
+    const env = K.gain(0);
+    applyEnv(env.gain, when, mono([[0, 0], [swell * 0.4, 0.35], [swell, 1], [dur, 0.9], [dur, 0, rel / 4]]), off);
+    env.connect(K.out);
+    const amp = (0.06 * Math.pow(vel, 1.1)) / Math.sqrt(n);
+    notes.forEach((m, i) => {
+      const f = mtof(m), g = K.gain(amp), sh = K.gain(1), pn = K.pan(n > 1 ? lerp(-0.5, 0.5, i / (n - 1)) : 0);
+      for (const dc of [-1, 1]) { const o = K.osc('sine', f, when); o.detune.value = dc * lerp(1.5, 4, R()); o.connect(g); }
+      const lfo = K.osc('sine', lerp(0.23, 0.6, R()), when), lg = K.gain(0.3);   // light glinting off glass
+      lfo.connect(lg); lg.connect(sh.gain);
+      K.chain(g, sh, pn, env);
+    });
+    return K.done(when + dur + rel * 1.6 - off);
+  }, (p) => (p.grains ? def(p.spread, 1.5) + 0.9 : def(p.dur, 3) + def(p.release, 2) * 1.6));
+
+  /* ------------------------------------------------------------------ */
   /* beds: continuous ambiences                                          */
   /* ------------------------------------------------------------------ */
   const BEDS = {};
-  const BEDCAL = { insects: 2.1, wind: 1.1, water: 0.6, drone: 0.3, fire: 0.8, night: 0.28 }; // level 1 ≈ −20 dBFS (night ≈ −32)
+  const BEDCAL = { insects: 2.1, wind: 1.1, water: 0.6, drone: 0.3, fire: 0.8, night: 0.28, trickle: 0.5 }; // level 1 ≈ −20 dBFS (night ≈ −32)
   /**
    * fn(ctx, K, B) builds continuous sources into K.out (started at B.c0) and
    * may return tick(uptoT) to schedule detail. B: { p, from, to, t0, c(T),
@@ -1204,6 +1696,13 @@
     let head = out;
     const dist = clamp(def(p.dist, 0));
     if (dist > 0) { const lp = K.filter('lowpass', 18000 * Math.pow(0.08, dist), 0.5); head.connect(lp); head = lp; }
+    if (p.muffle) {         // a paper wall: first-order (6 dB/oct) low-pass
+      const k = Math.tan((Math.PI * Math.min(p.muffle, ctx.sampleRate * 0.45)) / ctx.sampleRate), b0 = k / (1 + k);
+      const f = ctx.createIIRFilter([b0, b0], [1, (k - 1) / (k + 1)]);
+      K.nodes.push(f);
+      head.connect(f); head = f;
+    }
+    if (p.lp) { const lp = K.filter('lowpass', p.lp, 0.6); head.connect(lp); head = lp; }
     const pn = K.pan(def(p.pan, 0)), send = K.gain(clamp(def(p.rev, 0.3) + dist * 0.3, 0, 1.5));
     head.connect(pn); pn.connect(S.out); pn.connect(send); send.connect(S.send);
     const subs = [];
@@ -1232,8 +1731,16 @@
   }
 
   /* ---------- insects: 鈴虫 suzumushi, 松虫 matsumushi, the far field ---------- */
+  /*
+   * A chorus (density → voice counts) or, with nSuzu / nMatsu, an exact cast of voices:
+   * one insect per bed is how the score makes them enter and leave one at a time.
+   * fSuzu / fMatsu fix the pitch, vamp the loudness (0.5–1), activity the rhythm
+   * (default density), first the delay of the first call after `from` (default random 0–3 s).
+   */
   bedDef('insects', { density: 0.6, suzumushi: 1, matsumushi: 0.7, field: 0.6, rev: 0.35, dist: 0.15 }, (ctx, K, B) => {
-    const p = B.p, dens = clamp(p.density), R = U.rng(B.seed), ticks = [];
+    const p = B.p, dens = clamp(def(p.activity, p.density)), R = U.rng(B.seed), ticks = [];
+    const solo = (p.nSuzu !== undefined || p.nMatsu !== undefined);
+    const firstAt = (r) => B.from + (p.first !== undefined ? p.first : r * 3);
     if (p.field > 0) {
       const n = K.noise('pink', B.c0, B.seed), fg = K.gain(0), lp = K.filter('lowpass', 7500, 0.5);
       K.chain(fg, lp, K.out);
@@ -1246,15 +1753,16 @@
       fg.gain.setValueAtTime(sw(B.t0), B.c0);
       ticks.push(grid(B, 0.5, (t, ct) => fg.gain.linearRampToValueAtTime(sw(t), ct)));
     }
-    const nS = Math.round(clamp(p.suzumushi) * (1 + dens * 3));
+    const nS = p.nSuzu !== undefined ? Math.round(p.nSuzu) : solo ? 0 : Math.round(clamp(p.suzumushi) * (1 + dens * 3));
     for (let i = 0; i < nS; i++) {         // "riiin": a liquid bell-tone, fast AM, in phrases
-      const f = lerp(4050, 4650, R()), amp = lerp(0.5, 1, R()) * 0.16;
-      const pos = (nS > 1 ? lerp(-0.75, 0.75, i / (nS - 1)) : 0) + (R() - 0.5) * 0.3;
+      const rf = R(), ra = R(), rp = R();
+      const f = p.fSuzu ? p.fSuzu * (1 + i * 0.021) : lerp(4050, 4650, rf), amp = (p.vamp !== undefined ? p.vamp : lerp(0.5, 1, ra)) * 0.16;
+      const pos = solo && nS === 1 ? 0 : (nS > 1 ? lerp(-0.75, 0.75, i / (nS - 1)) : 0) + (rp - 0.5) * 0.3;
       const o = K.osc('sine', f, B.c0), am = K.gain(0.45), l = K.osc('sine', lerp(28, 42, R()), B.c0), ld = K.gain(0.55);
       const env = K.gain(0), pn = K.pan(pos);
       l.connect(ld); ld.connect(am.gain);
       K.chain(o, am, env, pn, K.out);
-      const take = stream(B.seed + 101 * (i + 1), B.from + R() * 3, (Q, t) => {
+      const take = stream(B.seed + 101 * (i + 1), firstAt(R()), (Q, t) => {
         const notes = [];
         let x = t;
         const n = 2 + Math.floor(Q() * (3 + dens * 5));
@@ -1279,12 +1787,14 @@
         }
       });
     }
-    const nM = Math.round(clamp(p.matsumushi) * (0.4 + dens * 2));
+    const nM = p.nMatsu !== undefined ? Math.round(p.nMatsu) : solo ? 0 : Math.round(clamp(p.matsumushi) * (0.4 + dens * 2));
     for (let i = 0; i < nM; i++) {         // "chin — chi-ro-rin"
-      const f = lerp(2900, 3400, R()), amp = lerp(0.5, 1, R()) * 0.15;
-      const o = K.osc('sine', f, B.c0), env = K.gain(0), pn = K.pan((R() - 0.5) * 1.4);
+      const rf = R(), ra = R(), rp = R();
+      const f = p.fMatsu ? p.fMatsu * (1 + i * 0.03) : lerp(2900, 3400, rf), amp = (p.vamp !== undefined ? p.vamp : lerp(0.5, 1, ra)) * 0.15;
+      const o = K.osc('sine', f, B.c0), env = K.gain(0), pn = K.pan(solo && nM === 1 ? 0 : (rp - 0.5) * 1.4);
       K.chain(o, env, pn, K.out);
-      const take = stream(B.seed + 977 * (i + 1), B.from + 1 + R() * 4, (Q, t) => {
+      const rs = R();
+      const take = stream(B.seed + 977 * (i + 1), p.first !== undefined ? B.from + p.first : B.from + 1 + rs * 4, (Q, t) => {
         const notes = [];
         let x = t;
         const reps = 1 + Math.floor(Q() * (1 + dens * 3));
@@ -1325,27 +1835,85 @@
   });
 
   /* ---------- wind through susuki ---------- */
-  bedDef('wind', { brightness: 0.4, gust: 0.5, rate: 1, rev: 0.2 }, (ctx, K, B) => {
+  /**
+   * The shape of one gust, shared with the picture (TSUKI.CUES.gustAt): it begins at
+   * dt = 0, peaks at dt = rise (smoothstep), then dies away (≈10 % after `fall` s).
+   */
+  function gustEnv(dt, rise = 1, fall = 3) {
+    if (dt <= 0) return 0;
+    if (dt < rise) return sm01(dt / rise);
+    return Math.exp((-2.3 * (dt - rise)) / fall);
+  }
+  bedDef('wind', { brightness: 0.4, gust: 0.5, rate: 1, rev: 0.2, lo: 450, hi: 1500, q: 2.5, rumble: 1, air: 1,
+    gusts: null, gustAmt: 0.6, gustRise: 1, gustFall: 3 }, (ctx, K, B) => {
     const p = B.p, br = clamp(p.brightness), gu = clamp(p.gust), rt = def(p.rate, 1), s = B.seed;
-    const gustAt = (t) => clamp(0.45 + ((U.noise1(t * 0.09 * rt, s) - 0.5) * 1.1 + (U.noise1(t * 0.31 * rt, s + 3) - 0.5) * 0.7 +
-      (U.noise1(t * 1.1 * rt, s + 5) - 0.5) * 0.25) * gu * 1.6, 0.04, 1);
+    const G = (p.gusts || []).map((g) => (Array.isArray(g) ? g : [g, 1]));
+    const gustAt = (t) => {
+      let e = 0;
+      for (const [tg, a] of G) e += a * gustEnv(t - tg, p.gustRise, p.gustFall);
+      return clamp(0.45 + ((U.noise1(t * 0.09 * rt, s) - 0.5) * 1.1 + (U.noise1(t * 0.31 * rt, s + 3) - 0.5) * 0.7 +
+        (U.noise1(t * 1.1 * rt, s + 5) - 0.5) * 0.25) * gu * 1.6 + e * p.gustAmt - (G.length ? 0.2 * p.gustAmt : 0), 0.04, 1);
+    };
     const n1 = K.noise('pink', B.c0, s), n2 = K.noise('pink', B.c0, s + 1), n3 = K.noise('white', B.c0, s + 2);
     const bhp = K.filter('highpass', 90, 0.6), blp = K.filter('lowpass', 380, 0.6), gb = K.gain(0);
-    const bp = K.filter('bandpass', 800, 2.5), gw = K.gain(0);
+    const bp = K.filter('bandpass', 800, p.q), gw = K.gain(0);
     const hp = K.filter('highpass', 2800, 0.6), hlp = K.filter('lowpass', 6000, 0.5), gh = K.gain(0);
     K.chain(n1, bhp, blp, gb, K.out);
     K.chain(n2, bp, gw, K.out);
     K.chain(n3, hp, hlp, gh, K.out);
+    const qk = Math.sqrt(p.q / 2.5);    // a wider band passes more: keep the level
     const set = (t, ct, first) => {
       const g = gustAt(t), m = first ? 'setValueAtTime' : 'linearRampToValueAtTime';
-      gb.gain[m](0.7 * (0.3 + 0.7 * g), ct);
+      gb.gain[m](0.7 * (0.3 + 0.7 * g) * p.rumble, ct);
       blp.frequency[m](lerp(250, 520, g), ct);
-      bp.frequency[m](lerp(450, 1500, g) * lerp(0.7, 1.4, br), ct);
-      gw.gain[m](2.8 * Math.pow(g, 1.5) * lerp(0.5, 1.2, br), ct);
-      gh.gain[m](0.75 * Math.pow(g, 2) * lerp(0.2, 1, br), ct);
+      bp.frequency[m](lerp(p.lo, p.hi, g) * lerp(0.7, 1.4, br), ct);
+      gw.gain[m](2.8 * qk * Math.pow(g, 1.5) * lerp(0.5, 1.2, br), ct);
+      gh.gain[m](0.75 * Math.pow(g, 2) * lerp(0.2, 1, br) * p.air, ct);
     };
     set(B.t0, B.c0, true);
     return grid(B, 0.2, (t, ct) => set(t, ct, false));
+  });
+
+  /* ---------- trickle: the kakei spout filling the sōzu (narrow-band water) ---------- */
+  bedDef('trickle', { flow: 0.6, f: 1500, q: 4, fill: null, bubbles: 0.5, rev: 0.3 }, (ctx, K, B) => {
+    const p = B.p, s = B.seed, pts = (p.fill || []).slice().sort((a, b) => a[0] - b[0]);
+    const fAt = (t) => {
+      if (!pts.length) return p.f;
+      if (t <= pts[0][0]) return pts[0][1];
+      for (let i = 1; i < pts.length; i++) if (t < pts[i][0]) return lerp(pts[i - 1][1], pts[i][1], (t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]));
+      return pts[pts.length - 1][1];
+    };
+    const n1 = K.noise('white', B.c0, s), n2 = K.noise('white', B.c0, s + 1);
+    const bp1 = K.filter('bandpass', fAt(B.t0), p.q), bp2 = K.filter('bandpass', fAt(B.t0) * 2.25, p.q * 1.4);
+    const am = K.gain(0.5), g2 = K.gain(0.22), out = K.gain(clamp(p.flow) * 1.4), tl = K.filter('lowpass', 4200, 0.6);
+    K.chain(n1, bp1, am); K.chain(n2, bp2, g2, am); K.chain(am, out, tl, K.out);
+    // bubbling: a fast, random swell of the stream
+    const bub = K.noise('brown', B.c0, s + 2), blp = K.filter('lowpass', 38, 0.7), bg = K.gain(6);
+    K.chain(bub, blp, bg); bg.connect(am.gain);
+    for (const [t, f] of pts) {
+      if (t <= B.t0) continue;
+      bp1.frequency.linearRampToValueAtTime(f, B.c(t));
+      bp2.frequency.linearRampToValueAtTime(f * 2.25, B.c(t));
+    }
+    if (!(p.bubbles > 0)) return null;
+    const take = stream(s + 5, B.from + 0.3, (Q, t) => ({
+      notes: [{ t, f0: lerp(900, 2000, Q()), up: lerp(1.2, 1.6, Q()), d: lerp(0.02, 0.045, Q()), A: 0.05 * lerp(0.3, 1, Q()), pos: Q() * 0.6 - 0.3 }],
+      next: t + expo(Q, 1 / (4 * p.bubbles)),
+    }));
+    return (upto) => {
+      for (const e of take(upto)) {
+        const ct = B.c(e.t);
+        if (e.t < B.t0 || B.late(ct)) continue;
+        B.shot((k) => {
+          const o = k.osc('sine', e.f0, ct), g = k.gain(0), pn = k.pan(e.pos);
+          o.frequency.setValueAtTime(e.f0, ct);
+          o.frequency.exponentialRampToValueAtTime(e.f0 * e.up, ct + e.d);
+          applyEnv(g.gain, ct, [[0, 0], [0.002, e.A], [0.002, 0, e.d * 0.45]]);
+          k.chain(o, g, pn, k.out);
+          k.end = ct + e.d * 4 + 0.05;
+        });
+      }
+    };
   });
 
   /* ---------- water: lapping, drips, the odd koi ---------- */
@@ -1515,7 +2083,11 @@
       x.seed = def(b.seed, hashStr(`${b.inst}:${x.from}:${i}`) % 1e9);
       beds.push(x);
     });
-    return { events, beds, gain: def(src.gain, 1) };
+    const master = (src.master || []).filter((x) => Array.isArray(x) && isFinite(x[0]) && isFinite(x[1]))
+      .map(([t, v]) => [+t, clamp(+v, 0, 4)]).sort((a, b) => a[0] - b[0]);
+    const room = (src.room || []).filter((x) => Array.isArray(x) && isFinite(x[0]) && isFinite(x[1]))
+      .map(([t, v]) => [+t, clamp(+v, 0, 4)]).sort((a, b) => a[0] - b[0]);
+    return { events, beds, gain: def(src.gain, 1), master, room };
   }
 
   /** Voice routing: instrument → [distance low-pass] → pan → dry + reverb send. */
@@ -1629,6 +2201,8 @@
     G.music.gain.setTargetAtTime(score.gain, ctx.currentTime, 0.03);
     runner = new Runner(sess, score, T, ctx.currentTime, fromT);
     runner.live = true;
+    scheduleMaster(G.auto.gain, score.master, T, (t) => runner.c(t), ctx.currentTime, 0.02);
+    scheduleMaster(sess.room.gain, score.room, T, (t) => runner.c(t), ctx.currentTime, 0);
     runner.begin();
     runner.advance(T + LOOKAHEAD);
     dbg.sessions++;
@@ -1657,7 +2231,14 @@
     for (const e of sc.events.filter((x) => x && isFinite(x.t)).sort((a, b) => a.t - b.t)) {
       try {
         if (e.inst === 'koto' || e.inst === 'biwa') {
-          for (const m of noteList(def(e.note, 'D4'))) job(e.inst + Math.round(m), () => pluckBuffer(sr, Math.round(m), e.inst));
+          const kind = stringKind(e.inst, e);
+          for (const m of noteList(def(e.note, 'D4'))) job(kind + Math.round(m), () => pluckBuffer(sr, Math.round(m), kind));
+        } else if (INST[e.inst] && INST[e.inst].warm) {
+          const p = Object.assign({}, INST[e.inst].defaults, e, { seed: seedOf(e) }), w = INST[e.inst].warm;
+          job(e.inst + ':' + JSON.stringify(p), () => w(sr, p));
+        } else if (e.inst === 'glass' && e.grains) {
+          const p = Object.assign({}, e, { seed: seedOf(e) });
+          job('glass:' + JSON.stringify(p), () => glassGrains(sr, Math.round(p.grains), Math.round(def(p.lo, 2000)), Math.round(def(p.hi, 5000)), def(p.spread, 1.5), v4(p)));
         } else if (e.inst === 'suzu') {
           const p = Object.assign({}, e, { seed: seedOf(e) });
           for (let i = 0; i < Math.min(8, Math.max(1, Math.round(def(e.shakes, 1)))); i++) {
@@ -1744,6 +2325,8 @@
     const sc = prepScore(score);
     g.music.gain.value = sc.gain;
     const r = new Runner(s, sc, T0, 0);
+    scheduleMaster(g.auto.gain, sc.master, T0, (t) => t - T0, 0, 0);
+    scheduleMaster(s.room.gain, sc.room, T0, (t) => t - T0, 0, 0);
     const CHUNK = 1;
     r.begin();
     r.advance(T0 + CHUNK + LOOKAHEAD);
@@ -1767,6 +2350,7 @@
     shift: (evs, dt) => evs.map((e) => Object.assign({}, e, { t: e.t + dt })),
     beats: (bpm) => (n) => (n * 60) / bpm,
     SCALES, AITAKE, instruments: INST, beds: BEDS,
+    gustEnv, masterAt,
     // development
     audition, prewarm, debug: false, _debug: dbg,
     _buffers: { pluck: pluckBuffer, suzu: suzuBuffer, clack: clackBuffer, ir: reverbIR, noise: noiseBuffer, clear: () => lru.clear() },
@@ -1774,6 +2358,7 @@
       ctx: ctx ? ctx.state : 'none', playing, needStart, sampleRate: ctx ? ctx.sampleRate : 0,
       voices: sess ? sess.voices.filter((v) => !v.freed).length : 0, beds: sess ? sess.beds.length : 0,
       anchorT: runner ? runner.anchorT : null, anchorCtx: runner ? runner.anchorCtx : null,
+      master: G ? +G.auto.gain.value.toFixed(4) : null,
       cache: { core: core.size, lru: lru.size },
     }),
   });
