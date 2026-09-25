@@ -34,6 +34,8 @@
   let anchorClock = 0, anchorT = 0, clockKind = 'perf';
   let started = false;
   let muted = false;
+  let audioOn = false;       // AudioContext created (after a user gesture)
+  let audioWaitUntil = 0;
   let lastUI = 0;
   const params = new URLSearchParams(location.search);
   const DEBUG = params.has('debug');
@@ -336,6 +338,13 @@
   function frame() {
     requestAnimationFrame(frame);
     if (playing) {
+      // hold the picture for a moment while the AudioContext spins up, so
+      // the first notes are not dropped (Safari/iOS can take ~300 ms)
+      if (audioWaitUntil && audioClock() == null && performance.now() < audioWaitUntil) {
+        reanchor();
+        return;
+      }
+      audioWaitUntil = 0;
       if ((clockKind === 'audio') !== (audioClock() != null)) reanchor();
       T = anchorT + (clockNow() - anchorClock);
       if (T >= total) { T = total - 1e-3; pause(); showEnd(true); }
@@ -354,6 +363,7 @@
     showEnd(false);
     const A = AUDIO();
     if (A && A.play) A.play(T);
+    audioWaitUntil = audioOn && !muted ? performance.now() + 600 : 0;
     reanchor();
     document.body.classList.add('playing');
     document.body.classList.remove('paused');
@@ -440,7 +450,7 @@
     document.body.classList.add('started');
     const A = AUDIO();
     if (A && A.init && !params.has('nosound')) {
-      try { A.init(); A.setMuted && A.setMuted(muted); } catch (e) { console.warn('audio init failed', e); }
+      try { A.init(); A.setMuted && A.setMuted(muted); audioOn = true; } catch (e) { console.warn('audio init failed', e); }
     }
   }
   function start() {
@@ -540,6 +550,7 @@
       render: (t) => { T = U.clamp(t, 0, total - 1e-3); render(T); return T; },
       play, pause,
       errors: () => ({ ...errors }),
+      renderAudio: (t0, t1, sr) => (TSUKI.AUDIO && TSUKI.AUDIO.renderOffline ? TSUKI.AUDIO.renderOffline(t0, t1, sr) : Promise.resolve(null)),
       start: () => { started = true; document.body.classList.add('started'); },
     };
     if (params.has('autoplay')) { started = true; document.body.classList.add('started'); play(); }
