@@ -78,7 +78,8 @@
         off[id] = [d[0] * mag * settle, d[1] * mag * settle];
         if (id === 'P6') { alpha.P6i = 0; off.P6i = off.P6; }
       });
-      ichimonji = U.seg(T, 8.9, 9.5, U.ease.inOutSine);
+      const skyAt = kento && kento[5] != null ? kento[5] : 8.9; // P6 lands, then its band is wiped on
+      ichimonji = U.seg(T, skyAt, skyAt + 0.6, U.ease.inOutSine);
       alpha.P6i = ichimonji > 0 ? 1 : 0;
       alpha.D = 0;
     } else if (T < 206) {
