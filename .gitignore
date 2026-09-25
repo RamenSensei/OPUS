@@ -1,0 +1,7 @@
+shots/
+node_modules/
+*.log
+.DS_Store
+dist/artifact.html
+dist/.tsukimi-audio.wav
+*.whl

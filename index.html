@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>月の名残</title>
+<meta name="description" content="浮世絵風の中秋アニメーション短編。">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/film.css">
+</head>
+<body>
+<div id="theatre">
+  <div id="stage">
+    <canvas id="film" aria-label="animated film"></canvas>
+    <div id="overlay">
+      <div id="subs" aria-live="off"></div>
+    </div>
+
+    <div id="curtain">
+      <div class="curtain-inner">
+        <div class="curtain-title" id="curtain-title"></div>
+        <div class="curtain-zh" id="curtain-zh"></div>
+        <button id="btn-start" type="button"><span class="seal">月</span><span id="start-label">開演　开始观看</span></button>
+        <div class="curtain-hint" id="curtain-hint">建议开启声音 · 全屏观看　　空格 暂停 · ← → 跳段</div>
+      </div>
+    </div>
+
+    <div id="end">
+      <button id="btn-again" type="button">もう一度　再看一遍</button>
+    </div>
+
+    <div id="bar">
+      <div class="track">
+        <div id="ticks"></div>
+        <input id="scrub" type="range" min="0" max="1" step="0.01" value="0" aria-label="时间轴">
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-play" type="button" aria-label="播放 / 暂停">
+          <svg class="i-play" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" fill="currentColor"/></svg>
+          <svg class="i-pause" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z" fill="currentColor"/></svg>
+        </button>
+        <span id="time">0:00 / 0:00</span>
+        <span class="grow" id="seg-name"></span>
+        <button class="btn" id="btn-subs" type="button" aria-pressed="true" title="字幕 (C)">字幕</button>
+        <button class="btn" id="btn-sound" type="button" aria-pressed="true" title="声音 (M)">音</button>
+        <button class="btn" id="btn-full" type="button" title="全屏 (F)">全屏</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- engine -->
+<script src="js/core/util.js"></script>
+<script src="js/core/palette.js"></script>
+<script src="js/core/brush.js"></script>
+<script src="js/core/paper.js"></script>
+<script src="js/core/text.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/core/engine.js"></script>
+<!-- film -->
+<script src="js/script.js"></script>
+<script src="js/score.js"></script>
+<!-- scenes:begin -->
+<!-- scenes:end -->
+<script src="js/main.js"></script>
+</body>
+</html>
