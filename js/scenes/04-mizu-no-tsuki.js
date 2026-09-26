@@ -733,10 +733,15 @@
    * window a fox teaches in 安房直子's story — through it you see the ones you
    * have lost (the rhyme 六 pays off, sixty years later, with the same hands).
    * たけ holds it up to the child's eye from her side of the basin, so we see
-   * it from the far side: CAST's anatomical window turned over (180°), her
-   * forearms rising into her 波兎 sleeves (藍 青海波, a 胡粉 rabbit on each
-   * cuff) and a 薄墨 bokashi toward the frame edge, so the arms recede and
-   * the hands come forward. The hands are the same old hands that held the ladle, lit by the
+   * it from the far side: CAST's anatomical window turned over (180°), each
+   * hand cut at its wrist line and carried on by a forearm carved as one
+   * contour with it (the wrist turning, the ulnar head's knob, the forearm
+   * filling toward the elbow; CAST's tapered key line), rising in a V into
+   * her 波兎 sleeves — slid back to mid-forearm, the mouth gaping dark round
+   * the arm, the 袂 hanging below it and the sleeve turning up at the elbow
+   * off the frame, clear of the haiku's pocket — and a 薄墨 bokashi up each
+   * forearm into its sleeve's shadow, so the arms recede and the hands come
+   * forward. The hands are the same old hands that held the ladle, lit by the
    * same moon but nearer the eye and more in shadow: moonlit skin glazed
    * toward 藍, a 墨 key line round the whole pose, 墨 creases and knuckles,
    * and a 2 px 胡粉 rim of moonlight on the upper-left (moon-side) edges.
@@ -752,39 +757,151 @@
     nail: U.mix(C.gofun, NIGHT, 0.3), crease: C.sumi,
   };
   const WIN_OPTS = { pose: 'fox-window', age: 1, interlace: 1, sleeve: false, palette: WIN_PAL, ink: C.sumi, outline: 0.9 };
-  // forearms (world orientation, scale-1 px from the diamond's centre): wrist → off the top
+  // forearms (world orientation, scale-1 px from the diamond's centre). Each is
+  // carved as ONE contour out of CAST's hand: the hand is printed only up to its
+  // wrist line (CAST's forearm stub beyond it is cut away), and the forearm's two
+  // edges leave the hand's contour there on its own tangents, turn through the
+  // wrist and run up into the 波兎 sleeve — a slender wrist (≈ 0.75 × the
+  // forearm), the ulnar head's small knob just above it, the forearm filling
+  // out on its radial side toward the elbow. `out`/`inn`: CAST's contour points
+  // (turned over) [before, at, after] where each edge leaves the hand; `outW`/
+  // `innW`: [distance along the forearm from the wrist, half-width] anchors;
+  // `cuff`: where the sleeve's mouth crosses the forearm (px from the wrist).
   const ARMS = [
-    // cuff: where her 波兎 sleeve begins (0 wrist … 1 the end of the arm); the
-    // near-vertical left arm is raised higher, so its sleeve has fallen
-    // further back — it covers the upper half of what we see of the forearm
-    { pts: [[284, -60], [336, -150], [398, -258], [470, -382], [556, -522], [660, -690]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.5, flip: 1, rabbit: [46, 8], facing: 1 },
-    { pts: [[-284, -60], [-282, -160], [-270, -278], [-248, -408], [-218, -550], [-180, -710]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.3, flip: -1, rabbit: [118, -14], facing: -1 },
+    // right: the palm-view hand (radial side out, ulnar in); the forearm leans out to the upper right
+    { sgn: 1, ang: 52, out: [[280, -10], [306, -29], [333, -47]], inn: [[228, -56], [244, -72], [267, -93]],
+      outW: [[72, 40.5], [150, 45], [240, 51], [340, 55]], innW: [[36, 41], [74, 38.8], [150, 40.5], [240, 44], [340, 46]],
+      cuff: 168, crease: [14, 11, 0.45], sleeve: { m: [6, 66], drop: 64, r: 30, up: [-0.22, -1], inn: [[150, -86], [215, -92]], out: [[108, -34], [184, -168]] }, rabbit: [120, 100], facing: 1 },
+    // left: the back-view hand (ulnar side out, with the ulnar head's knob); steeper, clear of the haiku's pocket
+    { sgn: -1, ang: 68, out: [[-282, -12], [-308, -30], [-333, -47]], inn: [[-225, -56], [-243, -73], [-267, -93]],
+      outW: [[38, 42.5], [76, 39.6], [150, 41.5], [240, 45], [340, 47]], innW: [[72, 40], [150, 44.5], [240, 50], [340, 54]],
+      cuff: 150, crease: [15, 16, 0.6], sleeve: { m: [4, 58], drop: 0, up: [0.24, -1], inn: [[150, -86], [200, -90]], out: [[-16, 24], [-46, 14], [-60, -80], [-58, -210]] }, rabbit: [110, 40], facing: -1 },
   ];
-  const lerpPts = (pts, u) => {
-    const f = u * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), t = f - i;
-    return [U.lerp(pts[i][0], pts[i + 1][0], t), U.lerp(pts[i][1], pts[i + 1][1], t)];
-  };
-  const armPath = (() => {
-    const p = new Path2D();
-    for (const a of ARMS) MOON.maria.ribbon(p, a.pts, a.ws, false);
+  const nrm = (v) => { const l = Math.hypot(v[0], v[1]) || 1; return [v[0] / l, v[1] / l]; };
+  /** A smooth curve through anchors pts with unit tangents ts (cubic Hermite), sampled per segment. */
+  function hermite(pts, ts, per) {
+    const out = [pts[0]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]) / 3;
+      const c1 = [a[0] + ts[i][0] * L, a[1] + ts[i][1] * L], c2 = [b[0] - ts[i + 1][0] * L, b[1] - ts[i + 1][1] * L];
+      for (let j = 1; j <= per; j++) {
+        const t = j / per, m = 1 - t, k0 = m * m * m, k1 = 3 * m * m * t, k2 = 3 * m * t * t, k3 = t * t * t;
+        out.push([k0 * a[0] + k1 * c1[0] + k2 * c2[0] + k3 * b[0], k0 * a[1] + k1 * c1[1] + k2 * c2[1] + k3 * b[1]]);
+      }
+    }
+    return out;
+  }
+  const polyTo = (p, pts, move) => { pts.forEach((q, i) => (i || !move ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1]))); return p; };
+  const armGeo = ARMS.map((a) => {
+    const th = U.deg(a.ang), d = [a.sgn * Math.cos(th), -Math.sin(th)], n = [a.sgn * Math.sin(th), Math.cos(th)];
+    const W = [(a.out[1][0] + a.inn[1][0]) / 2, (a.out[1][1] + a.inn[1][1]) / 2];
+    const at = (s, w) => [W[0] + d[0] * s + n[0] * w, W[1] + d[1] * s + n[1] * w];
+    const edge = (e, prof, side) => {
+      const pts = [e[1]].concat(prof.map(([s, w]) => at(s, side * w)));
+      const ts = pts.map((q, i) => (i === 0 ? nrm([e[2][0] - e[0][0], e[2][1] - e[0][1]])
+        : i === pts.length - 1 ? d : nrm([pts[i + 1][0] - pts[i - 1][0], pts[i + 1][1] - pts[i - 1][1]])));
+      return { pts: hermite(pts, ts, 12), t0: ts[0] };
+    };
+    const o = edge(a.out, a.outW, 1), i = edge(a.inn, a.innW, -1);
+    const So = a.out[1], Si = a.inn[1];
+    // the fill reaches 6 px back into the hand (inside its contour), so the
+    // wrist line never shows as a seam
+    const fill = new Path2D();
+    polyTo(fill, [[Si[0] - i.t0[0] * 6 + n[0] * 1.5, Si[1] - i.t0[1] * 6 + n[1] * 1.5], [So[0] - o.t0[0] * 6 - n[0] * 1.5, So[1] - o.t0[1] * 6 - n[1] * 1.5]], true);
+    polyTo(fill, o.pts);
+    polyTo(fill, i.pts.slice().reverse());
+    fill.closePath();
+    // the key line: the two edges only, from 3 px inside the hand's own line
+    const key = new Path2D();
+    for (const [e, S] of [[o, So], [i, Si]]) polyTo(key, [[S[0] - e.t0[0] * 3, S[1] - e.t0[1] * 3]].concat(e.pts), true);
+    // the hand is printed on its side of the wrist line only
+    const v = nrm([Si[0] - So[0], Si[1] - So[1]]), E = 4000;
+    let h = [-v[1], v[0]];
+    if (h[0] * -So[0] + h[1] * -So[1] < 0) h = [-h[0], -h[1]];
+    const clip = polyTo(new Path2D(), [[So[0] - v[0] * E, So[1] - v[1] * E], [So[0] + v[0] * E, So[1] + v[1] * E],
+      [So[0] + (v[0] + h[0]) * E, So[1] + (v[1] + h[1]) * E], [So[0] + (h[0] - v[0]) * E, So[1] + (h[1] - v[1]) * E]], true);
+    // the wrist's one crease, where the skin folds on the inside of the bend
+    const k = i.pts.reduce((b, q) => (Math.abs((q[0] - W[0]) * d[0] + (q[1] - W[1]) * d[1] - a.crease[0]) < Math.abs((b[0] - W[0]) * d[0] + (b[1] - W[1]) * d[1] - a.crease[0]) ? q : b));
+    const crease = B.qpts(k[0] - n[0] * 1.2, k[1] - n[1] * 1.2, k[0] + n[0] * a.crease[1] * 0.55 + d[0] * 2, k[1] + n[1] * a.crease[1] * 0.55 + d[1] * 2,
+      k[0] + n[0] * a.crease[1] + d[0] * 6, k[1] + n[1] * a.crease[1] + d[1] * 6, 8);
+    return { a, d, n, W, at, fill, key, clip, crease };
+  });
+  const armPath = (() => { const p = new Path2D(); for (const g of armGeo) p.addPath(g.fill); return p; })();
+  const armKeyPath = (() => {
+    // CAST's key recipe (cast.js handKey): 2.8 px, united with a copy moved
+    // 1.6 px toward the stage's lower right; the flat fill that follows covers
+    // the inner halves — ≈ 1.4 px on the lit side, ≈ 3 px on the shadow side
+    const p = new Path2D(), off = new DOMMatrix([1, 0, 0, 1, 0.42 * 1.6, 0.91 * 1.6]);
+    for (const g of armGeo) { p.addPath(g.key); p.addPath(g.key, off); }
     return p;
   })();
-  /** Each arm's sleeve from its cuff to beyond the frame (藍 波兎), its cuff line and one rabbit. */
-  const sleeveGeo = ARMS.map((a) => {
-    const c0 = lerpPts(a.pts, a.cuff), c1 = lerpPts(a.pts, a.cuff + 0.06);
-    const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * a.flip, ny = ux * a.flip;
-    const P = (t, o) => [c0[0] + ux * t + nx * o, c0[1] + uy * t + ny * o];
-    const p = new Path2D();
-    const q = [P(4, -84), P(-12, -30), P(-12, 30), P(4, 88)];
-    p.moveTo(...q[0]);
-    p.bezierCurveTo(...q[1], ...q[2], ...q[3]);
-    p.lineTo(...P(700, 150));
-    p.lineTo(...P(700, -150));
-    p.closePath();
-    const cuff = new Path2D();
-    cuff.moveTo(...q[0]);
-    cuff.bezierCurveTo(...q[1], ...q[2], ...q[3]);
-    return { path: p, cuff, hem: [P(6, -80), P(-8, 0), P(6, 84)], rabbit: P(a.rabbit[0], a.rabbit[1]), facing: a.facing, ang: Math.atan2(uy, ux), c0, ux, uy };
+  /**
+   * Each arm's 波兎 sleeve, slid back to mid-forearm by the raised arm: its
+   * mouth (袖口) crosses the forearm — the near lip lies on the arm, the
+   * opening gapes dark on either side of it — its top runs along the arm and
+   * off the frame, and below the arm the 袂 hangs under its own weight: the
+   * front edge falls from the mouth's outer corner, turns a round corner
+   * (袖の丸み) and the bottom goes off the frame. (P(t, o): t along the forearm
+   * from the cuff, o outward.)
+   */
+  const DOWN = [0, 1];
+  /** Catmull-Rom through pts (continuing path p; its first point is joined with lineTo). */
+  function splineTo(p, pts) {
+    const n = pts.length, g = (i) => pts[Math.max(0, Math.min(n - 1, i))];
+    p.lineTo(pts[0][0], pts[0][1]);
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2);
+      p.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]);
+    }
+    return p;
+  }
+  const sleeveGeo = armGeo.map((g) => {
+    const a = g.a, sl = a.sleeve, c0 = g.at(a.cuff, 0), d = g.d, n = g.n;
+    const P = (t, o) => [c0[0] + d[0] * t + n[0] * o, c0[1] + d[1] * t + n[1] * o];
+    const add = (q, v, k) => [q[0] + v[0] * k, q[1] + v[1] * k];
+    const up = nrm(sl.up);
+    // the sleeve's front edge is ONE edge of cloth: from the top of the sleeve
+    // (A) it crosses over the arm as the mouth's near lip and, past the arm's
+    // outer side (M), turns down and hangs as the 袂's front edge to its round
+    // corner (F)
+    const A = P(0, -78), M = P(sl.m[0], sl.m[1]);
+    const F = add(M, DOWN, sl.drop);
+    // the 袂's bottom, then round the elbow (px from F); with no drop (the steep
+    // left arm) the cloth simply bellies round below the mouth, from M
+    const outer = sl.out.map(([x, y]) => [F[0] + x, F[1] + y]);
+    const inner = sl.inn.map(([t, o]) => P(t, o));
+    const iTop = inner[inner.length - 1], oTop = outer[outer.length - 1];
+    const path = new Path2D();
+    path.moveTo(...A);
+    // the top of the sleeve along the arm, then up the upper arm past the elbow, off the frame
+    splineTo(path, [A].concat(inner, [add(iTop, up, 160), add(iTop, up, 900)]));
+    path.lineTo(...add(oTop, up, 900));
+    // down round the elbow to the 袂's bottom, its round front corner, the front edge up and over the arm
+    let hM;
+    if (sl.drop > 0) {
+      splineTo(path, [add(oTop, up, 160)].concat(outer.slice().reverse(), [[(outer[0][0] + F[0]) / 2, (outer[0][1] + F[1]) / 2]]));
+      path.arcTo(...F, ...M, sl.r);
+      path.lineTo(...M);
+      hM = add(M, DOWN, -16);
+    } else {
+      splineTo(path, [add(oTop, up, 160)].concat(outer.slice().reverse(), [M]));
+      hM = add(M, nrm([M[0] - outer[0][0], M[1] - outer[0][1]]), 22);
+    }
+    const hA = add(A, n, 58);                                     // the lip's Bézier handles (A ↔ M)
+    path.bezierCurveTo(...hM, ...hA, ...A);
+    path.closePath();
+    // the opening: between the near lip and the far lip (a little deeper into
+    // the sleeve, meeting the front edge below the arm) — dark, round the arm
+    const E = add(M, DOWN, Math.min(22, sl.drop * 0.4));
+    const mouth = new Path2D();
+    mouth.moveTo(...A);
+    mouth.bezierCurveTo(...hA, ...hM, ...M);
+    mouth.lineTo(...E);
+    mouth.bezierCurveTo(...add(add(E, DOWN, -40), d, 24), ...add(add(A, n, 50), d, 22), ...A);
+    mouth.closePath();
+    // one carved fold from under the arm down into the hanging 袂
+    const fold = sl.drop > 0 ? [P(36, 46), add(P(52, 62), DOWN, sl.drop * 0.6), [F[0] + (outer[0][0] - F[0]) * 0.4, F[1] + (outer[0][1] - F[1]) * 0.4 - 4]] : null;
+    return { path, mouth, fold, rabbit: P(a.rabbit[0], a.rabbit[1]), facing: a.facing, ang: Math.atan2(d[1], d[0]), c0, g };
   });
   const sleevesPath = (() => { const p = new Path2D(); for (const g of sleeveGeo) p.addPath(g.path); return p; })();
 
@@ -846,30 +963,53 @@
   function paintWindow(c, sc, T, mask, withSleeve) {
     c.save();
     c.scale(sc, sc);
+    // the hands, each printed up to its wrist line
     c.save();
+    for (const g of armGeo) c.clip(g.clip);
     c.rotate(Math.PI);
     CAST.hands(c, 0, 0, 1, mask ? { ...WIN_OPTS, silhouette: mask, t: T } : { ...WIN_OPTS, t: T });
     c.restore();
-    // the forearms, filled over the hands' wrist lines so the pose reads as one shape
+    // the forearms carry the hands' contour on: the same carved key line, then the flat skin
+    if (!mask) {
+      c.strokeStyle = U.rgba(C.sumi, WIN_OPTS.outline);
+      c.lineWidth = 2.8;
+      c.lineJoin = 'round';
+      c.lineCap = 'round';
+      c.stroke(armKeyPath);
+    }
     c.fillStyle = mask || WIN_SKIN;
     c.fill(armPath);
     if (!mask) {
-      // a 薄墨 bokashi down the forearms: darker toward the frame edge, so the
+      // a 薄墨 bokashi up each forearm into the shadow of its sleeve, so the
       // arms recede into the night and the lit hands come forward
-      c.save();
-      c.clip(armPath);
-      const g = c.createLinearGradient(0, -80, 0, -470);
-      g.addColorStop(0, U.rgba(C.sumi, 0));
-      g.addColorStop(0.55, U.rgba(C.sumi, 0.25));
-      g.addColorStop(1, U.rgba(C.sumi, 0.32));
-      c.fillStyle = g;
-      c.fillRect(-460, -760, 1240, 640);
-      c.restore();
+      for (const g of armGeo) {
+        c.save();
+        c.clip(g.fill);
+        const p0 = g.at(30, 0), p1 = g.at(g.a.cuff + 10, 0);
+        const gr = c.createLinearGradient(p0[0], p0[1], p1[0], p1[1]);
+        gr.addColorStop(0, U.rgba(C.sumi, 0));
+        gr.addColorStop(0.6, U.rgba(C.sumi, 0.12));
+        gr.addColorStop(1, U.rgba(C.sumi, 0.3));
+        c.fillStyle = gr;
+        c.fill(g.fill);
+        c.restore();
+        B.taper(c, g.crease, 2.8, 0.2, U.rgba(C.sumi, g.a.crease[2]), 0.1);
+      }
     }
     if (withSleeve) {
       // the sleeves: 藍 with a faint 青海波 woven in and one 胡粉 rabbit leaping on each (波兎)
       const ai = U.mix(C.ai, C.koiai, 0.45);
       for (const sg of sleeveGeo) {
+        if (!mask) {
+          // the same carved key line as the arms, round the whole sleeve
+          const kp = new Path2D();
+          kp.addPath(sg.path);
+          kp.addPath(sg.path, new DOMMatrix([1, 0, 0, 1, 0.42 * 1.6, 0.91 * 1.6]));
+          c.strokeStyle = U.rgba(C.sumi, WIN_OPTS.outline);
+          c.lineWidth = 2.8;
+          c.lineJoin = 'round';
+          c.stroke(kp);
+        }
         c.fillStyle = mask || ai;
         c.fill(sg.path);
         if (mask) continue;
@@ -882,30 +1022,31 @@
         c.fillStyle = pat;
         c.fill(sg.path);
         c.restore();
-        // the fold falls into shadow toward the frame edge, as the forearms do
-        const g = c.createLinearGradient(0, -120, 0, -470);
-        g.addColorStop(0, U.rgba(C.sumi, 0));
-        g.addColorStop(1, U.rgba(C.sumi, 0.22));
-        c.fillStyle = g;
-        c.fillRect(-460, -760, 1240, 640);
+        // the sleeve falls into shadow up toward the frame edge, as the forearms do
+        const e0 = sg.g.at(sg.g.a.cuff + 20, 0), e1 = sg.g.at(sg.g.a.cuff + 330, 0);
+        const gr = c.createLinearGradient(e0[0], e0[1], e1[0], e1[1]);
+        gr.addColorStop(0, U.rgba(C.sumi, 0));
+        gr.addColorStop(1, U.rgba(C.sumi, 0.24));
+        c.fillStyle = gr;
+        c.fill(sg.path);
         c.save();
         c.translate(sg.rabbit[0], sg.rabbit[1]);
-        c.rotate(sg.ang + Math.PI / 2);
         CAST.rabbit(c, 0, 0, 0.8, { pose: 'leap', phase: 0.45, facing: sg.facing, silhouette: U.mix(C.gofun, C.ai, 0.12), t: 0 });
         c.restore();
-        const q = sg.hem;
-        c.strokeStyle = U.rgba(C.gofun, 0.3);
-        c.lineWidth = 2;
-        c.beginPath();
-        c.moveTo(...q[0]);
-        c.quadraticCurveTo(...q[1], ...q[2]);
-        c.stroke();
+        // the dark of the opening, round the arm (the near lip lies on the arm itself)
+        c.save();
+        const outside = new Path2D();
+        outside.rect(-3000, -3000, 6000, 6000);
+        outside.addPath(armPath);
+        c.clip(outside, 'evenodd');
+        c.fillStyle = U.mix(C.sumi, C.koiai, 0.25);
+        c.fill(sg.mouth);
         c.restore();
-        // the cuff's key line, where the sleeve lies over the forearm
-        c.strokeStyle = U.rgba(C.sumi, 0.8);
-        c.lineWidth = 1.6;
-        c.lineCap = 'round';
-        c.stroke(sg.cuff);
+        // the fold
+        if (sg.fold) {
+        B.taper(c, B.qpts(...sg.fold[0], ...sg.fold[1], ...sg.fold[2], 14), 0.4, 2.2, U.rgba(C.sumi, 0.6), 0.2);
+        }
+        c.restore();
       }
     }
     c.restore();
@@ -915,7 +1056,7 @@
   // key line and creases, the rim of moonlight, and the same pose in the near
   // dark (the opening)
   let winSpr = null;
-  const WIN_BOX = [-400, -448, 604, 300];            // what can be on screen at scale ≤ 1.15
+  const WIN_BOX = [-460, -448, 628, 146];            // the pose (+ its key line) below the frame top at scale ≥ 1
   const WIN_KEY = 1.6;                               // the key line round the whole pose (px at scale 1)
   const WIN_RIM = 2;                                 // the 胡粉 rim (px at scale 1), on the upper-left edges
   function bakeWindow(k) {

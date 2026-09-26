@@ -52,7 +52,8 @@
    A.drawNearSusuki(ctx,T,opts)       ≈150 live plumes; opts.split 'back'|'front'
                                       + opts.depth (y) to depth-sort around figures
    A.drawHagi(ctx,T) · A.drawSozu(ctx,T) · A.drawFlorets(ctx,T) · A.drawGlints(ctx,T)
-   A.moon(T) → {x,y,r} (= MOON.A)     A.SKY_MASK · A.POND (Path2D: main pond + moon-pool)
+   A.moon(T) → {x,y,r} (= MOON.A)     A.SKY_MASK · A.POND (Path2D: main pond + moon-pool,
+                                      its shores carved as 州浜 lobes: suhama())
    A.cropTransform(ctx, {scale, about:[x,y], to:[x,y]})   (六's inset crop)
    A.wind(T) → {breeze, gust}         the one wind of the garden (t_abs; the gusts are
                                       TSUKI.CUES.gustAt — the score's own curve)
@@ -75,7 +76,10 @@
                                       the kasumi opaque, a near suyari bar (POSTER_VEIL) over
                                       the pond, no spit clutter (sōzu, tsukubai, rocks) nor
                                       yard/fence at its edges, a finer bank line, and a sparse
-                                      warm moon road (drawPond opts.poster)
+                                      warm moon road (drawPond opts.poster). Its flats stay
+                                      carved all film long (no re-carve on a seek back);
+                                      A.keepPoster(ctx) (序/一, before 16.45) re-carves them
+                                      only for a new backing size, never on the cut
    A.drawFieldSil(ctx,T)              the field's plumes as K/紺 silhouettes, inside the disc only
    A.glowBand(ctx, a)                 the rising moon's flat 山吹 band (序 prints it on bare paper)
    A.heldDango(T, tk)                 the dango in たけ's fingers while she carries it to the 三方
@@ -240,18 +244,79 @@
    * out toward us, carrying the sōzu and the tsukubai — the small moon-pool
    * under the rising moon.
    */
+  // (where the spit and the pool's west bank meet the far bank, the shore turns
+  // through wide curves — no corner of the water is a right angle)
   const POND_RAWS = (() => {
     const main = [];
-    for (let x = 358; x <= 1540; x += 14) main.push([x, bankY(x)]);
+    for (let x = 404; x <= 1540; x += 14) main.push([x, bankY(x)]);
     main.push([1562, 836], [1598, 846], [1630, 866], [1652, 898], [1660, 936], [1652, 976], [1630, 1016], [1604, 1052], [1586, 1100]);
-    main.push([604, 1100], [586, 1080], [566, 1060], [552, 1046], [530, 1034], [514, 1016], [502, 994], [486, 976], [472, 958], [456, 936], [436, 916], [414, 900], [392, 890], [372, 878], [360, 860], [355, 845]);
+    main.push([604, 1100], [586, 1080], [566, 1060], [552, 1046], [530, 1034], [514, 1016], [502, 994], [486, 976], [472, 958], [456, 936], [436, 916], [414, 900], [395, 889], [380, 876], [370, 861], [367, 848], [373, 839], [388, 834.5]);
     const pool = [];
-    for (let x = 70; x <= 288; x += 14) pool.push([x, bankY(x)]);
-    pool.push([294, 848], [292, 872], [288, 900], [286, 930], [288, 962], [292, 996], [290, 1046], [288, 1100]);
-    pool.push([40, 1100], [42, 1040], [48, 990], [56, 940], [62, 892], [66, 860], [70, 842]);
+    for (let x = 122; x <= 256; x += 14) pool.push([x, bankY(x)]);
+    pool.push([269, 832], [280, 836], [288, 843], [293, 854], [295, 868], [293, 886], [289, 908], [286, 934], [285, 964], [288, 998], [291, 1040], [291, 1100]);
+    pool.push([40, 1100], [40, 1046], [43, 996], [48, 952], [55, 914], [64, 884], [76, 861], [91, 846], [106, 837.5]);
     return [main, pool];
   })();
-  const POND_PTSS = POND_RAWS.map((raw) => dense(raw, true, 4));
+  /** a closed polyline resampled to a near-uniform step (px) */
+  function resampleClosed(pts, step) {
+    const out = [], n = pts.length;
+    let d = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      for (; d < L; d += step) { const s = d / L; out.push([a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s]); }
+      d -= L;
+    }
+    return out;
+  }
+  /**
+   * 州浜: the shore carved as a chain of shallow rounded lobes of bank pushed
+   * into the water, cusped where they meet (3–5 to every 200 px). Seen across
+   * the water the far bank's lobes are foreshortened (≈ 4–5 px deep); the side
+   * shores', seen face on, ≈ 7–10, and deeper the nearer they lie. Only the
+   * water gives way (the cusps keep the old line), so what stands on the bank
+   * stays on land; the lobes fade out below the sheet's foot.
+   */
+  function suhama(pts, seed) {
+    const STEP = 3;
+    const P = resampleClosed(pts, STEP), m = P.length;
+    let area = 0;
+    for (let i = 0; i < m; i++) { const a = P[i], b = P[(i + 1) % m]; area += a[0] * b[1] - b[0] * a[1]; }
+    const sgn = area > 0 ? 1 : -1;
+    const tan = (i) => {
+      const a = P[(i - 2 + m) % m], b = P[(i + 2) % m];
+      const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+      return [dx / L, dy / L];
+    };
+    // lay the lobes along the shore (their lengths from the local run), then
+    // stretch them all a hair so the chain closes on a whole lobe
+    const lobes = [];
+    let s = 0, j = 0;
+    while (s < m * STEP) {
+      const i = Math.min(m - 1, Math.floor(s / STEP)), t = tan(i);
+      const ax = Math.abs(t[0]), y = P[i][1];
+      const near = U.lerp(1, 1.3, U.clamp((y - 832) / 240));
+      const len = U.lerp(34, 54, ax) * U.lerp(0.82, 1.2, U.hash(seed + j * 7.13)) * near;
+      const amp = U.lerp(8.6, 4.4, ax) * U.lerp(0.78, 1.12, U.hash(seed + j * 3.71 + 50)) * near;
+      lobes.push({ s0: s, len, amp });
+      s += len; j++;
+    }
+    const k = (m * STEP) / s;
+    for (const L of lobes) { L.s0 *= k; L.len *= k; }
+    const out = [];
+    let li = 0;
+    for (let i = 0; i < m; i++) {
+      const si = i * STEP;
+      while (li < lobes.length - 1 && si >= lobes[li].s0 + lobes[li].len) li++;
+      const L = lobes[li], u = U.clamp((si - L.s0) / L.len);
+      const fade = 1 - U.smoothstep(1056, 1092, P[i][1]);
+      const h = L.amp * Math.pow(Math.sin(Math.PI * u), 0.8) * fade;
+      const t = tan(i);
+      out.push([P[i][0] - sgn * t[1] * h, P[i][1] + sgn * t[0] * h]);
+    }
+    return out;
+  }
+  const POND_PTSS = POND_RAWS.map((raw, i) => suhama(dense(raw, true, 4), 311 + i * 97));
   const POND = (() => { const p = new Path2D(); for (const pts of POND_PTSS) p.addPath(pathOf(pts, true)); return p; })();
   A.POND = POND;
   let pondTestCtx = null;
@@ -3242,7 +3307,8 @@
   A.drawGarden = (ctx, T, opts = {}) => {
     const o = opts;
     if (pushBuf && T >= 41.5) A.releaseBuffers();   // 一's push and zoom are over (a seek back rebuilds it)
-    if (POST.key && T >= 24 && T < 160) A.releasePoster();   // the poster frame is over (likewise)
+    // (一's poster frame stays carved all film long — ≈ 12 MB at 1280, 26 at 1920, a few % of the
+    // print's caches — so a seek back to 14–22, an 'again' or a chapter jump never re-carves it on the cut)
     ctx.save();
     ctx.imageSmoothingQuality = 'low';    // plates are cached 1:1; only the push / crops resample them
     if (o.camera !== false) {
@@ -3372,7 +3438,17 @@
     return POST;
   }
   /** carve the poster frame's print for backing scale k before the first frame needs it (a scene's init) */
-  A.warmPoster = (k) => { try { posterCaches(Math.round(W * k), Math.round(H * k)); } catch (e) { /* only an optimisation */ } };
+  A.warmPoster = (k) => { try { const cw = Math.round(W * k); posterCaches(cw, Math.round((cw * H) / W)); } catch (e) { /* only an optimisation */ } };
+  /**
+   * Keep the poster frame carved for the stage's backing size (序 and 一 call it on every frame
+   * before the cut: one string compare). Only a new size (a resize, fullscreen) finds it stale:
+   * it is re-carved then — on the resize's or the seek's own frame, never on the cut at 16.5.
+   */
+  A.keepPoster = (ctx) => {
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    if (POST.key === cw + 'x' + ch || !isStageUnit(ctx)) return;
+    try { posterCaches(cw, ch); } catch (e) { /* carved on demand */ }
+  };
   A.releasePoster = () => {
     const free = (cv) => { if (cv) { cv.width = 0; cv.height = 0; } };
     if (POST.flats) for (const f of Object.values(POST.flats)) if (f) free(f.cv);

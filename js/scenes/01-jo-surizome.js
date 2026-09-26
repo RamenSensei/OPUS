@@ -442,6 +442,8 @@
       const k = Math.min(2, Math.max(0.5, S.k || 1));
       const st = PRINT.state(T);
       joDrawn = true;
+      // 一's poster frame (16.5) carved for this backing size — re-carved here, not on its cut, after a resize
+      if (A.keepPoster) A.keepPoster(ctx);
       // the warmth arrives with the spiral (2 → 3.4) at ×0.3 and grows as the colour lands;
       // until the sky block lands (9.0) it lies on the bare paper, then the sky carries it
       const warm = T < 2 ? 0 : T < 6 ? 0.38 * U.seg(T, 2, 3.4, U.ease.inOutSine) : U.lerp(0.38, 1, U.seg(T, 6, 9.6, U.ease.inOutSine));

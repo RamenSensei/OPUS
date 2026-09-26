@@ -69,7 +69,9 @@
                 arms   hold-puppet: 'both' → a stick in each hand
                 stick  hold-puppet: stick length (70)
                 dango  stack: false → no dango in the hand
-                stream pour: false → no tea stream
+                stream pour: false → no tea stream (pour: both 袂 hang from
+                       the held-out forearms under their own weight — a
+                       round foot, one fold from the elbow; no shelf)
                 child  lap: false → no sleeping 小夜 across the lap
                 drained true → the colour-drained palette (月白/胡粉/銀鼠;
                        pair with ink: C.ginnezu); haori stays saturated
@@ -91,7 +93,8 @@
               Key line: carved, tapering from ≈1.4 px on the lit side (the
               stage's upper left, whatever rotation the caller applies) to
               ≈3 px on the shadow side; flat skin, no registration offset;
-              inside a hand only 2–3 carved nicks per knuckle, two palm lines.
+              inside a hand only 1–2 carved nicks per joint and one or two
+              palm lines.
                 age    0 smooth young → 1 old, knuckled, liver-spotted
                        (default 1; cupped & grab default 0 = 小夜's hands)
                 interlace fox-window: 0 apart … 1 fingers interlaced (1)
@@ -109,15 +112,37 @@
               fox-window is the real 狐の窓: each hand a fox's head (middle and
               ring folded to the thumb, index and little finger raised as
               ears), the left fox turned over (palm view, thumb on top), the
-              right seen from the back (thumb tucked below); the ears cross
-              — left index × right little finger at the top (the right one
-              over), left little finger × right index at the foot (the left
-              one over): woven. The ears' inner edges ARE the diamond between
-              the crossings; the folded knuckles round off its side corners.
-              Slender old fingers, palms smaller than the window (≈20 % less
-              hand than before), forearms bending down-out to FOX_WRIST
-              (−333,47)–(−267,93) (mirrored for the right): inside 六's cuff
-              lining and under 三's forearm ribbons.
+              right seen from the back (thumb tucked behind the palm); the
+              ears cross — left index × right little finger at the top (the
+              right one over), left little finger × right index at the foot
+              (the left one over, redrawn inside a square clip so the weave
+              has no seam): woven. The ears' inner edges ARE the diamond
+              between the crossings; the curled knuckles round off its side
+              corners (~45 px in).
+              Drawn as ukiyo-e hands (Harunobu, Utamaro), not anatomy: ONE
+              carved contour round forearm + palm + ears + the curled pair,
+              and only a few lines inside.
+              · the ears: three phalanges each, kinked 3–5° toward the window
+                at the PIP and DIP (so the inner edge never leaves the diamond
+                edge outward — the window's corners sit a few px in), a long
+                taper to 0.65 × the base width, a small knuckle swell on the
+                back edge, a long rounded tip that turns out past the crossing
+                (the fox's ear pricked up); bases close to the corner (index
+                a 28, little 58 along the edges) so the fingers are long and
+                the palm narrow (≈ 4 finger-widths).
+              · the middle + ring fingers: ONE curled mass (a soft double lobe
+                of PIP knuckles, one crease between the two); palm view, it
+                lies over the palm and its tips go under the thumb's pad.
+              · the thumb: palm view, it grows out of the thenar with no seam
+                (its back edge fades in from the contour, its lower edge sweeps
+                on round the thenar to the wrist as one fleshy curve), one
+                joint crease, its pad on the curled fingertips; back view, it
+                is behind the palm — only the thenar's swell on the lower
+                contour and one crease where it goes under (no tab).
+              · webs: a small fillet of flesh where the palm meets each ear;
+                a narrow wrist, the forearm widening into the cuff at
+                FOX_WRIST (−333,47)–(−267,93) (mirrored for the right): inside
+                六's cuff lining and under 三's forearm ribbons (unchanged).
                 tilt   ladle: 0..1 the cup tips to pour; angle (2.3 rad),
                        len (300), water 0..1
               anchor: fox-window = diamond centre; cupped = centre of the
@@ -178,8 +203,13 @@
      kaguya         NEGATIVE puppet (evenodd): a dark card with her figure
                     cut out as light — a clear pale profile face with a slit
                     of card for the 引目 eye, the robe, the train's layered
-                    hems (重ね) fanning behind her as nested arcs; lines of card
-                    for the sleeve, the layered cuff, collar and hem. Her 垂髪
+                    hems (重ね) fanning behind her as nested arcs; one great
+                    hanging 袖 from the shoulder to mid-thigh, bellying
+                    forward, a rounded foot clear of the robe below, a dark
+                    袖口 slit of card in its mouth and two fine 重ね lines of
+                    card following its front round the foot; the robe flares
+                    to the toe with three 重ね lines along its front hem; the
+                    collar layered. Her 垂髪
                     is CARD, the darkest value: a fine line of light cut round
                     its outer edge (forehead, crown, down her back), two
                     partings of light from mid-back dividing it into three
@@ -1492,8 +1522,12 @@
    * flap — thin arm, cuff, and the sleeve bag hanging below the forearm.
    * When the forearm is raised the sleeve slides back to the elbow and
    * returns { bare: true } so the caller draws a bare forearm.
+   * hang: the forearm held out (pouring): the 袂 falls under gravity from the
+   * forearm's underside — its front edge nearly vertical below the cuff, a
+   * round foot (r ≈ 12), its back edge rising to the elbow — and returns
+   * .fold, one carved fold from the elbow to the 袂's lowest point.
    */
-  function sleevePath(arm, w, depth, noSlide) {
+  function sleevePath(arm, w, depth, noSlide, hang) {
     const [s, e, h] = arm;
     const u1 = unit(s, e), u2 = unit(e, h);
     let n1 = [-u1[1], u1[0]], n2 = [-u2[1], u2[0]];
@@ -1513,6 +1547,20 @@
     }
     const cw = w * 0.55;
     const cA = P_(h, n2, -cw), cB = P_(h, n2, cw);
+    if (hang) {
+      const back = P_(e, nm, w * 0.5);
+      const bot = Math.max(back[1], cB[1]) + depth * (hang === 'far' ? 0.95 : 1.3);   // the 袂's lowest line
+      const r = Math.min(12, depth * 0.7);
+      const fx = cB[0] - u2[0] * 3.5, bx = back[0] - u2[0] * 3;       // front edge, back edge (x)
+      const pts = [
+        P_(s, n1, -w * 0.5), P_(e, nm, -w * 0.5), [cA[0], cA[1], 1], [cB[0], cB[1], 1],
+        [fx + u2[0] * 0.6, U.lerp(cB[1], bot, 0.45)], [fx, bot - r], [fx - u2[0] * r * 0.3, bot - r * 0.3], [fx - u2[0] * r, bot],
+        [U.lerp(fx, bx, 0.55), bot + 0.8], [bx + u2[0] * 3, bot - 1.5], [bx, U.lerp(bot, back[1], 0.55)],
+        back, P_(s, n1, w * 0.5),
+      ];
+      const fold = [lerpPt(back, P_(e, nm, -w * 0.5), 0.25), [U.lerp(back[0], fx, 0.45), U.lerp(back[1], bot, 0.55)], [fx - u2[0] * r * 1.2, bot - 2.2]];
+      return { bare: false, path: sp(pts, true), fold };
+    }
     const bot = Math.max(e[1], h[1]) + depth;
     const back = P_(e, nm, w * 0.5);
     const pts = [
@@ -1696,13 +1744,14 @@
       }
     };
     const drawArm = (arm, far) => {
-      const sl = sleevePath(arm, (G.sleeveW || 12.5) * fw, G.sleeveDepth || 12, far ? G.noSlideF : G.noSlideN);
+      const sl = sleevePath(arm, (G.sleeveW || 12.5) * fw, G.sleeveDepth || 12, far ? G.noSlideF : G.noSlideN, far ? G.hangF : G.hangN);
       if (sl.bare) {
         const fa = tube([arm[1], arm[2]], 6.5, 5, 0);
         P.shape(fa, far ? U.shade(K.skin, 0.93) : K.skin, 0.7);
       }
       const sc = G.sleeveCol || G.kimono;
       P.shape(sl.path, far ? U.shade(sc, 0.86) : G.sleeveFill || sc, 0.95);
+      if (sl.fold && P.mid) P.folds([[sl.fold, 0.75, 0.15]], 0.7);
       if (!G.noHands) P.shape(handPath(arm, 10, !arm.open), far ? U.shade(K.skin, 0.93) : K.skin, 0.6);
     };
     drawArm(J.armF, true);
@@ -1917,6 +1966,9 @@
       G.long = false; G.pants = K.kimono; G.hem = 46; G.seatDrape = true;
     }
     G.shortCollar = true;
+    // pouring: the near 袂 falls from the held-out forearm under its own weight
+    // (the far one too, hidden behind it: no second ledge under the cuff)
+    if (pose === 'pour') { G.hangN = true; G.hangF = 'far'; }
     kimonoBody(P, J, K, G, o.t);
     const ha = J.s2 * 0.6 + (q.neck || 0);
     head(P, J.head[0], J.head[1], ha, K, 'take', o);
@@ -4051,58 +4103,101 @@
     const Wd = FW.W, Hd = FW.H, D = Math.hypot(Wd, Hd);
     return { Wd, Hd, D, C: [-Wd, 0], eU: [Wd / D, -Hd / D], eL: [Wd / D, Hd / D], nU: [-Hd / D, -Wd / D], nL: [-Hd / D, Wd / D] };
   })();
-  // the ears: distance of the base along its diamond edge from the side corner,
-  // width at base → tip, how far the tip runs past the crossing
-  const FOX_INDEX = { a: 56, w0: 31, w1: 25, ext: 34 };
-  const FOX_LITTLE = { a: 92, w0: 26, w1: 21, ext: 25 };
+  // the ears (index, little finger): distance of the base along its diamond edge
+  // from the side corner, width at the base (the tip tapers to FOX_TAPER of it),
+  // how far the tip runs past the crossing; the joints (PIP, DIP) as fractions of
+  // the length and their kinks toward the window (rad); hook = the tip's turn
+  // outward past the crossing (the fox's ear pricked up)
+  const FOX_INDEX = { a: 28, w0: 24, ext: 31, pip: 0.45, dip: 0.74, k1: 0.085, k2: 0.055, hook: 0.2 };
+  const FOX_LITTLE = { a: 58, w0: 20, ext: 24, pip: 0.43, dip: 0.72, k1: 0.075, k2: 0.05, hook: 0.18 };
+  const FOX_TAPER = 0.65;
   const FOX_WRIST = [[-333, 47], [-267, 93]];        // the forearm's end: inside 六's cuff lining, under 三's forearm
-  /** one raised ear along a diamond edge: its outline (closed) and the frame to place marks */
+  /**
+   * One raised ear along a diamond edge: three phalanges with small kinks
+   * toward the window at the PIP and DIP (so the inner edge never leaves the
+   * diamond edge outward), tapering from w0 to 0.65·w0, a knuckle swell on the
+   * outer (back) edge, a long rounded tip that turns out past the crossing.
+   * Returns the outline (closed) and the frame P0(u, v) to place marks
+   * (u 0 = base … 1 = tip, v = offset outward from the window edge).
+   */
   function foxEar(e, n, sp, age) {
     const { C, D } = FOXG;
-    const knob = 0.1 * age;
     const L = D + sp.ext - sp.a;
-    const bump = (u, j) => Math.exp(-Math.pow((u - j) / 0.055, 2));
-    const W = (u) => U.lerp(sp.w0, sp.w1, u) * (1 + knob * (bump(u, 0.42) + 0.8 * bump(u, 0.72)));
     const uv = (D - sp.a) / L;                          // the crossing (the window's corner)
-    const P0 = (u, v) => [C[0] + e[0] * (sp.a + u * L) + n[0] * v, C[1] + e[1] * (sp.a + u * L) + n[1] * v];
-    const inner = [], outer = [];
-    const US = [-0.16, 0, 0.12, 0.26, 0.36, 0.42, 0.48, 0.6, 0.68, 0.72, 0.76, 0.86, 0.94, 1];
-    for (const u of US) {
-      const w = W(Math.max(0, u));
-      // joints swell both ways; beyond the crossing the tip lifts a little (the hook)
-      const sw = knob * sp.w0 * 0.22 * (bump(u, 0.42) + 0.8 * bump(u, 0.72));
-      const lift = u > uv ? 5 * Math.pow((u - uv) / (1 - uv), 2) : 0;
-      inner.push(P0(u, -sw + lift));
-      outer.push(P0(u, w + lift));
+    const knob = 0.1 * age;
+    const bump = (u, j, w) => Math.exp(-Math.pow((u - j) / (w || 0.05), 2));
+    const theta = (u) => sp.k1 * U.smoothstep(sp.pip - 0.04, sp.pip + 0.04, u) + sp.k2 * U.smoothstep(sp.dip - 0.035, sp.dip + 0.035, u)
+      - sp.hook * Math.pow(Math.max(0, (u - uv) / (1 - uv)), 1.7);
+    // the bent baseline (the window edge of the finger), integrated along its length
+    const u0 = -0.16, N = 64, du = (1 - u0) / N;
+    const bx = [], by = [], fr = [];
+    let px = C[0] + e[0] * (sp.a + u0 * L), py = C[1] + e[1] * (sp.a + u0 * L);
+    for (let i = 0; i <= N; i++) {
+      const u = u0 + i * du, th = theta(u), c = Math.cos(th), s = Math.sin(th);
+      const d = [e[0] * c - n[0] * s, e[1] * c - n[1] * s], nn = [n[0] * c + e[0] * s, n[1] * c + e[1] * s];
+      if (i) { const th0 = theta(u - du * 0.5), c0 = Math.cos(th0), s0 = Math.sin(th0); px += (e[0] * c0 - n[0] * s0) * du * L; py += (e[1] * c0 - n[1] * s0) * du * L; }
+      bx.push(px); by.push(py); fr.push([d, nn]);
     }
-    // the rounded tip
-    const tc = P0(1, W(1) / 2 + 5), r = W(1) / 2, cap = [];
-    for (const f of [0.2, 0.4, 0.6, 0.8]) {
+    const at = (u) => {
+      const f = U.clamp((u - u0) / du, 0, N - 1e-6), i = Math.floor(f), t = f - i;
+      const a = fr[i], b = fr[i + 1];
+      return { x: U.lerp(bx[i], bx[i + 1], t), y: U.lerp(by[i], by[i + 1], t), d: [U.lerp(a[0][0], b[0][0], t), U.lerp(a[0][1], b[0][1], t)], n: [U.lerp(a[1][0], b[1][0], t), U.lerp(a[1][1], b[1][1], t)] };
+    };
+    const P0 = (u, v) => { const q = at(u); return [q.x + q.n[0] * v, q.y + q.n[1] * v]; };
+    // width: a long taper, the joints swelling a little with age
+    const W = (u) => {
+      const q = U.clamp(u, 0, 1);
+      return sp.w0 * (1 - (1 - FOX_TAPER) * Math.pow(q, 1.15)) * (1 + knob * (bump(q, sp.pip) + 0.8 * bump(q, sp.dip)));
+    };
+    // the back of the finger: a small knuckle bump at each joint, a hollow between
+    const back = (u) => (0.6 + 0.8 * age) * (bump(u, sp.pip + 0.01, 0.065) + 0.75 * bump(u, sp.dip + 0.01, 0.055))
+      - 0.4 * bump(u, (sp.pip + sp.dip) / 2, 0.09);
+    // the window side: never outward of the diamond edge; the pads swell a hair into it
+    const pad = (u) => 0.6 + (u > 0 ? 0.9 * Math.sin(Math.PI * U.clamp(u / sp.pip)) + 0.8 * Math.sin(Math.PI * U.clamp((u - sp.pip) / (sp.dip - sp.pip))) : 0)
+      + knob * sp.w0 * 0.12 * (bump(u, sp.pip) + 0.8 * bump(u, sp.dip));
+    const US = [];
+    for (let i = 0; i <= 26; i++) US.push(u0 + ((0.965 - u0) * i) / 26);
+    const inner = [], outer = [];
+    for (const u of US) { inner.push(P0(u, -pad(u))); outer.push(P0(u, W(u) + back(u))); }
+    // the tip: a long rounded end (a little longer than it is wide)
+    const q = at(0.965), r = W(1) / 2, tc = P0(0.965, (W(1) - pad(1)) / 2), cap = [];
+    for (const f of [0.14, 0.3, 0.46, 0.62, 0.78, 0.9]) {
       const th = Math.PI * f;
-      cap.push([tc[0] - n[0] * r * Math.cos(th) + e[0] * r * 0.95 * Math.sin(th), tc[1] - n[1] * r * Math.cos(th) + e[1] * r * 0.95 * Math.sin(th)]);
+      cap.push([tc[0] - q.n[0] * r * Math.cos(th) + q.d[0] * r * 1.45 * Math.sin(th), tc[1] - q.n[1] * r * Math.cos(th) + q.d[1] * r * 1.45 * Math.sin(th)]);
     }
     const outline = inner.concat(cap, outer.slice().reverse());
-    return { outline, inner, outer, cap, L, uv, P0, W, US };
+    return { outline, inner, outer, cap, L, uv, P0, W, US, sp, tipAt: q };
   }
-  /** A digit as a closed outline: centre line pts (base buried → tip), widths w0 → w1, a round tip. Returns { shape, open }. */
-  function capsule(pts, w0, w1) {
-    const c = crs(pts, 5), n = c.length, L = [], R = [];
+  /** A digit as a closed outline along centre-line pts with widths ws (per point) and a long round tip. */
+  function digitShape(pts, ws, tipK) {
+    const c = crs(pts, 5), n = c.length, Lf = [], Rf = [];
+    const wAt = (i) => { const f = (i / (n - 1)) * (ws.length - 1), j = Math.min(ws.length - 2, Math.floor(f)); return U.lerp(ws[j], ws[j + 1], f - j) / 2; };
     let d = [1, 0];
     for (let i = 0; i < n; i++) {
       const a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)];
       const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
       d = [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
-      const w = U.lerp(w0, w1, i / (n - 1)) / 2;
-      L.push([c[i][0] - d[1] * w, c[i][1] + d[0] * w]);
-      R.push([c[i][0] + d[1] * w, c[i][1] - d[0] * w]);
+      const w = wAt(i);
+      Lf.push([c[i][0] + d[1] * w, c[i][1] - d[0] * w]);
+      Rf.push([c[i][0] - d[1] * w, c[i][1] + d[0] * w]);
     }
-    const e = c[n - 1], r = w1 / 2, cap = [];
-    for (const f of [0.18, 0.36, 0.5, 0.64, 0.82]) {
+    const e = c[n - 1], r = wAt(n - 1), cap = [], k = tipK || 1.2;
+    for (const f of [0.16, 0.34, 0.5, 0.66, 0.84]) {
       const th = Math.PI * f;
-      cap.push([e[0] - d[1] * r * Math.cos(th) + d[0] * r * Math.sin(th), e[1] + d[0] * r * Math.cos(th) + d[1] * r * Math.sin(th)]);
+      cap.push([e[0] + d[1] * r * Math.cos(th) + d[0] * r * k * Math.sin(th), e[1] - d[0] * r * Math.cos(th) + d[1] * r * k * Math.sin(th)]);
     }
-    return { shape: L.concat(cap, R.slice().reverse()), open: L.concat(cap, R.slice().reverse()) };
+    return { shape: Lf.concat(cap, Rf.slice().reverse()), Lf, Rf, cap, c };
   }
+  /**
+   * One fox hand. side −1 = left (palm toward us, thumb on top), 1 = right
+   * (back toward us, thumb below, tucked behind the index). Built in the
+   * canonical (left) space and mirrored. One inked silhouette — forearm, palm,
+   * the two ears, the curled middle + ring fingers as ONE rounded mass (its
+   * PIP knuckles round off the window's side corner) — then the thumb:
+   * palm view, it grows out of the thenar in one fleshy curve and lays its
+   * pad over the curled fingertips; back view, it runs along the hand's lower
+   * contour and slips behind the index. Inside, only a few carved lines.
+   */
   function foxHand(P, side, K, age, dx, dy, tw, part) {
     const ctx = P.ctx;
     const { eU, eL, nU, nL } = FOXG;
@@ -4119,20 +4214,24 @@
     const skin = K.skinNow;
 
     if (part === 'over') {
-      // the left little finger's far half, again, over the right index (woven)
-      const u0 = lo.uv - 34 / lo.L;
-      const k0 = lo.US.findIndex((u) => u >= u0);
-      const inn = lo.inner.slice(k0), out = lo.outer.slice(k0);
-      const open = new Path2D();
-      open.addPath(openPath(inn));
-      open.addPath(openPath([inn[inn.length - 1]].concat(lo.cap, [out[out.length - 1]])));
-      open.addPath(openPath(out));
-      handKey(P, [open]);
-      P.flat(path(inn.concat(lo.cap, out.slice().reverse())), skin);
+      // the left little finger's far half, again, over the right index (woven):
+      // the same outline redrawn inside a clip that cuts it square, 30 px
+      // before the crossing, so the redraw joins the first print seamlessly
+      const u0 = lo.uv - 30 / lo.L;
+      const cp = [lo.P0(u0, -70), lo.P0(u0, 70), lo.P0(1, 70), lo.P0(1, -70)];
+      const q = lo.tipAt, far = (p) => [p[0] + q.d[0] * 80, p[1] + q.d[1] * 80];
+      ctx.save();
+      ctx.beginPath();
+      for (const p of [cp[0], cp[1], far(cp[2]), far(cp[3])].map(M)) ctx.lineTo(p[0], p[1]);
+      ctx.closePath();
+      ctx.clip();
+      const e = path(lo.outline);
+      handKey(P, [e]);
+      P.flat(e, skin);
       foxEarMarks(P, K, lo, palmView, age, M, u0);
+      ctx.restore();
       return;
     }
-
     if (K.sleeveOn) {
       // the sleeve hangs from the forearm: slanted top edge, vertical front edge
       // from the cuff, rounded bottom corners (袖の丸み) — a kimono 袂, not a tube
@@ -4146,101 +4245,130 @@
         [[[G[0] - 70, G[1] + 40], [G[0] - 90, 200], [G[0] - 80, 320]].map(M), 0.7, 0.2],
       ], 0.55);
     }
-    // the back view's thumb, tucked under the palm toward the folded fingers (behind)
-    if (!palmView) {
-      const t = capsule([[-246, 64], [-222, 78], [-194, 88], [-166, 93]], 31, 25);
-      handKey(P, [path(t.shape)]);
-      P.flat(path(t.shape), skin);
-      if (P.mid) {
-        const q = M([-170, 94]), nl = new Path2D();
-        nl.ellipse(q[0], q[1], 8, 6, side > 0 ? -0.25 : 0.25, 0, TAU);
-        P.flat(nl, K.nail);
-      }
-    }
-    // the palm and forearm: wrist → the two sides → the knuckle line, where the
-    // two folded fingers round off the window's side corner in two knuckles
-    const hump = palmView ? 15 : 19;
+    // the curled middle + ring fingers: ONE rounded mass whose PIP knuckles
+    // round off the window's side corner (a soft double lobe, the two fingers)
+    const kd = [Bl[0] - Bu[0], Bl[1] - Bu[1]], kl = Math.hypot(kd[0], kd[1]);
+    const kr = [kd[1] / kl, -kd[0] / kl];                      // toward the window
+    const hump = (palmView ? 15 : 17) * (1 + 0.12 * age);
     const knuck = [];
-    for (let i = 0; i <= 12; i++) {
-      const t = i / 12, b = lerpPt(Bu, Bl, t);
-      const hh = Math.pow(Math.abs(Math.sin(Math.PI * 2 * t)), 0.62) * hump * (t < 0.5 ? 1 : 0.9) * (1 + 0.15 * age);
-      knuck.push([b[0] + hh * 0.99, b[1] - hh * 0.14]);
+    for (let i = 0; i <= 14; i++) {
+      const t = i / 14;
+      const hh = hump * Math.pow(Math.sin(Math.PI * t), 0.62) * (1 - 0.1 * Math.exp(-Math.pow((t - 0.5) / 0.1, 2))) * (t < 0.5 ? 1 : 0.94);
+      knuck.push([Bu[0] + kd[0] * t + kr[0] * hh, Bu[1] + kd[1] * t + kr[1] * hh]);
     }
-    // the wrist bends: the forearm runs down and out (≈ 80 px wide) and ends
-    // inside the scenes' cuff / under their forearm (FOX_WRIST)
+    // the forearm comes up out of the scenes' cuff (FOX_WRIST, ≈ 80 px) and
+    // the wrist turns: a slender wrist, a small palm (≈ 4 finger-widths)
     const [Ft, Fb] = FOX_WRIST.map((p) => p.concat([1]));
-    const topEdge = palmView
-      ? [[-160, -60], [-204, -56], [-238, -44], [-262, -22], [-284, 4], [-308, 28]]     // the thenar swells under the thumb
-      : [[-128, -76], [-176, -62], [-220, -42], [-252, -18], [-280, 8], [-306, 30]];    // the little finger's side, lean
-    const botEdge = palmView
-      ? [[-128, 82], [-176, 80], [-218, 74], [-246, 80]]                                // the hypothenar
-      : [[-158, 68], [-204, 70], [-234, 74], [-250, 82]];
-    const palmPts = [Ft].concat(topEdge.slice().reverse(), [BuO, [Bu[0] - 8, Bu[1] - 2]], knuck.slice(1, -1), [[Bl[0] - 8, Bl[1] + 2], BlO], botEdge, [Fb]);
-    const all = [path(palmPts), path(up.outline), path(lo.outline)];
-    handKey(P, all);
-    for (const p of all) P.flat(p, skin);
-    if (!P.mid) return;
-
-    // the clefts where the ears leave the knuckles, and between the folded two
-    handNicks(P, [
-      [[M(knuck[2]), M([knuck[2][0] - 20, knuck[2][1] - 2])], 1.7, 0.2],
-      [[M(knuck[6]), M([knuck[6][0] - 22, knuck[6][1] + 1])], 1.7, 0.2],
-      [[M(knuck[10]), M([knuck[10][0] - 20, knuck[10][1] + 3])], 1.7, 0.2],
-    ], 0.9);
-
+    const Uc = (p) => p.concat([1]);
+    // the webs: a small fillet of flesh where the palm's contour meets each ear
+    const web = (A, Cc, ear) => {
+      const Bb = ear.P0(0.11, ear.W(0.11) - 0.4), a = M(A), c = M(Cc), b = M(Bb), k = M(lerpPt(Cc, lerpPt(A, Bb, 0.5), 0.22));
+      const p = new Path2D();
+      p.moveTo(a[0], a[1]); p.lineTo(c[0], c[1]); p.lineTo(b[0], b[1]); p.quadraticCurveTo(k[0], k[1], a[0], a[1]); p.closePath();
+      return p;
+    };
+    const earU = path(up.outline), earL = path(lo.outline);
     if (palmView) {
-      // the fox's snout in the palm: the folded middle and ring fingers curled
-      // back over it, the thumb reaching across to press their tips
-      const mid = capsule([[knuck[3][0] - 8, knuck[3][1] + 1], [knuck[3][0] - 26, knuck[3][1] + 1], [-134, -8]], 27, 25);
-      const ring = capsule([[knuck[9][0] - 8, knuck[9][1] - 1], [knuck[9][0] - 24, knuck[9][1] - 2], [-126, 30]], 25, 23);
-      const th = capsule([[-252, -38], [-216, -32], [-184, -14], [-160, 2]], 33, 27);
-      for (const c of [ring, mid, th]) {
-        handKey(P, [openPath(c.open)], 0.9);
-        P.flat(path(c.shape), skin);
-      }
-      // two palm lines only: the heart line under the knuckles, the life line round the thumb
+      const palmPts = [Ft, [-306, 29], [-280, 10], [-256, -6], [-232, -20], [-206, -30], [-182, -35], [-161, -36], Uc(BuO), Uc(Bu),
+        Uc(Bl), Uc(BlO), [BlO[0] - 14, BlO[1] + 8], [-156, 63], [-188, 60], [-212, 55], [-228, 56], [-244, 72], Fb];
+      // the curled mass lies over the palm and reaches back to the thumb's pad
+      const mTail = [[Bl[0] - 13, Bl[1] - 7], [-133, 20], [-151, 13], [-166, 6]];
+      const mHead = [[-163, -5], [-149, -8], [Bu[0] - 9, Bu[1] + 5]];
+      const massPts = knuck.concat(mTail, mHead);
+      // the thumb out of the thenar: its root inside the palm's contour, a long
+      // taper toward the curled fingers, its pad laid over their tips
+      // the thumb as one drawn outline: its back leaves the hand's contour at
+      // the thenar, the joint swells a little, the tip narrows and its pad
+      // lies on the curled fingertips; its lower edge sweeps on round the
+      // thenar to the wrist — the only seam at the root is that fleshy curve
+      const thUp = [[-234, -18], [-215, -23], [-197, -22], [-182, -18.5], [-169, -12.5], [-158, -5.5]];
+      const thTip = [[-151, 0], [-147.5, 6], [-150.5, 11.5]];
+      const thLo = [[-159, 14], [-171, 12.5], [-184, 8.5], [-199, 5], [-215, 5.5]];
+      const thumbP = path(thUp.concat(thTip, thLo, [[-232, 9], [-244, 0]]));
+      const palm = path(palmPts), mass = path(massPts);
+      const webs = [web([-161, -36], BuO, up), web([BlO[0] - 14, BlO[1] + 8], BlO, lo)];
+      // one silhouette: forearm + palm + ears + the curled mass's knuckles
+      handKey(P, [palm, earU, earL, mass, ...webs]);
+      for (const p of [palm, earU, earL, mass, ...webs]) P.flat(p, skin);
+      // the curled mass: its two long edges carved over the palm, the tips under the pad
+      handKey(P, [openPath(knuck.slice(-2).concat(mTail)), openPath(mHead.concat([knuck[0], knuck[1]]))], 0.8);
+      P.flat(mass, skin);
+      handKey(P, [openPath(thUp.slice(1).concat(thTip, thLo))]);
+      P.flat(thumbP, skin);
+      if (!P.mid) return;
       handNicks(P, [
-        [[M([-108, 52]), M([-138, 50]), M([-170, 40])], 1.4, 0.3],
-        [[M([-238, -22]), M([-222, 8]), M([-226, 36]), M([-244, 56])], 1.3, 0.3],
-      ], 0.5 + 0.25 * age, K.crease);
-    } else if (P.fx && age > 0.3) {
-      // the back of the old hand: a few quiet age spots
-      const S = new Path2D();
-      const r = U.rng(side > 0 ? 41 : 43);
-      for (let i = 0; i < 4; i++) {
-        const q = M([-240 + r() * 100, -30 + r() * 80]), rr = (2.5 + r() * 4) * age;
-        S.moveTo(q[0] + rr, q[1]); S.ellipse(q[0], q[1], rr, rr * 0.75, r() * 3, 0, TAU);
+        // the thenar's curve: the thumb's lower edge going on round to the wrist
+        [[M(thLo[4]), M([-226, 9]), M([-234, 20]), M([-236, 32]), M([-233, 45])], 2.4, 0.15],
+        // the thumb's back edge fading in from the contour
+        [[M(thUp[0]), M([-224, -21]), M(thUp[1])], 0.12, 2.3],
+        // one crease between the two curled fingers
+        [[M(knuck[7]), M([knuck[7][0] - 15, knuck[7][1] - 1]), M([knuck[7][0] - 30, knuck[7][1] + 1])], 1.25, 0.2],
+        // the ears' clefts
+        [[M(knuck[0]), M([knuck[0][0] - 11, knuck[0][1] + 5])], 1.25, 0.2],
+        [[M(knuck[14]), M([knuck[14][0] - 12, knuck[14][1] - 4])], 1.25, 0.2],
+      ], 0.9);
+      // the thumb's joint: one short crease on its pad side
+      handNicks(P, [[[M([-184, 8]), M([-186.5, 2.5])], 1.0, 0.25]], 0.45 + 0.25 * age, K.crease);
+    } else {
+      // the back of the hand: the little finger's side lean, the thumb tucked
+      // behind the palm (its fingers' tips are there) — only the thenar's
+      // swell on the lower contour and one crease where it goes under
+      const palmPts = [Ft, [-308, 30], [-282, 12], [-258, -4], [-243, -15], [-224, -28], [-196, -41], [-162, -50], [BuO[0] - 16, BuO[1] - 3], Uc(BuO), Uc(Bu),
+        Uc(Bl), Uc(BlO), [BlO[0] - 10, BlO[1] + 8], [-176, 53], [-204, 57], [-225, 56], [-243, 73], Fb];
+      const massPts = knuck.concat([[Bl[0] - 12, Bl[1] - 6], [-144, 4], [-144, -14], [Bu[0] - 12, Bu[1] + 6]]);
+      const palm = path(palmPts), mass = path(massPts);
+      const webs = [web([BuO[0] - 16, BuO[1] - 3], BuO, up), web([BlO[0] - 10, BlO[1] + 8], BlO, lo)];
+      handKey(P, [palm, earU, earL, mass, ...webs]);
+      for (const p of [palm, earU, earL, mass, ...webs]) P.flat(p, skin);
+      if (!P.mid) return;
+      handNicks(P, [
+        // where the thumb goes under: from the index's crotch along the thenar
+        [[M([BlO[0] - 5, BlO[1] + 5]), M([-164, 46]), M([-184, 49])], 1.3, 0.15],
+        // one crease between the two curled fingers, the ears' clefts
+        [[M(knuck[7]), M([knuck[7][0] - 14, knuck[7][1]]), M([knuck[7][0] - 28, knuck[7][1] + 2])], 1.3, 0.2],
+        [[M(knuck[0]), M([knuck[0][0] - 12, knuck[0][1] + 4])], 1.25, 0.2],
+        [[M(knuck[14]), M([knuck[14][0] - 11, knuck[14][1] - 5])], 1.25, 0.2],
+      ], 0.9);
+      if (P.fx && age > 0.3) {
+        // the back of the old hand: a few quiet age spots
+        const S = new Path2D();
+        const r = U.rng(side > 0 ? 41 : 43);
+        for (let i = 0; i < 4; i++) {
+          const q = M([-232 + r() * 86, -30 + r() * 64]), rr = (2.2 + r() * 3.2) * age;
+          S.moveTo(q[0] + rr, q[1]); S.ellipse(q[0], q[1], rr, rr * 0.75, r() * 3, 0, TAU);
+        }
+        ctx.save(); ctx.globalAlpha *= 0.4 * age; P.flat(S, K.spot); ctx.restore();
       }
-      ctx.save(); ctx.globalAlpha *= 0.45 * age; P.flat(S, K.spot); ctx.restore();
-      // the folded fingers' middle knuckles: one carved nick each
-      handNicks(P, [3, 9].map((i) => [[M([knuck[i][0] - 5, knuck[i][1] - 7]), M([knuck[i][0] - 1, knuck[i][1]]), M([knuck[i][0] - 5, knuck[i][1] + 7])], 0.4, 1.2]), 0.6, K.crease);
+      // the curled fingers' PIP knuckles: a carved wrinkle each (no more)
+      handNicks(P, [4, 10].map((i) => [[M([knuck[i][0] - 7, knuck[i][1] - 6]), M([knuck[i][0] - 3.5, knuck[i][1]]), M([knuck[i][0] - 7, knuck[i][1] + 6])], 0.3, 1.1]), 0.55 + 0.2 * age, K.crease);
     }
     foxEarMarks(P, K, up, palmView, age, M, 0);
     foxEarMarks(P, K, lo, palmView, age, M, 0);
   }
-  /** an ear's joint marks: two carved nicks at the middle knuckle (old), one at the last; its nail from the back */
+  /** an ear's joint marks: carved nicks at the PIP (two when old, from the back) and the DIP; its nail from the back */
   function foxEarMarks(P, K, ear, palmView, age, M, uFrom) {
-    if (!P.mid) return;
-    const list = [];
+    if (!P.mid || P.sil) return;
+    const list = [], s = ear.sp;
     const cnt = palmView ? 1 : 1 + Math.round(age);
-    for (const [u, c] of [[0.42, cnt], [0.72, 1]]) {
+    for (const [u, c, k] of [[s.pip, cnt, 1], [s.dip, 1, 0.8]]) {
       if (u < uFrom) continue;
       const w = ear.W(u);
       for (let j = 0; j < c; j++) {
-        const uu = u + (j - (c - 1) / 2) * 0.03;
-        const a = ear.P0(uu, w * (palmView ? 0.2 : 0.14)), b = ear.P0(uu + (palmView ? 0 : 0.012), w * 0.5), d = ear.P0(uu, w * (palmView ? 0.8 : 0.7));
-        list.push([[M(a), M(b), M(d)], palmView ? 0.5 : 0.4, palmView ? 0.5 : 1.3]);
+        const uu = u + (j - (c - 1) / 2) * 0.028;
+        // palm side: a short crease from the window edge; back: a wrinkle across the knuckle
+        const a = ear.P0(uu, w * (palmView ? 0.08 : 0.22)), b = ear.P0(uu + (palmView ? 0 : 0.01), w * 0.45), d = ear.P0(uu, w * (palmView ? 0.62 : 0.78));
+        list.push([[M(a), M(b), M(d)], (palmView ? 0.9 : 0.35) * k, (palmView ? 0.25 : 1.2) * k]);
       }
     }
     handNicks(P, list, 0.55 + 0.3 * age, K.crease);
     if (!palmView) {
-      const w = ear.W(1), q = ear.P0(0.95, w / 2 + 4);
-      const e = ear.P0(1, 0), e0 = ear.P0(0, 0);
-      const ang = Math.atan2(M(e)[1] - M(e0)[1], M(e)[0] - M(e0)[0]);
-      const c = M(q);
+      const q = ear.tipAt, w = ear.W(1);
+      const c = M(ear.P0(0.93, w * 0.5));
+      const e2 = M([q.x + q.d[0], q.y + q.d[1]]), e1 = M([q.x, q.y]);
+      const ang = Math.atan2(e2[1] - e1[1], e2[0] - e1[0]);
       const nl = new Path2D();
-      nl.ellipse(c[0], c[1], w * 0.3, w * 0.24, ang, 0, TAU);
-      P.flat(nl, K.nail);
+      nl.ellipse(c[0], c[1], w * 0.36, w * 0.26, ang, 0, TAU);
+      P.ctx.save(); P.ctx.globalAlpha *= 0.8; P.flat(nl, K.nail); P.ctx.restore();
     }
   }
 
@@ -4700,8 +4828,11 @@
     // over the crown: temple-top, crown, back of head, nape (the hair's outer edge at the head)
     crown: [[3.2, -188.8], [-2.2, -190.4], [-8.8, -187], [-12.8, -178]],
     chest: [[6.2, -158], [13.5, -150]],
-    sleeve: [[27.5, -121], [29.8, -95], [29.4, -72], [25, -65.6], [16, -64], [8.5, -63]],
-    robe: [[18.5, -57], [22.6, -36], [27, -16], [33, -4.5], [36.5, 0]],
+    // the great hanging sleeve (袂): out from the shoulder, its front bellying
+    // forward, a rounded foot at mid-thigh, clear of the robe below it
+    sleeve: [[28.5, -125], [35.5, -101], [35.8, -77], [30.5, -63.2], [18, -60.6], [9, -61.2]],
+    // the robe below: set back under the sleeve, flaring to the toe
+    robe: [[16.5, -55], [20, -38], [24.6, -21], [31, -8], [40, 0]],
     // the robe's back = the hair's front edge (nape → floor) · the hair's outer edge
     RB: [[-4.5, -163.5], [-8.6, -150], [-11.6, -125], [-14, -100], [-16.4, -75], [-19, -52], [-22.2, -33], [-26.4, -16], [-30, 0]],
     HO: [[-13.6, -168], [-17.6, -150], [-21, -125], [-24, -100], [-26.8, -75], [-29.6, -52], [-33, -33], [-37.6, -16], [-42, 0]],
@@ -4966,19 +5097,31 @@
     // ---- lines of card inside the robe
     // the sleeve's back edge (sleeve | body): hanging → along the raised forearm
     {
-      const rest = [SLV([6.5, -138]), SLV([7, -118]), SLV([7.4, -94]), SLV([8.2, -70])];
+      const rest = [SLV([6.5, -138]), SLV([7, -118]), SLV([7.6, -92]), SLV([8.8, -64.5])];
       const up = [[eye[0] + 6 * hk, eye[1] + 3.5 * hk], lerpPt(eye, B([4, -140]), 0.45), B([4.5, -130]), B([5.5, -121])];
       slits.push([rest.map((p, i) => lerpPt(p, up[i], r)), lw(1.9)]);
     }
-    // the layered cuff (袖口の重ね): two lines just inside the sleeve's front edge
-    for (const [d, w] of [[3.4, 1.25], [6.8, 1.1]]) {
-      const pts = [sleeve[0], sleeve[1], sleeve[2]].map((p, i) => [p[0] - d * sy * slv * (1 - 0.15 * i), p[1] + (i === 0 ? 4 : i === 2 ? -4 : 0) * sy]);
-      slits.push([pts, lw(w) * kas]);
+    // the sleeve's mouth (袖口): a dark slit of card inside the top of its
+    // front, where the hand would come out; and the 十二単's layers (重ね):
+    // fine lines of card following the sleeve's front round its rounded foot
+    {
+      const front = run(sleeve.slice(0, 5), 5);
+      const nF = front.length;
+      const mouth = offsetLine(front, -5.6 * sy * slv).slice(1, Math.round(nF * 0.42));
+      slits.push([mouth, lw(2.8) * kas * (1 - r)]);
+      for (const [d, w] of [[2.3, 1.0], [3.9, 0.85]]) slits.push([offsetLine(front, -d * sy * slv).slice(1, nF - 1), lw(w) * kas]);
     }
     // the layered collar (襟の重ね), hidden by the raised sleeve
     for (const [d, w] of [[0, 1.15], [3.2, 1.0]]) slits.push([[B([5.2 - d * 0.4, -157.5 + d]), B([9 - d * 0.2, -151.5 + d]), B([12.4, -145.5 + d])], lw(w) * kas * (1 - r)]);
-    // the layered hem at the front (裾の重ね): arcs stepping down to the toe
-    for (const [d, w] of [[3.6, 1.2], [7.4, 1.05]]) slits.push([[B([18.5 - d * 0.8, -48]), B([22 - d, -30]), B([26.5 - d * 1.05, -14]), B([32 - d * 1.4, -2.6])], lw(w) * kas]);
+    // the layered hem at the front (裾の重ね): three lines following the robe's
+    // front down to the toe, stepping back from it
+    {
+      const hem = run(robe.slice(1), 5);
+      for (const [d, w] of [[2.4, 1.0], [4.4, 0.9], [6.4, 0.8]]) {
+        const pts = offsetLine(hem, -d * sy).filter((p) => p[1] < -1.6 * sy);
+        if (pts.length > 1) slits.push([pts, lw(w) * kas]);
+      }
+    }
 
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity;
     for (const h of holes) for (const p of h) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); }

@@ -58,6 +58,8 @@
       const A = TSUKI.SHOTS.A;
       // 序's full-frame caches are done with
       if (T >= 14 && A.releaseJo) A.releaseJo();
+      // the poster frame carved for this backing size before its cut (a resize re-carves it here, not at 16.5)
+      if (T < 16.45 && A.keepPoster) A.keepPoster(ctx);
       const z = thiefZoom(T), poster = A.posterK && A.posterK(T) > 1;
       A.drawGarden(ctx, T, poster ? { poster: true } : z > 1.0005 ? { zoom: { k: z, about: THIEF.about } } : undefined);
       // 序's 短冊, 色紙 and 縁 seal: held, then fading with the DOM title (14.4–16.0)

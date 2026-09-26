@@ -249,9 +249,10 @@
   }
 
   /* ---- すやり霞: the mist bands of the 'kasumi' transition ----------- */
-  // Five long flat bands, each ONE opaque ink (胡粉, a breath of 鴇, 月白) with
-  // rounded suyari ends; about half carry a second, thinner bar laid along one
-  // edge so the end steps (the emaki way of drawing すやり霞). The only
+  // Five long flat bands, each ONE opaque ink (胡粉, a breath of 鴇, 月白): a
+  // rounded suyari nose in front, a long tapering tail behind; about half carry
+  // a second, thinner bar laid along one edge so the ends step (the emaki way
+  // of drawing すやり霞). The only
   // gradation is the atenashi bokashi along each bar's top edge — no band is
   // translucent and none fades to transparency at an edge, so they print as
   // flat 胡粉 on the paper, not as frosted glass. Sparse 金砂子 flecks ride on
@@ -259,8 +260,10 @@
   // the middle rows outward, glide to rest (some noses inside the picture,
   // drifting on), and with the picture about two thirds veiled the scene
   // CUTS beneath them — one frame, seen only in the wide gaps, never a
-  // cross-fade through the ink; then the trailing ends follow the noses out
-  // to the left. Each band is baked once per stage size (during the warm-up)
+  // cross-fade through the ink; then each nose runs out to the left, and only
+  // once it has gone does its tail come in at the right and sweep through (a
+  // band never shows both its ends at once: no floating capsules), the rows
+  // leaving from the lower left to the upper right. Each band is baked once per stage size (during the warm-up)
   // at device resolution as [left end | body | right end] and printed as 1:1
   // pieces (no per-frame gradients or paths); one scene per frame.
   const KASUMI_STAGGER = 0.1;                   // latest row start (of p)
@@ -278,7 +281,10 @@
       const h = (j) => U.hash(i * 37 + j * 11 + seed);
       // broad bands, now and then a narrower one
       const bh = rh * (h(16) < 0.3 ? U.lerp(0.28, 0.38, h(1)) : U.lerp(0.52, 0.76, h(1)));
-      const parts = [{ dy: 0, h: bh, dl: 0, dr: 0, capL: bh * U.lerp(1.5, 1.9, h(2)), capR: bh * U.lerp(1.25, 1.6, h(3)) }];
+      // the leading nose is a round suyari end; the trailing end a long taper
+      // (the lower edge rising to the upper in one slow curve), so no band ever
+      // reads as a capsule with the same cap at both ends
+      const parts = [{ dy: 0, h: bh, dl: 0, dr: 0, capL: bh * U.lerp(1.5, 1.9, h(2)), capR: bh * U.lerp(2.5, 3.3, h(3)) }];
       if (h(4) < 0.6) {
         // the stepped end: a thinner bar overlapping the lower (or upper) edge
         const sh = bh * U.lerp(0.4, 0.56, h(5));
@@ -289,7 +295,7 @@
           // behind or a little beyond: never so close that the ends bulge
           dl: h(7) < 0.3 ? -rh * U.lerp(0.45, 0.85, h(17)) : rh * U.lerp(0.55, 1.7, h(17)),
           dr: h(8) < 0.3 ? rh * U.lerp(0.28, 0.45, h(18)) : -rh * U.lerp(0.6, 1.8, h(18)),
-          capL: sh * U.lerp(1.6, 2.1, h(9)), capR: sh * 1.5,
+          capL: sh * U.lerp(1.6, 2.1, h(9)), capR: sh * U.lerp(2.8, 3.8, h(21)),
         });
       }
       const top = Math.min(...parts.map((q) => q.dy)), bot = Math.max(...parts.map((q) => q.dy + q.h));
@@ -310,9 +316,12 @@
       // the emaki's reading diagonal, every other row or so)
       const inside = (i + (h(11) < 0.3 ? 1 : 0)) % 2 === 0;
       const rest = inside ? U.lerp(160, 900, 1 - mid) + U.lerp(-90, 90, h(12)) : -endL * U.lerp(0.1, 0.5, h(12));
-      // every nose is at rest before the cut and every trailing end still
-      // off the right edge: the change is hidden under the whole length of ink
-      const tOut = KASUMI_CUT + U.lerp(0.03, 0.17, h(15)) + d * 0.3;
+      // the exit, after the cut: each leading nose leaves by the left edge
+      // before its own tail comes in at the right (the band lies across the
+      // whole picture between), then the tail sweeps through — one row after
+      // another, from the lower left to the upper right
+      const ord = U.clamp((1 - mid) * 0.86 + 0.14 * h(15));
+      const tEnter = 0.555 + 0.17 * ord;
       // the 金砂子 riding on the main bar: sparse flecks (distance from the
       // leading nose, height within the bar, size, shape)
       const flecks = [];
@@ -331,9 +340,16 @@
         y: yTop - top, parts, top, bot, reachL, reachR, endL, endR, x0, x1, rest, flecks,
         // leading nose: enters, settles (the longer journeys take longer)
         tIn: d, tRest: d + (inside ? U.lerp(0.3, 0.34, h(14)) : U.lerp(0.33, 0.36, h(14))),
-        tOut, tEnd: Math.min(0.985, Math.max(tOut + 0.3, U.lerp(0.84, 0.98, h(19)))),
+        tLx: tEnter - 0.012, tEnter, tOut: 0, tEnd: Math.min(0.985, tEnter + U.lerp(0.24, 0.27, h(19))),
         tint: [0, 1, 2, 1, 0, 2][i % 6],
       });
+      // start the tail so its tip reaches the right edge exactly at tEnter
+      const r = rows[rows.length - 1];
+      let lo = r.tEnter - 0.3, hi = r.tEnter;
+      for (let it = 0; it < 30; it++) {
+        r.tOut = (lo + hi) / 2;
+        if (kasumiRow(r, i, r.tEnter).R + r.reachR > W) hi = r.tOut; else lo = r.tOut;
+      }
       yTop += bot - top + rh * U.lerp(0.28, 0.48, h(13));   // the band, and a wide, uneven gap under it
     }
     kasumiGeomCache = { n, seed, rows };
@@ -368,11 +384,16 @@
         // the rounded suyari end: an elongated half-oval, its nose a little
         // above mid-height so the upper edge runs out a touch further; the
         // trailing end closes a little more gently
+        // the trailing end: the upper edge runs on, drooping a little, the
+        // lower edge rises to meet it in one long curve, closing in a small
+        // round tip a quarter of the way down
+        const ty = t + hh * 0.27;
         c.beginPath();
         c.moveTo(xl, t);
         c.lineTo(xr, t);
-        c.bezierCurveTo(xr + cr * 0.52, t, x1, t + hh * 0.24, x1, t + hh * 0.52);
-        c.bezierCurveTo(x1, t + hh * 0.8, xr + cr * 0.5, b, xr, b);
+        c.bezierCurveTo(xr + cr * 0.5, t, xr + cr * 0.86, t + hh * 0.06, x1 - hh * 0.1, ty - hh * 0.09);
+        c.quadraticCurveTo(x1 + hh * 0.05, ty + hh * 0.005, x1 - hh * 0.11, ty + hh * 0.095);
+        c.bezierCurveTo(xr + cr * 0.62, t + hh * 0.52, xr + cr * 0.3, b, xr, b);
         c.lineTo(xl, b);
         c.bezierCurveTo(xl - cl * 0.5, b, x0, t + hh * 0.86, x0, t + hh * 0.45);
         c.bezierCurveTo(x0, t + hh * 0.12, xl - cl * 0.6, t, xl, t);
@@ -402,17 +423,17 @@
   function kasumiRow(r, i, p) {
     const { x0, x1 } = r, span = x0 - x1;
     // the leading nose glides in already moving, slows as it settles at its
-    // resting place and, without ever stopping, drifts on out to the left;
-    // the trailing nose leaves its place off the right edge unhurried and
-    // follows it out, gathering speed: always leftward, no dead stop
+    // resting place and, without ever stopping, drifts on and then runs out to
+    // the left (gone by tLx); only then does the tapering tail come in at the
+    // right edge (tEnter) and sweep through: always leftward, no dead stop
     const fr = (x0 - r.rest) / span;                       // share of the way at rest
-    const a1 = r.tRest - r.tIn, a2 = r.tEnd - r.tRest;
+    const a1 = r.tRest - r.tIn, a2 = r.tLx - r.tRest;
     const v = KASUMI_DRIFT / span;                         // the drift, in shares of the way per unit p
     let f;
     if (p < r.tRest) f = fr * hermite((p - r.tIn) / a1, 1.3, v * a1 / fr);
-    else f = fr + (1 - fr) * hermite((p - r.tRest) / a2, Math.min(2.5, v * a2 / (1 - fr)), 1.2);
+    else f = fr + (1 - fr) * hermite((p - r.tRest) / a2, Math.min(2.5, v * a2 / (1 - fr)), 1.5);
     const L = x0 - span * f;
-    const R = x0 - span * hermite((p - r.tOut) / (r.tEnd - r.tOut), 0.45, 1.3);
+    const R = x0 - span * hermite((p - r.tOut) / (r.tEnd - r.tOut), 0.85, 1.15);
     const y = r.y + U.wobble(i * 1.7 + p * 1.6, 3) * 4;
     return { L, R, y };
   }
@@ -453,7 +474,7 @@
         const x = L + f.d;
         if (x < -4 || x > W + 4 || x > R) continue;
         const vv = (f.v - 0.5) * 2, e = 1 - Math.sqrt(Math.max(0, 1 - vv * vv));
-        if (f.d < cl * e + 3 || R - x < cr * e + 3) continue;
+        if (f.d < cl * e + 3 || R - x < cr * (0.55 + 0.4 * Math.abs(f.v - 0.27)) + 3) continue;
         const ss = f.s * k * 0.5, px = x * k, py = (y + m.h * f.v) * k;
         ctx.globalAlpha = f.a;
         ctx.beginPath();
