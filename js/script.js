@@ -53,7 +53,7 @@
       {
         id: "ama-no-hagoromo", title_ja: "五　天の羽衣", title_zh: "五　天之羽衣", duration: 42,
         shot: "B, then A′",
-        transition: {"type":"kasumi","dur":3,"rows":7,"color":C.gofun},
+        transition: {"type":"kasumi","dur":3,"rows":5,"color":C.gofun},
         text: [
           {"t":4.5,"dur":9,"kind":"letter","ja":["脱ぎおく衣を形見と見たまへ。","月の出でたらむ夜は、","見おこせたまへ。"],"author":"かぐや姫の文　竹取物語","seal":"月","seal_style":"朱文","zh":"请把留下的衣裳当作念想。有月亮出来的夜晚，请望向我。","position":"right","x":1660,"y":110,"ink":"light","size":40,"font":"brush"},
         ],

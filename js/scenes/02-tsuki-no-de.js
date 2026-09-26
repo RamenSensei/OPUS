@@ -11,27 +11,38 @@
    Everything lives in TSUKI.SHOTS.A (js/shots/shot-a.js); this scene adds the
    two cameras — the poster frame (the print cut close on the disc 16.5–22.4:
    in on the first note of the 縁 motif, out on the first counting pluck) and
-   the lean-in on the theft — and 序's title panels, carried until 16.0.
+   the theft's close print (cut in at 32.0, back wide on the gust at 35.0) — and
+   序's title panels, carried until 16.0.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
   const U = TSUKI.U;
 
   /**
-   * お月見泥棒 (33.0–34.2): the camera leans in on the engawa — 1.0 → 1.6 about
-   * (1040,690) over 31.3–32.6, gently, with the child's creep along the engawa
-   * (31.4) and landed before her reach (32.7); held while the small arm takes
-   * the top dango and たけ turns her face to the moon pretending not to see;
-   * eased home over 35.2–36.6, before the andon (37.0) and the push to the
-   * shoji (38). (A.drawGarden's zoom: the carved layers scaled as one
-   * impression, the near live things — figures, dango, susuki — redrawn under
-   * the camera.)
+   * お月見泥棒 (33.0–34.2), the second close print of 一 (cut like the poster
+   * frame, never a camera travelling past the moon): a hard cut in on the engawa
+   * at 32.0 — the print seen 1.6× about (1040,690) — on the action, the child
+   * halfway along her creep to the 三方 (31.4–32.35), the haiku just gone from
+   * the sky; held, breathing in to 1.68 with her, while the
+   * small arm takes the top dango, たけ turns her face to the moon (off frame, to
+   * the left) pretending not to see, and the child climbs up and lands on her
+   * knees (34.7–35.05); a hard cut back to the whole garden on the gust (35.0,
+   * TSUKI.CUES.gusts) — the moon she was looking at is simply there, whole, as
+   * the field bends. At 1.6× and closer the disc is wholly outside the frame, so
+   * no frame of 一 ever shows the one moon cut by the frame's edge (an eased
+   * lean-in or pull-back would drag it across the edge half cut). (A.drawGarden's
+   * zoom: the carved layers scaled as one impression, the near live things —
+   * figures, dango, susuki — redrawn under the camera.)
    */
-  const THIEF = { about: [1040, 690], k: 1.6 };
+  const THIEF = { about: [1040, 690], k: 1.6, breath: 0.08, in: 32.0 };
+  const thiefOut = () => {
+    const g = (TSUKI.CUES && TSUKI.CUES.gusts) || [];
+    return g.find((t) => t > 34.9 && t < 35.6) || 35.0;
+  };
   const thiefZoom = (T) => {
-    if (T <= 31.3 || T >= 36.6) return 1;
-    const E = U.ease.inOutSine;
-    return 1 + (THIEF.k - 1) * E(U.seg(T, 31.3, 32.6)) * (1 - E(U.seg(T, 35.2, 36.6)));
+    const out = thiefOut();
+    if (T < THIEF.in || T >= out) return 1;
+    return THIEF.k + THIEF.breath * U.ease.inOutSine(U.seg(T, THIEF.in, out));
   };
 
   TSUKI.scene('tsuki-no-de', {

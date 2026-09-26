@@ -16,14 +16,15 @@
    compound within a buffer; puppets over her body read darker.
    Drawn here (not CAST): the carry's hand-shadow (a fist on the stick), the
    paper moon's bamboo pole (sharp at the disc, softening into たけ's own
-   raised fists: one connected shadow), the offerings still-life (panel 1), the
-   engawa card (eave, 御簾 with its slits, post, 高欄, boards — Kaguya a hole
-   of light before it, her hair parted from her robe by a line of card, her
-   袂 raised before her bowed face), 小夜 in the foreground (a back-lit
-   silhouette with a moon rim, three-quarter back, turned toward Kaguya; her
-   紅 shibori heko-obi off-centre below the subtitle band).
+   raised fists: one connected shadow), the offerings still-life (panel 1),
+   小夜 in the foreground (a back-lit silhouette with a moon rim, three-quarter
+   back, turned toward Kaguya; her 紅 shibori heko-obi off-centre below the
+   subtitle band).
    The bamboo-cutter is CAST's puppet with its hatchet cut away (the tale has
-   no axe); the growth morph is CAST's negative 'kaguya' puppet.
+   no axe); the growth morph is CAST's negative 'kaguya' puppet, and the
+   engawa card (56.4–) CAST's 'kaguya-engawa' — the same woman, the 御簾 rolled
+   up above her crown. On both, her 垂髪 and eye are card twice over (the
+   puppet's lacquered second layer, printed multiply): the darkest value.
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -305,80 +306,20 @@
   /* Kaguya on the cut-out engawa (panel 1): a dark card — eave, 御簾      */
   /* with its slits of light, post, boards, 高欄 — and she a hole of light */
   /* ------------------------------------------------------------------ */
+  const engawaStill = {};                              // the card at rest, per stage size (see shadows)
   function engawaCard(L, T, raise) {
-    const X = ENGAWA.x, Y = ENGAWA.y;
-    const r = E.inOutSine(U.clamp(raise));
-    const sw = Math.sin(T * 0.9) * 0.6;
-    L.save();
-    L.fillStyle = AINEZU;
-    // the dark room behind her, from under the blind's border to the boards
-    L.fillRect(X - 72, Y - 206, 146, 196);
-    // the blind's border (御簾の帽額), a thin paper gap above it under the eave
-    L.fillRect(X - 76, Y - 213, 152, 6);
-    // the eave: a thin roof edge overhanging to the left, its tip turned up
-    const ev = new Path2D();
-    ev.moveTo(X - 112, Y - 238); ev.quadraticCurveTo(X - 98, Y - 224, X - 76, Y - 223);
-    ev.lineTo(X + 76, Y - 226); ev.lineTo(X + 76, Y - 217); ev.lineTo(X - 78, Y - 215);
-    ev.quadraticCurveTo(X - 100, Y - 216, X - 116, Y - 234); ev.closePath();
-    L.fill(ev);
-    // the post, and the boards (簀子) with a line of paper between two planks
-    L.fillRect(X - 90, Y - 222, 10, 222);
-    L.fillRect(X - 100, Y - 11, 176, 6);
-    L.fillRect(X - 100, Y - 3, 176, 5);
-    // light: the blind's slits — thin lines of paper across its upper part
-    L.save();
-    L.globalCompositeOperation = 'destination-out';
-    for (let y = Y - 202; y < Y - 118; y += 6.5) L.fillRect(X - 68, y, 138, 1.3);
-    L.restore();
-    // her figure: cut out of the card (feet on the boards at (fx, fy)), facing the glow (+x)
-    const fx = X + 8, fy = Y - 12;
-    const P = (x, y) => [fx + x, fy + y];
-    const bow = U.deg(15) * (0.35 + 0.65 * r);
-    const neck = P(4, -162);
-    const R = (x, y) => { const q = P(x, y), dx = q[0] - neck[0], dy = q[1] - neck[1]; return [neck[0] + dx * Math.cos(bow) - dy * Math.sin(bow), neck[1] + dx * Math.sin(bow) + dy * Math.cos(bow)]; };
-    const poly = (pts) => { const q = new Path2D(); pts.forEach((p, i) => (i ? q.lineTo(p[0], p[1]) : q.moveTo(p[0], p[1]))); q.closePath(); return q; };
-    const smooth = (pts) => {
-      const q = new Path2D(), n = pts.length;
-      q.moveTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2);
-      for (let i = 1; i <= n; i++) { const a = pts[i % n], b = pts[(i + 1) % n]; q.quadraticCurveTo(a[0], a[1], (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
-      q.closePath(); return q;
-    };
-    // robe (uchiki over the hakama): narrow shoulders, a gentle flare, the train behind
-    const robe = smooth([P(-10, -158), P(8, -160), P(13, -146), P(14, -110), P(18, -62), P(24, -14), P(27, -2), P(6, 0), P(-22, 0), P(-38, 3), P(-27, -8), P(-19, -48), P(-15, -104), P(-13, -146)]);
-    // hair: over the crown and down her back to the boards, trailing past her train
-    const hair = smooth([R(-3, -191), R(-12, -188), R(-16, -178), P(-16, -160), P(-20, -120), P(-23, -72), P(-28, -28), P(-42, -4), P(-64, 2), P(-48, -6), P(-32, -14), P(-25, -50), P(-19, -100), P(-14, -142), R(-11, -162), R(-7, -178)]);
-    // head: a small profile, bowed (brow, nose, lips, chin — behind the sleeve once it is raised)
-    const head = poly([R(-9, -186), R(-2, -191), R(6, -189), R(11, -184), R(13, -179), R(13.5, -176), R(17, -172), R(13.5, -170), R(14, -167), R(12, -165), R(12.8, -163), R(9, -160), R(3, -158), R(-4, -162), R(-9, -172)]);
-    // the near sleeve (袂): hanging at her side → raised before her bowed face
-    const lerpP = (a, b) => [U.lerp(a[0], b[0], r), U.lerp(a[1], b[1], r)];
-    const sl = [lerpP(P(4, -154), P(16, -185)), lerpP(P(18, -150), P(37, -183 + sw)), lerpP(P(22, -96), P(40, -112 + sw)), lerpP(P(6, -92), P(19, -106))];
-    const sleeve = smooth([sl[0], L2(sl[0], sl[1], 0.5), sl[1], L2(sl[1], sl[2], 0.5), sl[2], L2(sl[2], sl[3], 0.5), sl[3], L2(sl[3], sl[0], 0.5)]);
-    // the forearm that lifts it (hidden by the sleeve when raised; along the robe when down)
-    const arm = poly([P(6, -152), P(13, -152), lerpP(P(18, -112), P(25, -178)), lerpP(P(10, -112), P(18, -181))]);
-    L.save();
-    L.globalCompositeOperation = 'destination-out';
-    for (const q of [robe, hair, head, sleeve, arm]) L.fill(q);
-    L.restore();
-    // lines of card left standing inside her (paper bridges): the hair parted from the robe,
-    // the gap between the raised sleeve and her face, two layered hems (重ね)
-    L.strokeStyle = AINEZU; L.lineCap = 'round'; L.lineJoin = 'round';
-    L.lineWidth = 2.6;
-    L.beginPath(); { const pts = [R(-11, -168), P(-14, -150), P(-17, -110), P(-21, -52), P(-30, -8)]; pts.forEach((p, i) => (i ? L.lineTo(p[0], p[1]) : L.moveTo(p[0], p[1]))); } L.stroke();
-    if (r > 0.25) {
-      L.lineWidth = 3.4 * U.clamp((r - 0.25) / 0.4);
-      L.beginPath(); L.moveTo(sl[0][0] - 1, sl[0][1] + 3); L.lineTo(sl[3][0] - 1, sl[3][1] - 2); L.stroke();
+    // CAST's 'kaguya-engawa': the same figure as the carry card's woman (feet at (8, −16)),
+    // so the dissolve 56.4–57.0 changes only the card round her. The 御簾 is rolled up above
+    // her crown; her 垂髪 is card, and a second, lacquered layer of card (hair and eye)
+    // is laid over it in multiply, so on the paper the hair prints as the darkest value.
+    const kp = CAST.puppet('kaguya-engawa', null, ENGAWA.x, ENGAWA.y, ENGAWA.s, { raise: U.clamp(raise), t: T, sticks: false, layer2InSticks: false });
+    L.fill(kp.path, kp.rule);
+    if (kp.layer2) {
+      L.save();
+      L.globalCompositeOperation = 'multiply';
+      L.fill(kp.layer2);
+      L.restore();
     }
-    L.lineWidth = 1.6;
-    for (const y of [-7, -14]) { L.beginPath(); L.moveTo(P(4, y)[0], P(4, y)[1]); L.lineTo(P(30, y + 2)[0], P(30, y + 2)[1]); L.stroke(); }
-    // the 高欄 before her: rails, two posts with 擬宝珠, dark across her hem
-    L.fillRect(X - 100, Y - 50, 176, 5);
-    L.fillRect(X - 100, Y - 28, 176, 3);
-    for (const px of [X - 94, X + 70]) {
-      L.fillRect(px - 3.5, Y - 58, 7, 50);
-      L.beginPath(); L.ellipse(px, Y - 62, 5, 6, 0, 0, U.TAU); L.fill();
-      L.beginPath(); L.moveTo(px - 2, Y - 67); L.lineTo(px, Y - 73); L.lineTo(px + 2, Y - 67); L.fill();
-    }
-    L.restore();
   }
 
   /* ------------------------------------------------------------------ */
@@ -506,12 +447,26 @@
       const k = kaguyaCarry(T, node);
       const reveal = U.seg(T, 48.2, 49.6, E.inOutSine);
       const kp = CAST.puppet('kaguya', null, k.pos[0], k.pos[1], k.s, { card: 'oval', grow: k.grow, t: T, stickAngle: 0.5, stickLen: 70 });
-      SB.sharpFill(c, T, [[kp.path, kp.rule], [T >= 49.8 ? kp.sticks : null, 'nonzero']], { alpha: reveal * (1 - swap) });
+      // (the stick comes into her card at 49.8; her lacquered hair and eye are there from the start)
+      SB.sharpFill(c, T, [[kp.path, kp.rule], [T >= 49.8 ? kp.sticks : kp.layer2, 'nonzero']], { alpha: reveal * (1 - swap) });
     }
     if (swap > 0) {
       const raise = U.seg(T, 57.0, 58.5);
-      const K2 = SB.sharpLayer(c, 'engawa', [ENGAWA.x - 140, ENGAWA.y - 250, ENGAWA.x + 120, G.bottom]);
-      engawaCard(K2, T, raise);
+      const K2 = SB.sharpLayer(c, 'engawa', [ENGAWA.x - 140, ENGAWA.y - 285, ENGAWA.x + 120, G.bottom]);
+      // at rest (sleeve down before 57.0, raised from 58.5) the card is one fixed image: cut once
+      // into the layer's own pixel grid, then blitted 1:1
+      const RK = K2.canvas.__region, rest = raise <= 0 || raise >= 1;
+      const key = `${raise >= 1 ? 1 : 0}|${K2.canvas.width}x${K2.canvas.height}|${RK.x0},${RK.y0},${RK.s}`;
+      if (rest && engawaStill[key]) {
+        K2.save(); K2.setTransform(1, 0, 0, 1, 0, 0); K2.drawImage(engawaStill[key], 0, 0); K2.restore();
+      } else {
+        engawaCard(K2, T, raise);
+        if (rest) {
+          const cv = B.canvas(K2.canvas.width, K2.canvas.height);
+          cv.getContext('2d').drawImage(K2.canvas, 0, 0);
+          engawaStill[key] = cv;
+        }
+      }
       SB.softPrint(c, T, 'engawa', { mode: 'multiply', alpha: swap });
     }
     // the paper moon: a shadow like the other puppets', one step darker (藍鼠 × 藍鼠: card held

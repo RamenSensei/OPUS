@@ -104,7 +104,10 @@
       if (TSUKI.PRINT) TSUKI.PRINT.setQuality(k);
       // the paper is painted once per size (during loading: by the warm-up)
       if (!NOPAPER && TSUKI.PAPER.mounted() && !loading) TSUKI.PAPER.fit(bw, bh);
+      // the mist bands are carved at the stage's resolution: re-carve them now,
+      // not in the wipe's first frame (during loading the warm-up does it)
       kasumiCache = null;
+      if (!loading) bakeKasumi();
     }
     k = bw / W;
     ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -130,12 +133,9 @@
     const bw = canvas.width, bh = canvas.height;
     if (bufW === bw && bufA.height === bh) return;
     for (const c of [bufA, bufB]) { c.width = bw; c.height = bh; }
-    heldKey = '';
     bufW = bw;
   }
   function freeBufs() {
-    kasumiCache = null;
-    heldKey = '';
     if (!bufW && bufM.width === 1) return;
     for (const c of [bufA, bufB, bufM]) { c.width = 1; c.height = 1; }
     bufW = 0;
@@ -249,38 +249,39 @@
   }
 
   /* ---- すやり霞: the mist bands of the 'kasumi' transition ----------- */
-  // Long flat bands of uneven height, each one flat ink with rounded suyari
-  // ends; about half of them carry a second, thinner bar laid along one edge
-  // so the end steps (the emaki way of drawing すやり霞). Three pale tints
-  // (胡粉, a breath of 鴇, 月白); a faint atenashi bokashi deepens the ink along
-  // the top edge and the lower edge only softens a little, so a band never
-  // casts a "shadow". They unroll in from the right (emaki reading order),
-  // staggered from the middle rows outward, and some come to rest with their
-  // ends inside the picture, drifting on to the left; at the height of the
-  // wipe they veil about three quarters of the frame and a thin haze lies
-  // between them while the scene changes beneath; then the rolls run on out
-  // to the left. Each band is baked once per stage size at device resolution
-  // as [left end | body | right end] and printed as 1:1 pieces (no per-frame
-  // gradients or paths).
+  // Five long flat bands, each ONE opaque ink (胡粉, a breath of 鴇, 月白) with
+  // rounded suyari ends; about half carry a second, thinner bar laid along one
+  // edge so the end steps (the emaki way of drawing すやり霞). The only
+  // gradation is the atenashi bokashi along each bar's top edge — no band is
+  // translucent and none fades to transparency at an edge, so they print as
+  // flat 胡粉 on the paper, not as frosted glass. Sparse 金砂子 flecks ride on
+  // them. They unroll in from the right (emaki reading order), staggered from
+  // the middle rows outward, glide to rest (some noses inside the picture,
+  // drifting on), and with the picture about two thirds veiled the scene
+  // CUTS beneath them — one frame, seen only in the wide gaps, never a
+  // cross-fade through the ink; then the trailing ends follow the noses out
+  // to the left. Each band is baked once per stage size (during the warm-up)
+  // at device resolution as [left end | body | right end] and printed as 1:1
+  // pieces (no per-frame gradients or paths); one scene per frame.
   const KASUMI_STAGGER = 0.1;                   // latest row start (of p)
-  const KASUMI_DRIFT = 600;                     // px per unit p (≈ 200 px/s) where a nose settles
-  const KASUMI_MIX = [0.40, 0.60];              // the change beneath the mist
+  const KASUMI_DRIFT = 540;                     // px per unit p (≈ 180 px/s) where a nose settles
+  const KASUMI_CUT = 0.5;                       // the scene changes beneath the mist (a cut)
   let kasumiCache = null;
   let kasumiGeomCache = null;
   function kasumiGeom(tr) {
-    const n = tr.rows || 7;
-    if (kasumiGeomCache && kasumiGeomCache.n === n) return kasumiGeomCache;
+    const n = tr.rows || 5, seed = tr.seed == null ? 5 : tr.seed;
+    if (kasumiGeomCache && kasumiGeomCache.n === n && kasumiGeomCache.seed === seed) return kasumiGeomCache;
     const rh = H / n;
     const rows = [];
-    let yTop = -rh * 0.22;                       // top of the next row's ink
-    for (let i = 0; yTop < H - rh * 0.3 && i < 24; i++) {
-      const h = (j) => U.hash(i * 37 + j * 11 + 3);
-      // mostly broad bands, now and then a thin spear of mist between them
-      const bh = rh * (h(16) < 0.18 ? U.lerp(0.28, 0.4, h(1)) : U.lerp(0.52, 0.96, h(1)));
+    let yTop = -rh * 0.16;                       // top of the next row's ink
+    for (let i = 0; yTop < H - rh * 0.28 && i < 16; i++) {
+      const h = (j) => U.hash(i * 37 + j * 11 + seed);
+      // broad bands, now and then a narrower one
+      const bh = rh * (h(16) < 0.3 ? U.lerp(0.28, 0.38, h(1)) : U.lerp(0.52, 0.76, h(1)));
       const parts = [{ dy: 0, h: bh, dl: 0, dr: 0, capL: bh * U.lerp(1.5, 1.9, h(2)), capR: bh * U.lerp(1.25, 1.6, h(3)) }];
-      if (h(4) < 0.55) {
+      if (h(4) < 0.6) {
         // the stepped end: a thinner bar overlapping the lower (or upper) edge
-        const sh = bh * U.lerp(0.42, 0.62, h(5));
+        const sh = bh * U.lerp(0.4, 0.56, h(5));
         const below = h(6) < 0.62;
         parts.push({
           dy: below ? bh - sh * 0.42 : -sh * 0.58, h: sh,
@@ -305,31 +306,49 @@
       const d = KASUMI_STAGGER * U.clamp(0.6 * Math.abs(mid - 0.5) * 2 + 0.4 * h(10));
       // where the leading nose settles: inside the picture for some rows,
       // just past the left edge for the rest; from there it drifts on
-      const inside = h(11) < 0.45;
-      const rest = inside ? U.lerp(60, 480, h(12)) : -endL * U.lerp(0.25, 0.6, h(12));
-      const tOut = U.lerp(0.42, 0.56, h(15)) + d * 0.4;        // the trailing nose sets off, and by tEnd both are gone
+      // (the resting noses step down from the upper right to the lower left,
+      // the emaki's reading diagonal, every other row or so)
+      const inside = (i + (h(11) < 0.3 ? 1 : 0)) % 2 === 0;
+      const rest = inside ? U.lerp(160, 900, 1 - mid) + U.lerp(-90, 90, h(12)) : -endL * U.lerp(0.1, 0.5, h(12));
+      // every nose is at rest before the cut and every trailing end still
+      // off the right edge: the change is hidden under the whole length of ink
+      const tOut = KASUMI_CUT + U.lerp(0.03, 0.17, h(15)) + d * 0.3;
+      // the 金砂子 riding on the main bar: sparse flecks (distance from the
+      // leading nose, height within the bar, size, shape)
+      const flecks = [];
+      const nf = 10 + Math.floor(h(20) * 8);
+      for (let f = 0; f < nf; f++) {
+        const g = (j) => U.hash(i * 131 + f * 17 + j * 7 + seed * 3 + 9);
+        const cluster = g(1) < 0.55;           // gathered toward the nose, as dusted by hand
+        flecks.push({
+          d: (cluster ? U.lerp(0.25, 1.4, g(2)) : U.lerp(0.3, 4.6, g(2))) * bh + 40,
+          // 砂子 dust (round, 1.6–3 px) and a few 切箔 cut squares (3.5–6 px, turned)
+          v: U.lerp(0.26, 0.8, g(3)), sq: g(5) < 0.3, a: U.lerp(0.6, 0.92, g(6)), rot: g(7) * 1.57,
+          s: g(5) < 0.3 ? U.lerp(3.5, 6, g(4)) : U.lerp(1.6, 3, g(4)),
+        });
+      }
       rows.push({
-        y: yTop - top, parts, top, bot, reachL, reachR, endL, endR, x0, x1, rest,
+        y: yTop - top, parts, top, bot, reachL, reachR, endL, endR, x0, x1, rest, flecks,
         // leading nose: enters, settles (the longer journeys take longer)
-        tIn: d, tRest: d + (inside ? U.lerp(0.32, 0.4, h(14)) : U.lerp(0.4, 0.46, h(14))),
-        tOut, tEnd: Math.min(0.98, Math.max(tOut + 0.4, U.lerp(0.86, 0.97, h(19)))),
+        tIn: d, tRest: d + (inside ? U.lerp(0.3, 0.34, h(14)) : U.lerp(0.33, 0.36, h(14))),
+        tOut, tEnd: Math.min(0.985, Math.max(tOut + 0.3, U.lerp(0.84, 0.98, h(19)))),
         tint: [0, 1, 2, 1, 0, 2][i % 6],
       });
-      yTop += bot - top + rh * U.lerp(0.05, 0.34, h(13));   // the band, and an uneven gap under it
+      yTop += bot - top + rh * U.lerp(0.28, 0.48, h(13));   // the band, and a wide, uneven gap under it
     }
-    kasumiGeomCache = { n, rows };
+    kasumiGeomCache = { n, seed, rows };
     return kasumiGeomCache;
   }
   function kasumiSprites(tr, g) {
     const col = tr.color || TSUKI.C.gofun;
-    const key = `${canvas.width}|${col}|${g.n}`;
+    const key = `${canvas.width}|${col}|${g.n}|${g.seed}`;
     if (kasumiCache && kasumiCache.key === key) return kasumiCache;
     const C = TSUKI.C;
-    // [body ink, the deeper ink of its top-edge bokashi]
+    // [body ink, the deeper ink of its top-edge bokashi] — all opaque
     const tints = [
-      [col, U.mix(col, C.kinari, 0.55)],
-      [U.mix(col, C.toki, 0.1), U.mix(col, C.toki, 0.26)],
-      [U.mix(col, C.geppaku, 0.65), U.mix(C.geppaku, C.kamenozoki, 0.26)],
+      [col, U.mix(col, C.kinari, 0.6)],
+      [U.mix(col, C.toki, 0.1), U.mix(col, C.toki, 0.3)],
+      [U.mix(col, C.geppaku, 0.65), U.mix(C.geppaku, C.kamenozoki, 0.3)],
     ];
     const mk = ([ink, deep], r) => {
       const mx = 3, top = 2, bodyD = 16;
@@ -339,8 +358,9 @@
       const sw = lw + rw, hD = (r.bot - r.top) * k, sh = Math.ceil(top + hD + 2);
       const cv = B.canvas(sw, sh), c = cv.getContext('2d');
       const nL = offL, nR = sw - offR;                  // the main bar's two noses
-      c.beginPath();
-      for (const q of r.parts) {
+      // the lower bar first: the upper one's flat body then covers its top bokashi
+      const parts = r.parts.slice().sort((a, b) => b.dy - a.dy);
+      for (const q of parts) {
         const x0 = nL + q.dl * k, x1 = nR + q.dr * k;
         const cl = q.capL * k, cr = q.capR * k;
         const t = top + (q.dy - r.top) * k, b = t + q.h * k, hh = q.h * k;
@@ -348,6 +368,7 @@
         // the rounded suyari end: an elongated half-oval, its nose a little
         // above mid-height so the upper edge runs out a touch further; the
         // trailing end closes a little more gently
+        c.beginPath();
         c.moveTo(xl, t);
         c.lineTo(xr, t);
         c.bezierCurveTo(xr + cr * 0.52, t, x1, t + hh * 0.24, x1, t + hh * 0.52);
@@ -356,22 +377,24 @@
         c.bezierCurveTo(xl - cl * 0.5, b, x0, t + hh * 0.86, x0, t + hh * 0.45);
         c.bezierCurveTo(x0, t + hh * 0.12, xl - cl * 0.6, t, xl, t);
         c.closePath();
+        // one flat ink; along the top edge the atenashi bokashi of the deeper ink
+        const gr = c.createLinearGradient(0, t, 0, b);
+        gr.addColorStop(0, deep);
+        gr.addColorStop(Math.min(0.1, 9 * k / hh), U.mix(deep, ink, 0.5));
+        gr.addColorStop(Math.min(0.34, 34 * k / hh), ink);
+        gr.addColorStop(1, ink);
+        c.fillStyle = gr;
+        c.fill();
       }
-      // flat ink; the top edge carries a short bokashi of the deeper ink, the
-      // lower edge only softens a little (0.9) — no fade into transparency
-      const t = top, b = top + hD;
-      const gr = c.createLinearGradient(0, t, 0, b);
-      gr.addColorStop(0, U.rgba(deep, 1));
-      gr.addColorStop(0.06, U.rgba(U.mix(deep, ink, 0.45), 1));
-      gr.addColorStop(0.28, U.rgba(ink, 1));
-      gr.addColorStop(0.9, U.rgba(ink, 1));
-      gr.addColorStop(1, U.rgba(ink, 0.9));
-      c.fillStyle = gr;
-      c.fill('nonzero');
       return { cv, sw, sh, top, lw, rw, offL, offR };
     };
     kasumiCache = { key, bands: g.rows.map((r) => mk(tints[r.tint], r)) };
     return kasumiCache;
+  }
+  /** Bake the bands of every 'kasumi' transition now (warm-up, resize): no stall at the wipe. */
+  function bakeKasumi() {
+    if (!segs) return;
+    for (const s of segs) if (s.transition && s.transition.type === 'kasumi') kasumiSprites(s.transition, kasumiGeom(s.transition));
   }
   /** 0→1 over u, leaving at speed v0 and arriving at speed v1 (1 = the mean speed). */
   const hermite = (u, v0, v1) => { u = U.clamp(u); return ((v0 + v1 - 2) * u + (3 - 2 * v0 - v1)) * u * u + v0 * u; };
@@ -390,25 +413,17 @@
     else f = fr + (1 - fr) * hermite((p - r.tRest) / a2, Math.min(2.5, v * a2 / (1 - fr)), 1.2);
     const L = x0 - span * f;
     const R = x0 - span * hermite((p - r.tOut) / (r.tEnd - r.tOut), 0.45, 1.3);
-    const y = r.y + U.wobble(i * 1.7 + p * 1.6, 3) * 5;
+    const y = r.y + U.wobble(i * 1.7 + p * 1.6, 3) * 4;
     return { L, R, y };
   }
-  /** The scene changes beneath the mist: 0 = previous only … 1 = next only. */
-  const kasumiMix = (p) => U.smoothstep(KASUMI_MIX[0], KASUMI_MIX[1], p);
   function kasumiBands(tr, p) {
     const g = kasumiGeom(tr);
     const S = kasumiSprites(tr, g);
     const cw = canvas.width;
+    const kin = U.mix(TSUKI.C.kin, TSUKI.C.odo, 0.18);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // the haze between the bands while the scene changes beneath
-    const haze = (tr.haze == null ? 0.36 : tr.haze) * Math.pow(Math.sin(Math.PI * U.smoothstep(0.14, 0.86, p)), 2);
-    if (haze > 0.004) {
-      ctx.globalAlpha = haze;
-      ctx.fillStyle = U.mix(tr.color || TSUKI.C.gofun, TSUKI.C.geppaku, 0.4);
-      ctx.fillRect(0, 0, cw, canvas.height);
-    }
-    ctx.globalAlpha = tr.alpha == null ? 0.96 : tr.alpha;
+    ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = false;
     g.rows.forEach((row, i) => {
       const { L, R, y } = kasumiRow(row, i, p);
@@ -430,27 +445,27 @@
         const w = b + s.rw - x;
         if (w > 0 && x < cw) ctx.drawImage(s.cv, s.sw - w, 0, w, s.sh, x, yd, w, s.sh);
       }
+      // 金砂子: flecks of gold dust laid on the main bar, carried with its nose;
+      // kept inside the rounded ends, gone as the trailing end rolls over them
+      const m = row.parts[0], cl = m.capL, cr = m.capR;
+      ctx.fillStyle = kin;
+      for (const f of row.flecks) {
+        const x = L + f.d;
+        if (x < -4 || x > W + 4 || x > R) continue;
+        const vv = (f.v - 0.5) * 2, e = 1 - Math.sqrt(Math.max(0, 1 - vv * vv));
+        if (f.d < cl * e + 3 || R - x < cr * e + 3) continue;
+        const ss = f.s * k * 0.5, px = x * k, py = (y + m.h * f.v) * k;
+        ctx.globalAlpha = f.a;
+        ctx.beginPath();
+        if (f.sq) {
+          const c = Math.cos(f.rot) * ss, sn = Math.sin(f.rot) * ss;
+          ctx.moveTo(px + c, py + sn); ctx.lineTo(px - sn, py + c * 0.8); ctx.lineTo(px - c, py - sn); ctx.lineTo(px + sn, py - c * 0.8);
+        } else ctx.arc(px, py, Math.max(0.6, ss), 0, U.TAU);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     });
     ctx.restore();
-  }
-  // While the scene changes beneath the mist, the outgoing picture is held
-  // at the instant the change begins (a pure function of that instant, kept
-  // in bufA): only the incoming scene is drawn live. It fades out under ~75 %
-  // mist, so the hold is invisible, and the frame costs one scene, not two.
-  let heldKey = '';
-  function kasumiMixFrame(prev, seg, tr, t, p) {
-    useBufs();
-    const Th = seg.start + tr.dur * KASUMI_MIX[0];
-    const key = `${prev.id}|${canvas.width}|${Th}`;
-    if (heldKey !== key) {
-      drawSeg(ctxA, prev, Th - prev.start);
-      heldKey = key;
-    }
-    drawSeg(ctx, seg, t - seg.start);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1 - kasumiMix(p);
-    ctx.drawImage(bufA, 0, 0);
-    resetCtx(ctx);
   }
 
   /**
@@ -460,7 +475,7 @@
   function needs(tr, p) {
     switch (tr.type) {
       case 'paper': case 'sumi': return { a: p < 0.5, b: p >= 0.5 };
-      case 'kasumi': { const s = kasumiMix(p); return { a: s < 1, b: s > 0 }; }
+      case 'kasumi': return { a: p < KASUMI_CUT, b: p >= KASUMI_CUT };
       default: return { a: p < 1, b: p > 0 };
     }
   }
@@ -580,11 +595,8 @@
       const n = needs(tr, p);
       // never draw a segment into a buffer this frame does not composite:
       // one visible segment is drawn straight onto the stage
-      if (n.a && n.b && tr.type === 'kasumi') {
-        kasumiMixFrame(prev, seg, tr, t, p);
-      } else if (n.a && n.b) {
+      if (n.a && n.b) {
         useBufs();
-        heldKey = '';
         drawSeg(ctxA, prev, t - prev.start);
         drawSeg(ctxB, seg, lt);
         resetCtx(ctx);
@@ -609,10 +621,12 @@
     if (DEBUG) debugHUD(t, seg, lt);
   }
   const paperStrength = () => (script.paperStrength == null ? 1 : script.paperStrength);
+  // transitions that only ever show one segment per frame need no buffers
+  const ONE_AT_A_TIME = { cut: 1, kasumi: 1, paper: 1, sumi: 1 };
   function nearTransition(t) {
     for (let i = 1; i < segs.length; i++) {
       const tr = segs[i].transition;
-      if (tr && tr.type !== 'cut' && t > segs[i].start - 1.5 && t < segs[i].start + tr.dur + 1.5) return true;
+      if (tr && !ONE_AT_A_TIME[tr.type] && t > segs[i].start - 1.5 && t < segs[i].start + tr.dur + 1.5) return true;
     }
     return false;
   }
@@ -893,6 +907,7 @@
     if (P && P.has('A')) unit('shot A', shotUnit('A'));
     unit('init ' + posterSeg.id, initUnit(posterSeg));
     unit('poster', () => render(T));                   // the poster behind the curtain
+    unit('kasumi', bakeKasumi);                        // the すやり霞 bands, carved before the film
     for (const seg of segs) if (seg !== posterSeg) unit('init ' + seg.id, initUnit(seg));
     if (P) for (const id of P.ids()) unit('shot ' + id, shotUnit(id));
     const btn = $('btn-start');

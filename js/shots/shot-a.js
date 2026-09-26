@@ -33,7 +33,7 @@
        exactly as 一 / 四 / 六 show it (plates + every live element).
        opts: moon:false          don't draw the moon (四's tilt draws ONE moon on top)
              moonAlpha 0..1      (序's dry disc)   glow 0..1 (moon's 山吹 bokashi ×)
-             figures:false  offerings:false  near:false  hagi:false
+             figures:false  offerings:false  near:false  hagi:false  sozu:false
              still:true          near susuki / 萩 / sōzu from the carved 'still'
                                  plates (序, while the key block is revealed)
              gazeOut 0..1        六 inset: 小夜 turns back → profile → ¾
@@ -71,7 +71,11 @@
    A.warmJolt(k)                      the jolt's two flattened impressions (worn, fresh) (init)
    A.posterK(T) / A.POSTER            一's poster frame: the print cut close (2.3×) on the
                                       rising disc 16.5–22.4; drawGarden(ctx, T, {poster:true})
-                                      prints it from its own carved flats (A.warmPoster(k))
+                                      prints it from its own carved flats (A.warmPoster(k)):
+                                      the kasumi opaque, a near suyari bar (POSTER_VEIL) over
+                                      the pond, no spit clutter (sōzu, tsukubai, rocks) nor
+                                      yard/fence at its edges, a finer bank line, and a sparse
+                                      warm moon road (drawPond opts.poster)
    A.drawFieldSil(ctx,T)              the field's plumes as K/紺 silhouettes, inside the disc only
    A.glowBand(ctx, a)                 the rising moon's flat 山吹 band (序 prints it on bare paper)
    A.heldDango(T, tk)                 the dango in たけ's fingers while she carries it to the 三方
@@ -997,7 +1001,7 @@
    * never double the ink). q = device px per logical px of the ctx it lands in.
    * lobes: [{x0, x1, top, bot, capL, capR}] — cap (px) is the length of the end.
    */
-  function mistBand(c, lobes, a, seed, q) {
+  function mistBand(c, lobes, a, seed, q, solid, tint) {
     let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
     for (const L of lobes) { bx0 = Math.min(bx0, L.x0); bx1 = Math.max(bx1, L.x1); by0 = Math.min(by0, L.top - 6); by1 = Math.max(by1, L.bot + 6); }
     bx0 = Math.max(-40, Math.floor(bx0)); bx1 = Math.min(W + 40, Math.ceil(bx1));
@@ -1005,7 +1009,8 @@
     if (pw <= 0 || ph <= 0) return;
     const cv = B.canvas(pw, ph), cx = cv.getContext('2d');
     const img = cx.createImageData(pw, ph), d = img.data;
-    const body = U.hexToRgb(C.gofun), deep = U.hexToRgb(U.mix(C.gofun, C.kinari, 0.6));
+    const bodyHex = tint ? U.mix(C.gofun, tint[0], tint[1]) : C.gofun;
+    const body = U.hexToRgb(bodyHex), deep = U.hexToRgb(U.mix(bodyHex, C.kinari, 0.6));
     const wav = (x, k, amp) => ((U.noise1(x * 0.009 + k * 7.1, seed + k) - 0.5) * 4 + (U.noise1(x * 0.04 + k, seed + 30 + k) - 0.5) * 1.2) * amp;
     const aa = 1 / q;                                       // one device px of edge
     for (let px = 0; px < pw; px++) {
@@ -1038,7 +1043,7 @@
           // flat to 70 % of the bar's own height, then only softened toward its
           // lower edge (to 0.7) — it still cuts what lies behind it cleanly
           const u = (y - (lt + (lb - lt) * 0.7)) / ((lb - lt) * 0.3);
-          const wipe = u <= 0 ? 1 : U.lerp(1, 0.7, U.smoothstep(0, 1, u));
+          const wipe = u <= 0 || solid ? 1 : U.lerp(1, 0.7, U.smoothstep(0, 1, u));
           const v = edgeT * edgeB * wipe;
           if (v > al) { al = v; dp = U.clamp(1 - (y - t0) / 2.2); }
         }
@@ -1062,8 +1067,11 @@
     // y 780–805 across the field, entering from the left edge, its east end stepped short of the yard
     low: [{ lobes: [{ x0: 12, x1: 640, top: 781, bot: 805, capL: 60, capR: 28 }, { x0: 380, x1: 712, top: 792, bot: 807, capL: 30, capR: 18 }, { x0: 150, x1: 520, top: 776, bot: 790, capL: 44, capR: 32 }], seed: 47, a: 0.62 }],
   };
-  function paintMist(pen, which, q) {
-    pen('P7', (c) => { for (const b of MIST_BANDS[which]) mistBand(c, b.lobes, b.a, b.seed, q || 1); });
+  /** opts.solid: every band printed opaque to its lower edge (the poster's close view: no grey
+   *  where a band crosses the dark hills) */
+  function paintMist(pen, which, q, opts) {
+    const solid = !!(opts && opts.solid);
+    pen('P7', (c) => { for (const b of MIST_BANDS[which]) mistBand(c, b.lobes, solid ? 1 : b.a, b.seed, q || 1, solid); });
   }
 
   /* the grove: meadow, the yard, bamboo --------------------------------- */
@@ -1082,7 +1090,8 @@
     return pts;
   })();
   const YARD = smoothOf(YARD_PTS, true);
-  function paintGrove(pen, late) {
+  function paintGrove(pen, late, opts) {
+    const poster = !!(opts && opts.poster);
     const gp = new Path2D();
     gp.moveTo(700, 860);
     gp.lineTo(640, 764);
@@ -1121,12 +1130,12 @@
       c.save();
       const clip = new Path2D();
       clip.rect(-10, -10, W + 20, H + 20);
-      clip.addPath(YARD);
+      if (!poster) clip.addPath(YARD);     // (the poster's right edge would crop the yard's tongue: meadow there)
       c.clip(clip, 'evenodd');
       c.fill(gp);
       c.restore();
     });
-    pen('P1', (c) => {
+    if (!poster) pen('P1', (c) => {
       // flat moonlit earth; one wiped bokashi under the eaves' shadow
       c.fillStyle = U.mix(U.mix(INK.earth, C.rikyu, 0.5), C.sumi, 0.2);
       c.fill(YARD);
@@ -1154,7 +1163,9 @@
       c.fillStyle = U.mix(C.matsuba, C.koke, 0.35); c.fill(tb.bladesLt);
     });
     paintBamboo(pen, late);
-    // a low 四つ目垣 (bamboo lattice fence) along the yard's left edge
+    // a low 四つ目垣 (bamboo lattice fence) along the yard's left edge (not in the poster's
+    // close view, whose right edge would crop it)
+    if (poster) return;
     const fence = new Path2D(), fk = new Path2D();
     const pts = [[906, 716], [874, 744], [842, 772], [812, 800], [786, 826]];
     for (let i = 0; i < pts.length; i++) {
@@ -1692,7 +1703,8 @@
   }
 
   /* the pond, banks, the spit ------------------------------------------ */
-  function paintPond(pen, late) {
+  function paintPond(pen, late, opts) {
+    const poster = !!(opts && opts.poster);
     const land = new Path2D();
     land.moveTo(-10, bankY(0) - 2);
     for (let x = 0; x <= W; x += 16) land.lineTo(x, bankY(x) - 2);
@@ -1734,7 +1746,8 @@
     });
     pen('K', (c) => {
       const kb = new Path2D();
-      POND_PTSS.forEach((pts, i) => carvedLine(kb, pts.concat([pts[0]]), 1.7, (late ? 17 : 7) + i * 5, 0));
+      // (the poster sees the banks 2.3× closer: its line is cut finer, so it prints ≈ 2–3 px, swelling and thinning)
+      POND_PTSS.forEach((pts, i) => carvedLine(kb, pts.concat([pts[0]]), poster ? 0.95 : 1.7, (late ? 17 : 7) + i * 5, poster ? 0.05 : 0));
       c.fillStyle = U.rgba(C.sumi, 0.88);
       c.fill(kb);
       const rp = new Path2D();
@@ -1751,7 +1764,8 @@
   }
 
   /* the banks: rocks, the tsukubai and sōzu frame, the lantern, reeds (drawn over the water) */
-  function paintBanks(pen, late) {
+  function paintBanks(pen, late, opts) {
+    const poster = !!(opts && opts.poster);
     const RK = newRocks();
     const r = U.rng(late ? 626 : 262);
     const stones = [
@@ -1764,19 +1778,22 @@
       // the spit's 景石: big rocks along its east shore
       [352, 884, 17, 11], [424, 912, 22, 15], [468, 968, 30, 21], [506, 1016, 26, 16], [548, 1062, 38, 26], [455, 934, 12, 8],
     ];
-    for (let i = 0; i < stones.length; i++) { const [x, y, w, h] = stones[i]; rockInto(RK, x, y + h * 0.35, w * U.lerp(0.9, 1.1, r()), h * 1.35, 100 + i); }
+    // (the poster's close view lays its near kasumi over the spit: no rocks, sōzu or tsukubai there)
+    const onSpit = (x, y) => poster && x > 280 && x < 640 && y > 858;
+    for (let i = 0; i < stones.length; i++) { const [x, y, w, h] = stones[i]; const sw = w * U.lerp(0.9, 1.1, r()); if (!onSpit(x, y)) rockInto(RK, x, y + h * 0.35, sw, h * 1.35, 100 + i); }
     const [tx, ty] = GEO.tsukubai;
-    const basin = smoothOf([[tx - 22, ty - 2], [tx - 21, ty - 12], [tx - 12, ty - 19], [tx + 12, ty - 19], [tx + 21, ty - 12], [tx + 22, ty - 2], [tx + 17, ty + 9], [tx, ty + 12], [tx - 17, ty + 9]], true);
-    const bw = new Path2D();
+    let basin = smoothOf([[tx - 22, ty - 2], [tx - 21, ty - 12], [tx - 12, ty - 19], [tx + 12, ty - 19], [tx + 21, ty - 12], [tx + 22, ty - 2], [tx + 17, ty + 9], [tx, ty + 12], [tx - 17, ty + 9]], true);
+    let bw = new Path2D();
     bw.ellipse(tx, ty - 14, 13, 3.8, 0, 0, TAU);
-    const sz = new Path2D();
+    let sz = new Path2D();
     sz.rect(SOZU.px - 7, SOZU.py - 4, 3.4, 20); sz.rect(SOZU.px + 4, SOZU.py - 4, 3.4, 20);
-    const kake = new Path2D();
+    let kake = new Path2D();
     taperPath(kake, [[236, 847], [287, 852]], 4.2, 4.2, 0);
-    const kp = new Path2D();
+    let kp = new Path2D();
     kp.rect(250, 849, 3.2, 26);
-    const strike = new Path2D(), stH = new Path2D(), stK = new Path2D();
+    let strike = new Path2D(), stH = new Path2D(), stK = new Path2D();
     stoneInto(strike, stH, stK, 352, 891, 9, 5, 77);
+    if (poster) { const none = new Path2D(); basin = bw = sz = kake = kp = strike = stH = stK = none; }
     const lx = 1700, ly = 960;
     const lant = new Path2D();
     lant.moveTo(lx - 22, ly - 34); lant.quadraticCurveTo(lx, ly - 48, lx + 22, ly - 34); lant.lineTo(lx + 16, ly - 31); lant.lineTo(lx - 16, ly - 31); lant.closePath();
@@ -1803,7 +1820,7 @@
     pen('P5', (c) => { c.fillStyle = late ? C.ai : U.mix(C.ai, C.koiai, 0.5); c.fill(bw); });
     pen('P7', (c) => {
       c.fillStyle = U.rgba(C.gofun, 0.42); c.fill(RK.hi); c.fill(stH);
-      if (!late) { c.fillStyle = U.rgba(C.gofun, 0.9); c.beginPath(); c.ellipse(tx - 4, ty - 14.5, 3.4, 1.1, 0, 0, TAU); c.fill(); }
+      if (!late && !poster) { c.fillStyle = U.rgba(C.gofun, 0.9); c.beginPath(); c.ellipse(tx - 4, ty - 14.5, 3.4, 1.1, 0, 0, TAU); c.fill(); }
     });
     if (late) {
       // 葦: reeds have taken the west half of the pond — rooted clumps standing
@@ -1892,7 +1909,7 @@
       inkLine(c, sz, 0.85, 0.9);
       inkLine(c, kake, 0.85, 0.9);
       const kn = new Path2D();
-      for (const x of [252, 272]) { kn.moveTo(x - 0.6, 845.5); kn.lineTo(x + 0.6, 854); }
+      if (!poster) for (const x of [252, 272]) { kn.moveTo(x - 0.6, 845.5); kn.lineTo(x + 0.6, 854); }
       inkLine(c, kn, 0.8, 0.9);
       inkLine(c, kp, 0.8, 0.8);
       inkLine(c, stK, 0.8, 0.9);
@@ -2336,6 +2353,23 @@
     t1: (CU_.dango && CU_.dango[0]) || 22.4,
   };
   A.POSTER = POSTER;
+  /**
+   * The close view's own near kasumi (Hiroshige lays one across a foreground he
+   * does not need): three stepped, opaque 胡粉 bars over the pond below the far
+   * bank — noses stepping down to the lower left, just short of the moon road
+   * under the disc; the east end runs off the sheet. They hide the spit, the
+   * sōzu and the tsukubai (the camera looks at the disc), and keep the lower
+   * third, where the subtitle sits, flat and calm. Stage coordinates (seen
+   * through the poster camera: bars ≈ y 902–1046 on screen, from x ≈ 540).
+   */
+  const POSTER_VEIL = {
+    seed: 53,
+    tint: [C.ai, 0.16],
+    lobes: [
+      { x0: 300, x1: 1000, top: 863, bot: 892, capL: 56 },
+      { x0: 262, x1: 520, top: 878, bot: 896, capL: 36, capR: 30 },
+    ],
+  };
   /** the poster camera's zoom at T: 2.3 while the close print holds, else 1 */
   A.posterK = (T) => (T >= POSTER.t0 && T < POSTER.t1 ? POSTER.k : 1);
   /** Kasumi drift: +3 px/s (continuous within each stretch of Shot A). */
@@ -3009,23 +3043,28 @@
       });
     }
     const bright = late ? 0.85 : U.lerp(0.55, 1, U.smoothstep(-0.2, 0.5, MOON.phi(T)));
+    // the poster's close view (the disc still in the grass): a narrow road of fewer, finer dashes
+    // in the disc's own warm glaze — the low moon's glitter, not a ladder of white bars
+    const post = !late && opts.poster;
     PRINT.with(ctx, 'P7', T, (c) => {
       c.save();
       c.clip(POND);
       const r = U.rng(late ? 88 : 8);
       const n = late ? 8 : 40;
       const top = bankY(m.x) + 4;
+      const ink = opts.aged ? aged(C.gofun) : post ? U.mix(C.gofun, C.yamabuki, 0.5) : C.gofun;
       for (let i = 0; i < n; i++) {
         const s = late ? (i + 0.5) / n : Math.pow(i / n, 1.3);
         const y = top + s * (1070 - top) + r() * 3;
-        const spread = U.lerp(m.r * 0.3, m.r * 0.95, s);
-        const w = U.lerp(5, 42, r()) * U.lerp(0.75, 1.25, s);
+        const spread = U.lerp(m.r * 0.3, m.r * 0.95, s) * (post ? 0.7 : 1);
+        const w = U.lerp(5, 42, r()) * U.lerp(0.75, 1.25, s) * (post ? 0.72 : 1);
         const sh = Math.sin(y * 0.19 + T * 1.7 + i) * 3 + U.wobble(T * 0.6 + i * 0.37, 11) * 5;
         const x = m.x + U.lerp(-spread, spread, r()) * 0.9 + sh;
+        if (post && i % 2) continue;
         const inBand = y > 955 && y < 1045;
         const a = (late ? 0.6 : U.lerp(0.95, 0.45, s)) * bright * (inBand ? 0.38 : 1) * (0.78 + 0.22 * Math.sin(T * 2.3 + i * 1.7));
-        c.fillStyle = U.rgba(opts.aged ? aged(C.gofun) : C.gofun, Math.min(1, a));
-        c.fillRect(x - w / 2, y, w, 2.2);
+        c.fillStyle = U.rgba(ink, Math.min(1, a));
+        c.fillRect(x - w / 2, y, w, post ? 1.6 : 2.2);
       }
       c.restore();
     });
@@ -3175,7 +3214,7 @@
     if (o.figures !== false) A.drawFigures(ctx, T, o);
     if (!still && o.near !== false) A.drawNearSusuki(ctx, T, { split: 'front', depth, hi: o.hi, view: o.view, skip: o.skipNear });
     if (!still) {
-      A.drawSozu(ctx, T);
+      if (o.sozu !== false) A.drawSozu(ctx, T);
       if (o.hagi !== false) A.drawHagi(ctx, T);
     }
     A.drawFlorets(ctx, T);
@@ -3300,14 +3339,16 @@
       sky: posterFlat(cw, ch, [(pen) => paintSky(pen, false), (pen) => pen('P6', (c) => glowBand(c, 0.34))]),
       land: posterFlat(cw, ch, [
         (pen) => paintFar(pen, false),
-        (pen) => paintMist(shifted(pen, Dm), 'high', qd),
-        (pen) => paintGrove(pen, false),
+        (pen) => paintMist(shifted(pen, Dm), 'high', qd, { solid: true }),
+        (pen) => paintGrove(pen, false, { poster: true }),
         (pen) => paintMist(shifted(pen, Dm * 1.2), 'low', qd),
         (pen) => paintField(pen, false),
       ]),
       sil: posterFlat(cw, ch, [(pen) => paintFieldSil(pen)]),
       // the pond and its banks in one flat: the moon road is laid over both (it keeps to the water)
-      pond: posterFlat(cw, ch, [(pen) => paintPond(pen, false), (pen) => paintBanks(pen, false)]),
+      pond: posterFlat(cw, ch, [(pen) => paintPond(pen, false, { poster: true }), (pen) => paintBanks(pen, false, { poster: true })]),
+      // the near suyari-gasumi of the close view: laid over the water below the far bank
+      veil: posterFlat(cw, ch, [(pen) => pen('P7', (c) => mistBand(c, POSTER_VEIL.lobes, 1, POSTER_VEIL.seed, qd, true, POSTER_VEIL.tint))]),
     };
     // the near plumes of the close view, carved at its resolution (and their silhouettes). Those
     // east of the disc stand still while the camera holds (it looks at the disc: what moves there
@@ -3367,7 +3408,8 @@
       ctx.restore();
     }
     blit(F.pond);
-    ctx.save(); postCam(ctx, K); A.drawPond(ctx, T, o); ctx.restore();
+    ctx.save(); postCam(ctx, K); A.drawPond(ctx, T, Object.assign({}, o, { poster: true })); ctx.restore();
+    blit(F.veil);
     blit(F.near);
     // the ichimonji stays on the sheet's top edge
     PRINT.drawLayer(ctx, 'A', 'sky', T, { only: ['P6i'] });
@@ -3375,7 +3417,7 @@
     const view = [fx - fx / K - 20, fy - fy / K - 20, fx + (W - fx) / K + 20, fy + (H - fy) / K + 20];
     ctx.save();
     postCam(ctx, K);
-    gardenFront(ctx, T, Object.assign({}, o, { hagi: false, hi: true, view, skipNear: P.still }));
+    gardenFront(ctx, T, Object.assign({}, o, { hagi: false, sozu: false, hi: true, view, skipNear: P.still }));
     ctx.restore();
     // the 萩 from the frame's corner, a touch nearer
     ctx.save();

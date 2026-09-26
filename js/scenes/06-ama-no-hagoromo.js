@@ -20,7 +20,8 @@
         narrows to an edge (141.03) and opens again as her BACK — the 十二単
         from behind, the great sleeves, the 裳, the black fall of her hair
    141.2–145.4 she climbs the kumiko hand over hand, every grip on a bar
-        (the rungs, last the top rail); cells flash; her hair lengthens into
+        (the rungs, last the top rail), the paper glinting along each bar she
+        takes; her hair lengthens into
         Heian hair; the ribbon runs down the stile behind her and winds round
         her waist; PRINT tears every plate (140–147.8)
    146.35–147 she looks back once over her right shoulder, slowly, to the
@@ -853,11 +854,15 @@
    * Pass 2, crisp: the canopied carriage (CAST's 鳳輦, its bearers standing on the cloud)
    * and the seven tennyo flying round it. Stage coords.
    */
-  function paintProcessionFigures(L, T) {
+  function paintProcessionFigures(L, T, part, Tw) {
     const hd = processionHead(T);
-    const Mc = new DOMMatrix().translate(hd.x, hd.y).rotate(10);
-    const pal = CAST.puppet('palanquin', null, 0, 0, 0.85, { t: T, phase: 0.2, sticks: false });
-    if (pal) { const q = new Path2D(); q.addPath(pal.path, Mc.translate(10, -12)); L.fill(q, pal.rule); }
+    if (part !== 'tennyo') {
+      // the carriage on its own clock (procClock): its tassels come to rest as the procession holds
+      const Mc = new DOMMatrix().translate(hd.x, hd.y).rotate(10);
+      const pal = CAST.puppet('palanquin', null, 0, 0, 0.85, { t: Tw == null ? T : Tw, phase: 0.2, sticks: false });
+      if (pal) { const q = new Path2D(); q.addPath(pal.path, Mc.translate(10, -12)); L.fill(q, pal.rule); }
+      if (part === 'carriage') return;
+    }
     const suzu = (TSUKI.CUES && TSUKI.CUES.celestialSuzu) || [132.0, 133.4, 134.9, 136.4, 137.9, 139.2];
     TENNYO.forEach(([dx, dy, r0], i) => {
       // each floats on her own slow figure-eight (6.2 s), rolling with it, and trails the cloud a
@@ -1222,6 +1227,12 @@
   const procReg = (hd) => { const x0 = U.clamp(Math.min(hd.x - 520, G.window.x - 60), G.panels[0][0], G.panels[3][1] - 860); return [x0, G.top, x0 + 860, G.top + 540]; };
   const SEAT_REG = [[TK.x - 212, 480, CH.x + 290, G.bottom], [CH.x - 20, 846, CH.x + 290, G.bottom]];
 
+  // the procession settles as it fades to a third (139–140) and holds: the cloud's breathing and the
+  // carriage's tassels ease to rest on this clock (velocity continuous at 139, still from 140.0), so
+  // from 140 the cloud and the carriage are one fixed image (procStill, a pure function of the stage size)
+  const procClock = (T) => (T < 139 ? T : 139 + 0.5 * (1 - Math.pow(1 - clamp01(T - 139), 2)));
+  let procStill = null;
+
   function shadowsB(c, T, st, cfg) {
     // the climber (140–148.95 on the paper): soft while she peels away, then sharp against the kumiko.
     // While she still overlaps the child (to 141.35) her layer is merged into the child's (one
@@ -1244,20 +1255,36 @@
       const f = U.seg(T, 132, 132.8) * (1 - 0.66 * io(T, 139, 140)) * (1 - U.seg(T, 148.4, 149.3));
       const hd = processionHead(T);
       const cut = (lay) => {
-        // where she climbs through them, her own shadow is the shadow (they never compound)
+        // where she climbs through them, her own shadow is the shadow (they never compound).
+        // Cut with her outline itself, not her (low-res, soft) layer: an upscaled blit of it costs
+        // ≈1 ms in the peel, and at a third of the procession's ink the penumbra's few px never show
         if (!Lc) return;
-        const RC = Lc.canvas.__region;
         lay.save(); lay.globalCompositeOperation = 'destination-out';
-        lay.drawImage(Lc.canvas, 0, 0, RC.w, RC.h, RC.x0, RC.y0, RC.w / RC.s, RC.h / RC.s);
+        for (const p of cfg.parts) lay.fill(p);
         lay.restore();
       };
       // ONE layer (never compounding inside itself): the cloud pulled paler (α .55 of the print), the
       // carriage and the tennyo over it at full (α .75)
       const pl = SB.sharpLayer(c, 'proc', procReg(hd));
-      pl.save(); pl.globalAlpha = 0.55 / 0.75;
-      paintProcessionCloud(pl, T);
-      pl.restore();
-      paintProcessionFigures(pl, T);
+      // the cloud and the carriage: from 140 one fixed image (procClock), pre-printed once into the
+      // layer's own pixel grid and blitted 1:1; the tennyo float on over it, live
+      const RP = pl.canvas.__region;
+      const key = `${pl.canvas.width}x${pl.canvas.height}|${RP.x0},${RP.y0},${RP.s}`;
+      if (T >= 140 && procStill && procStill.key === key) {
+        pl.save(); pl.setTransform(1, 0, 0, 1, 0, 0); pl.drawImage(procStill.cv, 0, 0); pl.restore();
+      } else {
+        const Tw = procClock(T);
+        pl.save(); pl.globalAlpha = 0.55 / 0.75;
+        paintProcessionCloud(pl, Tw);
+        pl.restore();
+        paintProcessionFigures(pl, T, 'carriage', Tw);
+        if (T >= 140) {
+          const cv = B.canvas(pl.canvas.width, pl.canvas.height);
+          cv.getContext('2d').drawImage(pl.canvas, 0, 0);
+          procStill = { key, cv };
+        }
+      }
+      paintProcessionFigures(pl, T, 'tennyo');
       cut(pl);
       SB.softPrint(c, T, 'proc', { alpha: 0.75 * f });
     }
@@ -1374,30 +1401,79 @@
     c.restore();
   }
 
-  /** cells flash 胡粉 as her hands pass them (each grab 141.2–147) */
+  /**
+   * Each grip lights the paper along the rung she takes (141.2–145.4): a short bokashi of 胡粉
+   * hugging the bar on either side of her fist — rising 8 px above it, 4 px below — fading out
+   * along the rung within ≈90 px, α ≤ .2. The kumiko prints over it, so the bar stays dark; her
+   * own hand is left out (a gap under the fist). Never a whole cell.
+   */
   const GRABS = (() => {
     const g = [];
-    for (const key of ['L', 'R']) for (let i = 1; i < HANDS_B[key].length; i++) g.push({ t: HANDS_B[key][i][1], y: HANDS_B[key][i][2] });
-    g.push({ t: 141.2, y: 615 }, { t: 141.2, y: 730 });
+    for (const key of ['L', 'R']) for (let i = 1; i < HANDS_B[key].length; i++) g.push({ t: HANDS_B[key][i][1], y: HANDS_B[key][i][2], hand: key === 'L' ? 0 : 1 });
+    g.push({ t: 141.2, y: 615, hand: 0 }, { t: 141.2, y: 730, hand: 1 });
+    // the bar under the fist: a rung, or (above the last rung) the top rail's lower edge
+    for (const gr of g) {
+      let bar = G.top + G.frame, top = true;
+      for (const ry of G.rungs) if (Math.abs(ry - gr.y) < Math.abs(bar - gr.y)) { bar = ry; top = false; }
+      gr.bar = bar; gr.top = top;
+    }
     return g;
   })();
-  function cellFlashes(c, T) {
-    if (T < 141.1 || T > 147.4) return;
-    PRINT.with(c, 'P7', T, (k) => {
-      k.globalCompositeOperation = 'lighter';
-      for (const gr of GRABS) {
-        const age = T - gr.t;
-        if (age < 0 || age > 0.35) continue;
-        const a = Math.sin(Math.PI * age / 0.35);
-        // the cell just above the gripped rung, both sides of the stile
-        const row = Math.floor((gr.y - 12 - G.top) / 115);
-        if (row < 0 || row > 5) continue;
-        for (const [p, col, w] of [[1, 2, 1], [2, 0, 0.6]]) {
-          const [x, y, cw, ch] = SB.cell(p, col, row);
-          k.fillStyle = U.rgba(C.gofun, 0.36 * a * w);
-          k.fillRect(x, y, cw, ch);
-        }
+  const GLINT = { w: 200, h: 24, cy: 12 };                   // logical px; the bar's centre line at cy
+  let glintSprite = null;
+  function glint(k) {
+    if (glintSprite && glintSprite.k === k) return glintSprite.cv;
+    const W = Math.ceil(GLINT.w * k), H = Math.ceil(GLINT.h * k);
+    const cv = B.canvas(W, H), x2 = cv.getContext('2d'), img = x2.createImageData(W, H);
+    const [cr, cg, cb] = U.hexToRgb(C.gofun), ss = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+    for (let j = 0; j < H; j++) {
+      const y = (j + 0.5) / k - GLINT.cy;
+      // off the bar's edges (±1.75): 8 px of light above, 4 below
+      const v = y < -1.75 ? Math.pow(clamp01(1 - (-1.75 - y) / 8), 1.8) : y > 1.75 ? 0.7 * Math.pow(clamp01(1 - (y - 1.75) / 4), 1.8) : 1;
+      for (let i = 0; i < W; i++) {
+        const d = Math.abs((i + 0.5) / k - GLINT.w / 2);
+        const h = ss(7, 17, d) * Math.pow(clamp01(1 - (d - 17) / 80), 1.6);
+        const o = (j * W + i) * 4;
+        img.data[o] = cr; img.data[o + 1] = cg; img.data[o + 2] = cb; img.data[o + 3] = Math.round(255 * v * h);
       }
+    }
+    x2.putImageData(img, 0, 0);
+    glintSprite = { k, cv };
+    return cv;
+  }
+  function gripX(gr) {
+    if (gr.x == null) {
+      const st = climberState(gr.t);
+      const fg = st && !st.inWin ? climberFigure(st) : null;
+      gr.x = fg && fg.hands && fg.hands[gr.hand] ? fg.hands[gr.hand][0] : G.stile + (gr.hand ? 110 : 12);
+    }
+    return gr.x;
+  }
+  function cellFlashes(c, T) {
+    if (T < 141.1 || T > 146.2) return;
+    const live = GRABS.filter((gr) => T > gr.t && T < gr.t + 0.6);
+    if (!live.length) return;
+    const k = c.canvas.width / 1920;
+    const spr = glint(k);
+    PRINT.with(c, 'P7', T, (q) => {
+      q.save();
+      SB.paperClip(q);
+      q.globalCompositeOperation = 'lighter';
+      const a0 = q.globalAlpha;
+      for (const gr of live) {
+        // a quick catch as the fingers close, a slow fade
+        const a = E.outSine(clamp01((T - gr.t) / 0.07)) * Math.pow(1 - clamp01((T - gr.t - 0.07) / 0.5), 2);
+        if (a <= 0.003) continue;
+        q.globalAlpha = a0 * 0.2 * a;
+        const x = gripX(gr);
+        if (gr.top) {
+          // the top rail: light below its edge only
+          q.save(); q.beginPath(); q.rect(x - GLINT.w / 2, gr.bar, GLINT.w, GLINT.h); q.clip();
+          q.drawImage(spr, x - GLINT.w / 2, gr.bar - 1.75 - GLINT.cy, GLINT.w, GLINT.h);
+          q.restore();
+        } else q.drawImage(spr, x - GLINT.w / 2, gr.bar - GLINT.cy, GLINT.w, GLINT.h);
+      }
+      q.restore();
     });
   }
 
@@ -1438,10 +1514,10 @@
           drawClouds(c, T, 'far');
           kiraPin(c, T);
           drawClouds(c, T, 'near');
-          // on the paper: the light, every shadow, the flashing cells
+          // on the paper: the light, the glints along the rungs she grips, every shadow
           SB.light(c, T, { r: 260, falloff: 0.5, dim: dark });
+          cellFlashes(c, T);          // (light on the paper: her shadow falls over it)
           shadowsB(c, T, st, cfg);
-          cellFlashes(c, T);
         },
         ink: (c) => {
           SB.tokonomaShade(c, T, 1.087);

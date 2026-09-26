@@ -8,8 +8,12 @@
    there is (88.2–90.0) — 四 begins on the identical frame.
    All times below are GLOBAL film time T (66–90).
 
-   The child sits at the lower left: her arms come in on one diagonal, and
-   たけ's ladle answers it from the top right — the handle crosses the frame.
+   The child kneels at the near rim, a little to the left: her forearms
+   come in from the lower left and the lower right on converging lines, out
+   of 紺絣 sleeves whose 紅-lined mouths (袖口) sit at the wrists, and sink
+   into her own shadow after ~300 px — arms at a glance, never two legs. The
+   grab plunges straight ahead; the cupped hands turn a little toward たけ's
+   ladle, which answers from the top right — the handle crosses the frame.
    Hands are never morphed: grab, cup and window are separate poses that
    slide in and out. The cupped hands are baked once into sprites (moonlit,
    lit from within by the moon they hold, and fallen into night) and only
@@ -32,9 +36,12 @@
 
   /* ---------------- layout -------------------------------------------- */
   const REFL = { x: 1000, y: 600 };
-  const ARM = 0.46;                              // the child's arms: a diagonal from the lower left (rad)
-  const GRAB = { x: 1000, y: 628, s: 1.25 };
-  const CUP = { s: 1.15 };
+  const ARM = 0.26;                              // the child's cupped hands: turned a little from the lower left (rad)
+  // the grab: she plunges both hands straight ahead of her (her body below the
+  // basin, a little to the left); the forearms come in on converging lines
+  // from the lower left and the lower right, each out of its sleeve mouth
+  const GRAB = { x: 1000, y: 628, s: 1.25, arm: 0.04, splay: 0.56 };
+  const CUP = { s: 1.15, splay: [0.32, 0.44] };                 // splay: left, right (rad, from the arm axis)
   const LADLE = { s: 1.4, angle: 2.3, len: 560 };
   const FOX = { x: 960, y: 420, zoom: 12.4 };
   const PALM_R = 18;
@@ -198,10 +205,9 @@
     return list;
   }
 
-  /* ---------------- scratch (the settle's stretch, the grab's underwater  */
-  /* tint, the window's wipe): ONE stage-size canvas, allocated in init().  */
-  /* Its three users never overlap: the settle ends at 67.2, the grab      */
-  /* starts at 67.4, the wipe runs 87.2–88.0.                              */
+  /* ---------------- scratch (the settle's stretch, the window's wipe):   */
+  /* ONE stage-size canvas, allocated in init(). Its users never overlap:  */
+  /* the settle ends at 67.2, the wipe runs 87.2–88.0.                     */
   let scratch = null;
   let sbox = null;   // device-pixel rect of the current scratch pass (immediate, not carried between frames)
   function stageScratch(w, h) {
@@ -296,69 +302,99 @@
     return t;
   }
   /**
-   * A kimono sleeve from the wrist (wx, wy) back toward the body along
-   * (dx, dy), `len` px. Foreshortened: the shoulder is nearer the eye than
-   * the hand, so the sleeve opens quickly from w0 at the cuff toward w1; on
-   * its outer side (`side` ±1, away from the other arm) the 袂 hangs from a
-   * third of the way back, a rounded bag in shadow under a crease. Cuff hem,
-   * shadowed underside, 墨 key line.
+   * 小夜's kimono sleeve (袖) seen from behind and above as she reaches away:
+   * the forearm comes OUT of the sleeve mouth (袖口) — the sleeve is printed
+   * over the forearm stub, its rim bowed toward the hand, a little wider than
+   * the wrist, with the 紅 lining (ふき) showing as a thin band along it and
+   * the 袂 hanging on the outer side: a sleeve at a glance, never a trouser
+   * leg. Foreshortened (it opens fast toward the shoulder), and from `dark`
+   * [a, b] px behind the mouth it sinks into the child's own shadow (a 墨
+   * bokashi to α .86), so only ~300 px of arm reads before the dark.
+   * (mx, my) = the mouth's centre; (dx, dy) toward the shoulder; `side` ±1 =
+   * the outer side (away from the other arm); s = the hands' scale.
    */
-  function sleeve(c, wx, wy, dx, dy, w0, w1, len, k, side = 1, night = 0.24) {
+  function sode(c, mx, my, dx, dy, o) {
+    const s = o.s, side = o.side || 1, night = o.night == null ? 0.24 : o.night;
+    const w0 = o.w0 * s, w1 = o.w1 * s, len = o.len, dk = o.dark || [150 * s, 290 * s];
     const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * side, ny = ux * side;
-    const p = (a, b) => [wx + ux * a + nx * b, wy + uy * a + ny * b];
-    const hw = (u) => (w0 + (w1 - w0) * Math.pow(u, 0.72)) / 2;
-    const bag = (u) => w1 * 0.36 * U.smoothstep(0.3, 0.62, u);
-    const N = 18, inner = [], outer = [], crease = [];
+    const p = (a, b) => [mx + ux * a + nx * b, my + uy * a + ny * b];
+    const hw = (a) => (w0 + (w1 - w0) * Math.pow(U.clamp(a / (len * 0.62)), 0.85)) / 2;
+    const bag = (a) => w1 * 0.3 * U.smoothstep(0.1, 0.34, a / len);          // the 袂, hanging outward
+    const bow = w0 * 0.2;                                                     // the rim bows toward the hand
+    const N = 22, inner = [], outer = [], crease = [];
     for (let q = 0; q <= N; q++) {
-      const u = q / N;
-      inner.push(p(len * u, -hw(u)));
-      outer.push(p(len * u, hw(u) + bag(u)));
-      if (u >= 0.3) crease.push(p(len * u, hw(u) * 0.94));
+      const a = len * Math.pow(q / N, 1.3);
+      inner.push(p(a, -hw(a)));
+      outer.push(p(a, hw(a) + bag(a)));
+      if (a > len * 0.1 && a < dk[1]) crease.push(p(a, hw(a) * 0.9));
     }
+    const rimA = outer[0], rimB = inner[0], rimC = p(-bow * 2, 0);
     const path = new Path2D();
     path.moveTo(...inner[0]);
     for (let q = 1; q <= N; q++) path.lineTo(...inner[q]);
     for (let q = N; q >= 0; q--) path.lineTo(...outer[q]);
-    path.quadraticCurveTo(...p(-7, 0), ...inner[0]);
+    path.quadraticCurveTo(...rimC, ...rimB);
     path.closePath();
+    // into the child's shadow: a 墨 bokashi along the sleeve (over line and lining alike)
+    const shadow = () => {
+      c.save();
+      c.clip(path);
+      const gl = c.createLinearGradient(...p(dk[0], 0), ...p(dk[1], 0));
+      gl.addColorStop(0, U.rgba(C.sumi, 0));
+      gl.addColorStop(0.55, U.rgba(C.sumi, 0.5));
+      gl.addColorStop(1, U.rgba(C.sumi, 0.86));
+      c.fillStyle = gl;
+      c.fill(path);
+      c.restore();
+    };
+    if (o.shadowOnly) { shadow(); return; }
     const pat = c.createPattern(kasuri(night), 'repeat');
     const ang = Math.atan2(uy, ux) - Math.PI / 2;
-    pat.setTransform(new DOMMatrix().translate(wx, wy).rotate((ang * 180) / Math.PI).scale(k * 0.74));
+    pat.setTransform(new DOMMatrix().translate(mx, my).rotate((ang * 180) / Math.PI).scale((s / 1.75) * 0.74));
     c.save();
     c.fillStyle = pat;
     c.fill(path);
     c.clip(path);
-    // the shadowed underside (the far side from the moon) and the 袂 hanging in shadow
+    // the shadowed underside (away from the moon) and the 袂 in shadow
     const g = c.createLinearGradient(...p(0, -w1 / 2), ...p(0, w1 / 2 + w1 * 0.3));
-    g.addColorStop(0, U.rgba(C.sumi, 0.12));
+    g.addColorStop(0, U.rgba(C.sumi, 0.1));
     g.addColorStop(0.4, U.rgba(C.sumi, 0));
-    g.addColorStop(0.62, U.rgba(C.sumi, 0.1));
-    g.addColorStop(1, U.rgba(C.sumi, 0.42));
+    g.addColorStop(0.62, U.rgba(C.sumi, 0.12));
+    g.addColorStop(1, U.rgba(C.sumi, 0.45));
     c.fillStyle = g;
     c.fill(path);
-    // past the elbow the sleeve sinks into the child's own shadow: a 墨
-    // bokashi along it, so the lit forearm reads short and the rest recedes
-    const gl = c.createLinearGradient(...p(len * 0.42, 0), ...p(len * 0.95, 0));
-    gl.addColorStop(0, U.rgba(C.sumi, 0));
-    gl.addColorStop(1, U.rgba(C.sumi, 0.5));
-    c.fillStyle = gl;
-    c.fill(path);
     // the crease where the 袂 falls away from the arm
-    B.taper(c, crease, 0.6 * k, 3 * k, U.rgba(C.sumi, 0.7), 0.1);
+    B.taper(c, crease, 0.6 * s, 2.6 * s, U.rgba(C.sumi, 0.66), 0.1);
+    // the cloth bunched where the forearm bends up out of it: two carved folds
+    // curving back from the inner edge
+    for (const [a0, f] of [[0.2, 0.62], [0.34, 0.5]]) {
+      const a = dk[0] * a0 / 0.3, h = hw(a);
+      B.taper(c, [p(a, -h - 2), p(a + 10 * s, -h * (1 - f * 0.55)), p(a + 26 * s, -h * (1 - f))], 2.4 * s, 0.4 * s, U.rgba(C.sumi, 0.6), 0.2);
+    }
     c.restore();
+    // the 墨 key line, then the lining along the rim over it
     c.save();
     c.strokeStyle = U.rgba(C.sumi, 0.85);
-    c.lineWidth = 2.2 * k;
+    c.lineWidth = 1.9 * s;
     c.lineJoin = 'round';
     c.stroke(path);
-    // the cuff hem
-    c.strokeStyle = U.rgba(U.mix(C.kon, C.gofun, 0.35), 0.55);
-    c.lineWidth = 1.4 * k;
-    c.beginPath();
-    c.moveTo(...p(5, -w0 / 2 + 2));
-    c.quadraticCurveTo(...p(-2, 0), ...p(5, w0 / 2 - 2));
-    c.stroke();
+    const rim = new Path2D();
+    rim.moveTo(...rimA);
+    rim.quadraticCurveTo(...rimC, ...rimB);
+    // the 紅 lining showing at the mouth (ふき): a crescent just inside the rim,
+    // fullest at the middle, gone at the two corners — the Harunobu sleeve
+    const lin = new Path2D();
+    lin.moveTo(...rimA);
+    lin.quadraticCurveTo(...rimC, ...rimB);
+    lin.quadraticCurveTo(...p(-bow * 0.45, 0), ...rimA);
+    c.fillStyle = U.mix(U.mix(C.beni, C.enji, 0.3), NIGHT, night + 0.1);
+    c.fill(lin);
+    c.strokeStyle = U.rgba(C.sumi, 0.9);
+    c.lineWidth = 1.7 * s;
+    c.lineCap = 'round';
+    c.stroke(rim);
     c.restore();
+    shadow();
   }
 
   /* ---------------- the child's grabbing hands (67.4–70.3) ------------- */
@@ -367,44 +403,37 @@
     const inP = E.outCubic(U.seg(T, BT.plunge, BT.shatter));
     const outP = E.inOutSine(U.seg(T, BT.up + 0.1, BT.calm + 0.2));
     const lift = E.outSine(U.seg(T, BT.up, BT.up + 0.35));             // coming up: nearer the eye
-    const back = (1 - inP) * 620 + outP * 680 - lift * 14;            // along the arm, toward the body
-    const [bx, by] = rot([0, back]);
+    const back = (1 - inP) * 560 + outP * 620 - lift * 14;            // along her reach, toward the body
+    const A = GRAB.arm, cA = Math.cos(A), sA = Math.sin(A);
+    const rotG = (q) => [q[0] * cA - q[1] * sA, q[0] * sA + q[1] * cA];
+    const [bx, by] = rotG([0, back]);
     const x = GRAB.x + bx, y = GRAB.y + by;
     const s = GRAB.s * (1 + 0.05 * lift - 0.04 * (T > BT.shatter && T < BT.up ? 1 : 0) * E.outSine(U.seg(T, BT.shatter, BT.shatter + 0.2)));
-    const close = T < BT.shatter ? 0 : T < BT.up ? E.outCubic(U.seg(T, BT.shatter, BT.shatter + 0.22)) : U.lerp(1, 0.25, E.inOutSine(U.seg(T, BT.up, BT.up + 0.5)));
-    const under = U.env(T, BT.shatter - 0.08, BT.shatter + 0.08, BT.up - 0.05, BT.up + 0.2);
-    const drawHands = (c, pal) => {
-      c.save();
-      c.translate(x, y);
-      c.rotate(ARM);
-      const g = CAST.hands(c, 0, 0, s, { pose: 'grab', close, t: T, age: 0, sleeve: false, palette: pal });
-      c.restore();
+    // a clutch at the water, never a fist: the long fingers gather (to 0.7) and
+    // open again as the hands come up empty
+    const CL = 0.7;
+    const close = CL * (T < BT.shatter ? 0 : T < BT.up ? E.outCubic(U.seg(T, BT.shatter, BT.shatter + 0.22)) : U.lerp(1, 0.25, E.inOutSine(U.seg(T, BT.up, BT.up + 0.5))));
+    // the fingers are dry until they strike the water, in it while she clutches,
+    // and come up out of it (the beads carry the wet away)
+    const under = U.env(T, BT.shatter - 0.06, BT.shatter + 0.1, BT.up - 0.1, BT.up + 0.15);
+    // (CAST's wet needs dip·finger ≥ 0.2·tip radius: a dip under ≈ 0.12 throws,
+    // so the tips go in with the strike itself at 0.14 and come out the same way)
+    const dip = under < 0.4 ? 0 : Math.max(0.14, under * (0.26 + 0.2 * close));
+    const geo = (() => {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(A);
+      const g = CAST.hands(ctx, 0, 0, s, { pose: 'grab', close, t: T, age: 0, sleeve: false, palette: NIGHT_PAL, dip, wet: dip > 0.004 });
+      ctx.restore();
       return g;
-    };
-    let geo;
-    if (under > 0.01) {
-      // the fingers under water: the part beyond the waterline printed in 藍
-      const s2 = scratchFor(ctx, [x - 420, y - 360, x + 420, y + 260]);
-      geo = drawHands(s2, NIGHT_PAL);
-      s2.save();
-      s2.globalCompositeOperation = 'source-atop';
-      TSUKI.SHOTS.C.waterClip(s2);
-      s2.clip();
-      s2.translate(x, y);
-      s2.rotate(ARM);
-      s2.beginPath();
-      s2.rect(-600, -600, 1200, 600 - 22 * s);
-      s2.clip();
-      s2.fillStyle = U.rgba(U.mix(C.ai, C.koiai, 0.5), 0.6 * under);
-      s2.fillRect(-600, -600, 1200, 1200);
-      s2.restore();
-      blitScratch(ctx);
-    } else geo = drawHands(ctx, NIGHT_PAL);
+    })();
+    // the sleeves: out of each mouth back toward her shoulders, the two arms
+    // splayed apart (lower left, lower right) — printed over the forearm stubs
     for (const sd of [-1, 1]) {
-      const th = sd * 0.16;
-      const w = rot([(sd * 66 - 30 * Math.sin(th) - 5 * sd) * s, (40 + 30 * Math.cos(th) - 8) * s]);
-      const d = rot([sd * 0.1, 1]);                       // the arms part toward the shoulders
-      sleeve(ctx, x + w[0], y + w[1], d[0], d[1], 44 * s, 150 * s, 640, s / 1.75, sd);
+      const th = sd * 0.16;                                             // the hand's own turn (CAST grab)
+      const m = rotG([(sd * 66 - 17 * Math.sin(th)) * s, (40 + 17 * Math.cos(th)) * s]);
+      const d = rotG([sd * Math.sin(GRAB.splay), Math.cos(GRAB.splay)]);
+      sode(ctx, x + m[0], y + m[1], d[0], d[1], { s, side: sd, w0: 56, w1: 118, len: 520, dark: [90 * s, 235 * s] });
     }
     // bright beads falling from the fingertips as they come up empty
     if (geo && T > BT.up && T < BT.up + 1.2) {
@@ -413,7 +442,7 @@
         const t0 = BT.up + 0.05 + (i % 5) * 0.12 + U.hash(i + 71) * 0.1;
         const age = T - t0;
         if (age < 0 || age > 0.5) return;
-        const q = rot(p0);
+        const q = rotG(p0);
         const px = x + q[0], py = y + q[1];
         const yy = py + 10 + 90 * age * age * 4;
         if (yy > 945) return;
@@ -512,7 +541,7 @@
   // baked once: 'moon' (lit from the moon above), 'lit' (and from within, by
   // the moon in the palms), 'dark' (fallen into night, a 胡粉 rim of moonlight)
   let cupSpr = null;
-  const CUP_BOX = [-340, -125, 340, 660];         // arm-frame local box (sleeves run off the frame)
+  const CUP_BOX = [-470, -125, 470, 740];         // arm-frame local box (sleeves run off the frame)
   function bakeCup(k) {
     if (cupSpr && Math.abs(cupSpr.k - k) / k < 0.1) return cupSpr;
     const corners = [[CUP_BOX[0], CUP_BOX[1]], [CUP_BOX[2], CUP_BOX[1]], [CUP_BOX[0], CUP_BOX[3]], [CUP_BOX[2], CUP_BOX[3]]].map(rot);
@@ -527,11 +556,15 @@
       geo = CAST.hands(c, 0, 0, CUP.s, { pose: 'cupped', water: 0, t: 0, age: 0, sleeve: false, palette: CHILD_PAL });
       c.restore();
     };
-    const sleeves = (c) => {
+    // the same sleeves as the grab's: out of their 紅-lined mouths the forearms
+    // splay back toward her shoulders (she sits to the lower left, so the left
+    // arm comes from the lower left and the right one from straight below)
+    const sleeves = (c, shadowOnly) => {
       for (const sd of [-1, 1]) {
-        const w = rot([sd * 30 * CUP.s, 56 * CUP.s]);
-        const d = rot([sd * 0.24, 1]);
-        sleeve(c, w[0], w[1], d[0], d[1], 42 * CUP.s, 150 * CUP.s, 580, CUP.s / 1.75, sd);
+        const w = rot([sd * 30 * CUP.s, 52 * CUP.s]);
+        const sp = sd < 0 ? CUP.splay[0] : CUP.splay[1];
+        const d = rot([sd * Math.sin(sp), Math.cos(sp)]);
+        sode(c, w[0], w[1], d[0], d[1], { s: CUP.s, side: sd, w0: 52, w1: 116, len: 660, dark: [100 * CUP.s, 250 * CUP.s], shadowOnly });
       }
     };
     // moonlit
@@ -569,6 +602,7 @@
     D.c.globalAlpha = 0.3;
     D.c.drawImage(rim, 0, 0);
     D.c.restore();
+    sleeves(D.c, true);                        // the sleeves still sink into her shadow
     cupSpr = { k, x0: x0 - 2 / k, y0: y0 - 2 / k, W, H, moon: A.cv, lit: L.cv, dark: D.cv, geo };
     return cupSpr;
   }

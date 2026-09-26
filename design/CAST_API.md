@@ -19,8 +19,23 @@ style: 'sumi-line', palette`. `CAST.palettes` = {kaguya, grandma, oldSayo, grand
   `look`, `reach`, `dango`, `haori` (sleep), `boy`, `cry`.
 - **hands** — fox-window (anchor = diamond centre; returns center, w, h, corners) · cupped (bowl centre; center, rx, ry,
   drips, tips) · grab (between wrists) · ladle (old wrist; cup, r, rx, ry, lip). `age` 0..1 (default 1; cupped/grab 0),
-  `interlace`, `tremble` (±2 px @ 9 Hz), `sleeve`, `patternUnit` (76), `water`, `curl`, `close`, `tilt`, `angle`, `len`.
-  `CAST.foxWindowRect(x, y, scale, opts)` → { cx, cy, w, h, corners, path(ctx) } for clipping the inside.
+  `interlace`, `tremble` (±2 px @ 9 Hz), `sleeve`, `patternUnit` (76), `water`, `curl`, `close`, `tilt`, `angle`, `len`,
+  `dip`, `wet`.
+  `CAST.foxWindowRect(x, y, scale, opts)` → { cx, cy, w, h, corners, path(ctx) } for clipping the inside (unchanged).
+  - Key line (all poses): carved, ≈1.4 px on the lit side (stage upper-left, rotation-aware) → ≈3 px on the shadow
+    side; flat skin (no registration offset); inside a hand only 2–3 carved nicks per knuckle and two palm lines.
+  - **fox-window is the real 狐の窓** (since the figure round): each hand a fox head (middle + ring folded to the
+    thumb, index + little finger raised as ears); the left fox turned over (palm view, thumb on top), the right seen
+    from the back (thumb tucked below). The ears cross — left index × right little finger at the top (right over),
+    left little finger × right index at the foot (left over). Their inner edges ARE the diamond between the crossings;
+    the folded knuckles round off the diamond's two side corners (~50 px in), so a clip larger than the opening is
+    always covered by the hands. Slender fingers, smaller palms (≈20 % less hand). The forearm now bends down-and-out
+    and ends at (∓333, 47)–(∓267, 93) (scale-1 local): inside 六's cuff lining (FWG A…G) and under 三's forearm
+    ribbons (ARMS start ∓284, 60). Scenes that split the pose at x = 0 for the tremble (六) now cut through the two
+    finger crossings — prefer drawing each hand with CAST's own `tremble` (it moves each hand whole).
+  - **grab**: fingers fanned wide and long, thumb well apart (`close` 0); `close` 1 gathers the long fingers and
+    plunges them (a clutch at the water, never a fist). `dip` (default 0.34 + 0.26·close; `wet: false` → dry): beyond
+    the waterline each digit sinks into `palette.water`'s ink toward the tip, with a dark wet band where it enters.
 - **fox** — sit · walk · steal · eyes; `color` 'white' | 'gold'; `carry:'fish'|'dango'`; `lookBack` 0..1; steal `reach`
   (returns mouth, paw); eyes `blink`, `glow`, `sep`.
 - **Shadow puppets** — `CAST.puppet(name, ctx, x, y, scale, opts)` → { path, rule, sticks, ends, bbox, points };
@@ -32,6 +47,13 @@ style: 'sumi-line', palette`. `CAST.palettes` = {kaguya, grandma, oldSayo, grand
 - **Jataka** — `beggar` shuffle · sit · rise (`rise` 0..1); `monkey` sit (`fruit`, `offer`) · walk · sticks; `rabbit`
   sit (`droop`) · gaze · leap (`phase`) · pound; the fox with fish = `fox` walk `carry:'fish'`. Use `silhouette` or
   `style:'sumi-line'` on the moon's face.
+- **kaguya / kaguya-engawa puppets** (figure round): her 垂髪 is now CARD (the darkest value), cut round with a fine
+  line of light, parted by two lines of light into three strands that sweep dark over the train's light; a pale
+  profile face with a slit of card for the eye. Hair + eye are also a second, lacquered layer of card: `.layer2`
+  (Path2D, nonzero), merged into `.sticks` unless `layer2InSticks: false` (bare sticks: `.stickPath`). Fill
+  `path` then `sticks` with 'multiply' (as 三's SB.sharpFill does) and the hair prints near-sumi; `drawPuppet` does it.
+  Note for 三: its own `engawaCard` (56.4–) still cuts her hair as LIGHT — switch it to `CAST.puppet('kaguya-engawa')`
+  (same figure, same hair) or cut the hair as card, so the dissolve at 56.4–57.0 does not flip her hair from dark to pale.
 - Legacy: kaguya (紫苑の匂 kasane), tennyo, rabbit, okina, ouna, elder, mikado, guard/samurai, deer.
 
 Performance (scale 1): grandma/oldSayo 0.6–0.9 ms; child ≤ 0.6 (carry-susuki 1.7 at scale 1, ~0.9 at film size); fox

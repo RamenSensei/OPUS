@@ -7,10 +7,13 @@
    the moon; the smoke settles into the maria (TSUKI.MOON.maria) at 106.
 
    Plates (PRINT shot 'D'):
-     sky   P6 ベロ藍 → 紺 bokashi · P6i ichimonji (ベロ藍 + 墨 60%) · P8 faint kira
+     sky   P6 one flat ベロ藍 + a flat 紺 foot band from y 930 (14 px wipe)
+           · P8 faint kira
      halo  P7 the 月暈: one flat impression a step lighter than the sky (群青
-           α .3), crisp at the disc, flat to R − 44, one bokashi out to R + 50
-           (no ring, no hairline — SD.haloBand, shared with the tilt)
+           α .3), crisp at the disc, flat to R + 30, one 12 px wipe (no ring,
+           no hairline — SD.haloBand, shared with the tilt)
+     top   P6i ichimonji (ベロ藍 + 墨 60%), flat to y 104, 22 px wipe —
+           printed over the 月暈
 
    TSUKI.SHOTS.D
      MOON                     { x, y, r, haloR } — the fixed moon of Shot D
@@ -19,7 +22,10 @@
                               window). o.moon === false → no moon/face (the
                               tilt draws the one moon itself); o.dy → shift
                               sky & susuki (tilt); o.susuki === false;
-                              o.haloAlpha === 0 → no 月暈 plate
+                              o.haloAlpha === 0 → no 月暈 plate;
+                              o.halo {x,y,R,a} → a live 月暈 (stage
+                              coords) printed between the sky and the
+                              ichimonji instead of the carved one
      face(ctx, T, x, y, r)    the Jataka + fire + smoke + maria/pestle on a
                               moon at (x,y,r)
      pestle(T)                the 杵's swing angle at T (radians)
@@ -80,24 +86,27 @@
   /**
    * The 月暈 as a printer carves it: ONE flat impression one step lighter than
    * the sky (群青 over ベロ藍 — a lighter blue, never a grey veil), cut crisp
-   * at the disc, flat out to R − 44, a short shoulder, then one bokashi wiped
-   * outward to R + 50 — no hairline, no ring of darker sky inside it (both
-   * read as a lens or a bullseye). Shared with the tilt (05), which prints it
-   * live at any R (the disc scales with it: r = M.r · R / M.haloR).
+   * at the disc, flat out to R + 30 and there cut with one short wipe (12 px)
+   * — a hard outer step, never a long radial fade (that reads as airbrush) —
+   * no hairline, no ring of darker sky inside it (both read as a lens or a
+   * bullseye). It lies UNDER the ichimonji (the 'top' layer), which is printed
+   * over it. Shared with the tilt (05), which prints it live at any R (the
+   * disc scales with it: r = M.r · R / M.haloR).
    */
-  const HALO = { col: C.gunjo, a: 0.3, flatTo: 44, wipe: 50 };
+  const HALO = { col: C.gunjo, a: 0.3, flatTo: 30, wipe: 12 };
   SD.haloBand = (c, x, y, R, a = 1) => {
     if (a <= 0.004 || R <= 4) return;
     const s = R / M.haloR;
-    const r0 = M.r * s, r1 = R + HALO.wipe * s, span = r1 - r0;
-    const f = (R - HALO.flatTo * s - r0) / span, A = HALO.a;
+    // flat from the disc's cut edge out to R + 30, then ONE short wipe (12 px):
+    // a hard-edged block, not an airbrushed glow
+    const r0 = M.r * s, rf = R + HALO.flatTo * s, r1 = rf + Math.max(1.5, HALO.wipe * s), span = r1 - r0;
+    const f = (rf - r0) / span, A = HALO.a;
     c.save();
     c.globalAlpha *= a;
     const g = c.createRadialGradient(x, y, r0, x, y, r1);
     g.addColorStop(0, U.rgba(HALO.col, A));
     g.addColorStop(f, U.rgba(HALO.col, A));                                  // the flat of the block
-    g.addColorStop(f + (1 - f) * 0.1, U.rgba(HALO.col, A * 0.66));           // its shoulder
-    g.addColorStop(f + (1 - f) * 0.5, U.rgba(HALO.col, A * 0.22));
+    g.addColorStop(f + (1 - f) * 0.5, U.rgba(HALO.col, A * 0.4));            // its wiped edge
     g.addColorStop(1, U.rgba(HALO.col, 0));
     c.fillStyle = g;
     c.beginPath();
@@ -144,35 +153,46 @@
     c.restore();
   }
 
+  /**
+   * A flat band of `col` between y0 and y1 whose ONE open edge (`at` 'top' or
+   * 'bottom') is wiped over `wipe` px — the ichimonji way: the block is a
+   * plain rectangle, the gradation lives only in the last few px of its edge.
+   */
+  function hardBand(c, y0, y1, col, a, wipe, at) {
+    const g = c.createLinearGradient(0, y0, 0, y1);
+    const h = y1 - y0, w = Math.min(0.5, wipe / h);
+    if (at === 'bottom') {
+      g.addColorStop(0, U.rgba(col, a));
+      g.addColorStop(1 - w, U.rgba(col, a));
+      g.addColorStop(1 - w * 0.45, U.rgba(col, a * 0.42));
+      g.addColorStop(1, U.rgba(col, 0));
+    } else {
+      g.addColorStop(0, U.rgba(col, 0));
+      g.addColorStop(w * 0.55, U.rgba(col, a * 0.42));
+      g.addColorStop(w, U.rgba(col, a));
+      g.addColorStop(1, U.rgba(col, a));
+    }
+    c.fillStyle = g;
+    c.fillRect(-20, y0, 1960, h);
+  }
+  /** Where the sky's two bands lie (logical px). */
+  const SKY = { top: 104, topWipe: 22, foot: 930, footWipe: 14 };
+
   PRINT.defineShot('D', {
-    layers: ['sky', 'halo'],
+    layers: ['sky', 'halo', 'top'],
     worn: false,
     build(P) {
-      // P6: the night — ベロ藍, deepening to 紺 at the bottom edge
+      // P6: the night — ONE flat impression of ベロ藍 (no airbrushed bands),
+      // and at its foot a flat 紺 band with a hard, briefly wiped upper edge
       const s = P('sky', 'P6');
-      const g = s.createLinearGradient(0, 0, 0, 1080);
-      g.addColorStop(0, U.mix(C.bero, C.kon, 0.35));
-      g.addColorStop(0.3, C.bero);
-      g.addColorStop(0.55, U.mix(C.bero, C.kon, 0.2));
-      g.addColorStop(0.85, C.kon);
-      g.addColorStop(1, U.mix(C.kon, C.tetsukon, 0.5));
-      s.fillStyle = g;
+      s.fillStyle = U.mix(C.bero, C.kon, 0.1);
       s.fillRect(0, 0, 1920, 1080);
-      // the sky a little paler round the moon (a bokashi of the block, not a glow)
-      s.save();
-      s.translate(M.x, M.y);
-      const rg = s.createRadialGradient(0, 0, M.r, 0, 0, 520);
-      rg.addColorStop(0, U.rgba(U.mix(C.bero, C.hanada, 0.45), 0.16));
-      rg.addColorStop(0.3, U.rgba(U.mix(C.bero, C.hanada, 0.3), 0.05));
-      rg.addColorStop(0.5, U.rgba(C.bero, 0));
-      rg.addColorStop(1, U.rgba(C.bero, 0));
-      s.fillStyle = rg;
-      s.fillRect(-560, -560, 1120, 1120);
-      s.restore();
+      hardBand(s, SKY.foot, 1080, U.mix(C.kon, C.tetsukon, 0.3), 0.9, SKY.footWipe, 'top');
       woodGrain(s, 0, 0, 1920, 1080, C.kon, U.mix(C.bero, C.hanada, 0.4), 0.06, 777);
-      // P6i: the ichimonji
-      const i = P('sky', 'P6i');
-      B.ichimonji(i, NIGHT_TOP, 140, 200, 1);
+      // P6i: the ichimonji — a near-black flat band whose lower edge is wiped
+      // over 22 px; printed on its own 'top' layer, over the 月暈
+      const i = P('top', 'P6i');
+      hardBand(i, 0, SKY.top + SKY.topWipe, NIGHT_TOP, 1, SKY.topWipe, 'bottom');
       // P8: faint mica points (no stars in ukiyo-e night — only kira)
       const k = P('sky', 'P8');
       const r = U.rng(9091);
@@ -294,7 +314,7 @@
   /** Build the flattened sky and the susuki strips now (from a scene's init, stage size). */
   SD.warm = (w, h) => {
     buildSusuki(w / 1920);
-    TSUKI.SHOTS.flatPrint(null, 'D', ['sky', 'halo'], 100, { w, h, build: true });
+    TSUKI.SHOTS.flatPrint(null, 'D', ['sky', 'halo', 'top'], 100, { w, h, build: true });
     TSUKI.SHOTS.flatPrint(null, 'D', ['sky'], 100, { w, h, build: true });
     // the printed rabbit, carved now (not mid-film)
     for (const cut of ['all', 'body', 'pestle']) for (const d of [512, 256, 128, 64]) MOON.maria.sprite(C.sumi, cut, d);
@@ -1041,7 +1061,20 @@
     const st = PRINT.state(T);
     ctx.save();
     if (dy) ctx.translate(0, dy);
-    TSUKI.SHOTS.flatPrint(ctx, 'D', o.haloAlpha === 0 ? ['sky'] : ['sky', 'halo'], T, { state: st });
+    if (o.haloAlpha !== 0 && !o.halo) TSUKI.SHOTS.flatPrint(ctx, 'D', ['sky', 'halo', 'top'], T, { state: st });
+    else {
+      // the sky, then a live 月暈 (o.halo, stage coordinates — the tilt's
+      // travelling one) or none, then the ichimonji printed over it
+      TSUKI.SHOTS.flatPrint(ctx, 'D', ['sky'], T, { state: st });
+      const h = o.halo;
+      if (h && h.a > 0.004) {
+        ctx.save();
+        if (dy) ctx.translate(0, -dy);
+        PRINT.with(ctx, 'P7', T, (c) => SD.haloBand(c, h.x, h.y, h.R, h.a));
+        ctx.restore();
+      }
+      if (dy > -(SKY.top + SKY.topWipe + 20)) PRINT.drawLayer(ctx, 'D', 'top', T, { state: st });
+    }
     ctx.restore();
     if (o.moon !== false) {
       // no second halo: the 月暈 is the carved band of the 'halo' plate alone

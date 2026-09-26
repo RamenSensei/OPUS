@@ -117,23 +117,31 @@
     // whole device pixels: the two masters slide without resampling
     const kk = ctx.getTransform().d || 1;
     const up = Math.round(-1080 * e * kk) / kk, dn = 1080 + up;
+    // the ONE moon's path (drawn last), and its 月暈 — printed as part of the
+    // sky: under Shot D's ichimonji, under the seam's bokashi and the mist
+    const a = MOON.A(TILT[1]);
+    const x = U.lerp(SD.MOON.x, a.x, e), y = U.lerp(SD.MOON.y, a.y, e), r = U.lerp(SD.MOON.r, a.r, e);
+    const halo = { x, y, R: SD.MOON.haloR * (r / SD.MOON.r), a: 1 - e };
     // Shot D's sky slides up (no moon: it travels on its own; no susuki yet)
     if (dn > 0) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, 0, 1920, Math.ceil(dn) + 1);
       ctx.clip();
-      SD.frame(ctx, T, S, { dy: up, moon: false, susuki: false, haloAlpha: 0 });
+      SD.frame(ctx, T, S, { dy: up, moon: false, susuki: false, halo });
       ctx.restore();
     }
-    // Shot A slides in from below
+    // Shot A slides in from below (the 月暈's lower part carries on over it)
     if (dn < 1080) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(0, Math.floor(dn), 1920, 1080 - Math.floor(dn));
       ctx.clip();
+      ctx.save();
       ctx.translate(0, dn);
       garden(ctx, T, { moon: false, camera: false });
+      ctx.restore();
+      if (y + halo.R * 1.2 > dn) haloRing(ctx, x, y, halo.R, halo.a, T);
       ctx.restore();
     }
     // Shot D's susuki (its bottom edge) leave before the join can carry them into Shot A's sky
@@ -174,11 +182,8 @@
         });
       });
     }
-    // the ONE moon, drawn once on top of both masters and everything between them
-    const a = MOON.A(TILT[1]);
-    const x = U.lerp(SD.MOON.x, a.x, e), y = U.lerp(SD.MOON.y, a.y, e), r = U.lerp(SD.MOON.r, a.r, e);
-    haloRing(ctx, x, y, SD.MOON.haloR * (r / SD.MOON.r), 1 - e, T);
-    // Shot D's 月暈 (the carved band above) hands over to Shot A's halo (0.35, 1.9 r)
+    // the ONE moon, drawn once on top of both masters and everything between them;
+    // Shot D's 月暈 (printed with the skies above) hands over to Shot A's halo (0.35, 1.9 r)
     MOON.draw(ctx, x, y, r, T, { halo: 0.35 * e, haloR: r * 1.9, maria: 0 });
     MOON.maria(ctx, x, y, r, 0.22, C.sumi, { pestle: SD.pestle(T) });
   }

@@ -311,6 +311,171 @@
     }
   }
 
+  /**
+   * The paper is not one mechanical sheet: each panel is a slightly different pull (papers of
+   * different ages), three panes are patched with fresher paper (slightly off square, a line of
+   * paste round them), one cell mended with a small cherry-blossom patch (花形の継ぎ紙), and one
+   * old rain stain. Clear of the text pocket and of the figures.
+   */
+  function paperLife(P1, P4, P7, K) {
+    const top = G.shojiTop, bot = G.shojiBottom, rows = 8, cellH = (bot - top) / rows;
+    // panel tones: 藍鼠 (older, greyer) or 胡粉 (newer, whiter); one panel warmer (黄土)
+    const TONE = [[AINEZU, 0.05], [C.gofun, 0.1], [AINEZU, 0.075], [C.gofun, 0.06], [AINEZU, 0.035], [C.gofun, 0.12], [AINEZU, 0.06]];
+    G.panels.forEach(([x0, x1], i) => {
+      const [ink, a] = TONE[i % TONE.length];
+      const pl = ink === C.gofun ? P7 : P4;
+      pl.fillStyle = U.rgba(ink, a);
+      pl.fillRect(x0 + 9, top + 9, x1 - x0 - 18, bot - top - 24);
+    });
+    P1.fillStyle = U.rgba(C.odo, 0.07);
+    P1.fillRect(G.panels[4][0] + 9, top + 9, 312, bot - top - 24);
+    // patched panes: [panel, col, row]
+    const r = U.rng(733);
+    for (const [pi, c, rr] of [[0, 2, 4], [3, 0, 3], [4, 2, 5], [5, 0, 2]]) {
+      const x0 = G.panels[pi][0] + 110 * c + (c === 0 ? 9 : 1.3), x1 = G.panels[pi][0] + 110 * (c + 1) - (c === 2 ? 9 : 1.3);
+      const y0 = top + cellH * rr + (rr === 0 ? 9 : 1.3), y1 = top + cellH * (rr + 1) - 1.3;
+      const sk = U.lerp(-1.2, 1.2, r()), sk2 = U.lerp(-1.2, 1.2, r());
+      const q = [[x0 + 2, y0 + 2 + sk], [x1 - 2, y0 + 2], [x1 - 2 + sk2, y1 - 2], [x0 + 2, y1 - 2 - sk2 * 0.5]];
+      // fresher paper: whiter, and it lets more of the moon through (the night tone thins on it)
+      const poly = new Path2D(); q.forEach((pt, j) => (j ? poly.lineTo(pt[0], pt[1]) : poly.moveTo(pt[0], pt[1]))); poly.closePath();
+      P7.fillStyle = U.rgba(C.geppaku, 0.8);
+      P7.fill(poly);
+      P4.save(); P4.globalCompositeOperation = 'destination-out'; P4.fillStyle = 'rgba(0,0,0,0.42)'; P4.fill(poly); P4.restore();
+      P4.strokeStyle = U.rgba(AINEZU, 0.2);
+      P4.lineWidth = 1.1;
+      P4.beginPath(); q.forEach((pt, j) => (j ? P4.lineTo(pt[0], pt[1]) : P4.moveTo(pt[0], pt[1]))); P4.closePath(); P4.stroke();
+    }
+    // a small cherry-blossom patch (5 round petals, each notched), fresher paper with a paste line
+    for (const [cx, cy, rad, rot] of [[1452, 706, 15, 0.3], [1768, 520, 12, -0.4]]) {
+      const pts = [];
+      for (let i = 0; i < 5; i++) {
+        const a0 = rot + (i / 5) * U.TAU;
+        for (let j = 0; j <= 8; j++) {
+          const u = j / 8, a = a0 + (u - 0.5) * (U.TAU / 5) * 0.96;
+          const notch = 1 - 0.22 * Math.exp(-Math.pow((u - 0.5) / 0.07, 2));
+          const rr = rad * (0.55 + 0.45 * Math.sin(Math.PI * u)) * notch;
+          pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+        }
+      }
+      const poly = new Path2D(); pts.forEach((pt, j) => (j ? poly.lineTo(pt[0], pt[1]) : poly.moveTo(pt[0], pt[1]))); poly.closePath();
+      P7.fillStyle = U.rgba(C.geppaku, 0.85);
+      P7.fill(poly);
+      P4.save(); P4.globalCompositeOperation = 'destination-out'; P4.fillStyle = 'rgba(0,0,0,0.5)'; P4.fill(poly); P4.restore();
+      P4.strokeStyle = U.rgba(AINEZU, 0.24);
+      P4.lineWidth = 0.9;
+      P4.stroke(poly);
+    }
+    // an old rain stain (雨染み) high on the far-left panel: a pale 黄土 tide-line ring
+    {
+      const sx = 60, sy = 470, sr = 30;
+      const g = P1.createRadialGradient(sx, sy, sr * 0.5, sx, sy, sr);
+      g.addColorStop(0, U.rgba(C.odo, 0.02));
+      g.addColorStop(0.86, U.rgba(C.odo, 0.13));
+      g.addColorStop(1, U.rgba(C.odo, 0));
+      P1.fillStyle = g;
+      P1.beginPath(); P1.ellipse(sx, sy, sr, sr * 0.82, 0.2, 0, U.TAU); P1.fill();
+    }
+  }
+
+  /**
+   * The moon throws the garden's susuki onto the paper: a soft 藍鼠 shadow (the plumes stand a
+   * few metres off, so the edge is blurred) rising from the sill at the left, the plumes nodding
+   * away from the moon (to the left), clear of the offerings and the text pocket. Carved once.
+   */
+  function susukiShadow(P4) {
+    const q = P4.getTransform().a || 1;
+    const cv = B.canvas(Math.ceil(W * q), Math.ceil(H * q));
+    const c = cv.getContext('2d');
+    c.setTransform(q, 0, 0, q, 0, 0);
+    const path = new Path2D();
+    const sliver = (x0, y0, cx, cy, x1, y1, w) => {
+      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1, nx = (-dy / L) * w, ny = (dx / L) * w;
+      path.moveTo(x0, y0); path.quadraticCurveTo(cx + nx, cy + ny, x1, y1); path.quadraticCurveTo(cx - nx, cy - ny, x0, y0);
+    };
+    const r = U.rng(2718);
+    const Y0 = G.shojiBottom + 16;
+    const CLUMPS = [
+      { x: 334, h: 368, n: 4, lean: -0.3, spread: 0.46 },
+      { x: 212, h: 312, n: 3, lean: -0.4, spread: 0.4 },
+      { x: 452, h: 262, n: 3, lean: -0.26, spread: 0.36 },
+      { x: 104, h: 214, n: 2, lean: -0.5, spread: 0.3 },
+    ];
+    for (const o of CLUMPS) {
+      // blades: long leaves arching over from the base, most toward the left
+      for (let i = 0; i < 5; i++) {
+        const side = i % 3 === 2 ? 1 : -1;
+        const L = o.h * U.lerp(0.42, 0.66, r());
+        const a0 = o.lean * 0.5 + side * U.lerp(0.12, 0.5, r());
+        const bx = o.x + U.lerp(-5, 5, r());
+        const cx = bx + Math.sin(a0) * L * 0.75, cy = Y0 - Math.cos(a0) * L * 0.75;
+        const a1 = a0 + side * U.lerp(0.7, 1.3, r());
+        const ex = cx + Math.sin(a1) * L * 0.5, ey = cy - Math.cos(a1) * L * 0.5 + L * 0.12;
+        sliver(bx, Y0, cx, cy, ex, ey, U.lerp(2.4, 3.6, r()));
+      }
+      // stems with their plumes, nodding
+      for (let j = 0; j < o.n; j++) {
+        const u = o.n > 1 ? j / (o.n - 1) : 0.5;
+        const L = o.h * U.lerp(0.8, 1.04, r());
+        const a = o.lean + (u - 0.5) * o.spread + U.lerp(-0.05, 0.05, r());
+        const bx = o.x + (u - 0.5) * 12;
+        const tx = bx + Math.sin(a) * L, ty = Y0 - Math.cos(a) * L * (1 - Math.abs(o.lean) * 0.2);
+        const cx = bx + Math.sin(a * 0.3) * L * 0.5, cy = Y0 - L * 0.58;
+        sliver(bx, Y0, cx, cy, tx, ty, U.lerp(1.2, 1.7, r()));
+        // the plume: a silky tuft along the stem's last quarter, its hairs streaming away from the
+        // moon with the wind (to the left) and drooping — one soft brush-shape once blurred
+        const tan = Math.atan2(tx - cx, -(ty - cy));
+        const PL = o.h * U.lerp(0.13, 0.17, r());
+        const hairs = 14;
+        for (let k = 0; k < hairs; k++) {
+          const v = k / (hairs - 1);
+          const p = U.qbez([bx, Y0], [cx, cy], [tx, ty], U.lerp(0.72, 1.0, v));
+          const th = tan - U.lerp(0.15, 0.85, r()) * (0.6 + 0.4 * (1 - v));
+          const hl = PL * U.lerp(1, 0.5, v) * U.lerp(0.85, 1.1, r());
+          const th2 = th - U.lerp(0.35, 0.7, r());
+          const mx = p[0] + Math.sin(th) * hl * 0.55, my = p[1] - Math.cos(th) * hl * 0.55;
+          const ex = p[0] + Math.sin(th2) * hl, ey = p[1] - Math.cos(th2) * hl + hl * 0.2;
+          sliver(p[0], p[1], mx, my, ex, ey, U.lerp(1.4, 2.2, r()));
+        }
+      }
+    }
+    c.fillStyle = AINEZU;
+    c.fill(path);
+    P4.save();
+    // only on the paper
+    P4.beginPath(); P4.rect(0, G.shojiTop + 9, W, G.shojiBottom - G.shojiTop - 9); P4.clip();
+    P4.setTransform(1, 0, 0, 1, 0, 0);
+    P4.globalAlpha = 0.46;
+    if ('filter' in P4) {
+      P4.filter = `blur(${(1.5 * q).toFixed(2)}px)`;
+      P4.drawImage(cv, 0, 0);
+      P4.filter = 'none';
+    } else {
+      // (no canvas filter: a few offset pulls make the penumbra)
+      P4.globalAlpha = 0.46 / 4;
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) P4.drawImage(cv, dx * q, dy * q);
+    }
+    P4.restore();
+    cv.width = 0; cv.height = 0;
+  }
+
+  /** A kumiko bar as a carved line: centre c, from a to b along x (vertical: along y), width w ± 16 %. */
+  function carvedBar(K, c, a, b, vertical, w, seed) {
+    const n = Math.max(2, Math.round((b - a) / 26));
+    const L = [], R = [];
+    for (let i = 0; i <= n; i++) {
+      const s = a + ((b - a) * i) / n;
+      const ww = (w / 2) * (1 + 0.16 * U.wobble(i * 0.55, seed));
+      const d = 0.28 * U.wobble(i * 0.4, seed + 17);
+      if (vertical) { L.push([c + d - ww, s]); R.push([c + d + ww, s]); }
+      else { L.push([s, c + d - ww]); R.push([s, c + d + ww]); }
+    }
+    K.beginPath();
+    L.forEach((p, i) => (i ? K.lineTo(p[0], p[1]) : K.moveTo(p[0], p[1])));
+    for (let i = R.length - 1; i >= 0; i--) K.lineTo(R[i][0], R[i][1]);
+    K.closePath();
+    K.fill();
+  }
+
   function carve(P) {
     /* ---------------- wall: 小壁, 鴨居, shoji, sill ---------------- */
     {
@@ -344,10 +509,12 @@
       const rows = 8;
       const cellH = (G.shojiBottom - G.shojiTop) / rows;
       for (const [x0, x1] of G.panels) {
-        K.fillStyle = U.rgba(C.sumi, 0.82);
+        K.fillStyle = U.rgba(C.sumi, 0.8);
         const f = 9;
-        for (let c = 1; c < 3; c++) K.fillRect(x0 + ((x1 - x0) * c) / 3 - 1.3, G.shojiTop, 2.6, G.shojiBottom - G.shojiTop);
-        for (let rr = 1; rr < rows; rr++) K.fillRect(x0 + f, G.shojiTop + cellH * rr - 1.3, x1 - x0 - 2 * f, 2.6);
+        // carved bars, not ruled ones: each swells and thins a little along its length and
+        // wanders a fraction of a pixel, as a knife-cut line does
+        for (let c = 1; c < 3; c++) carvedBar(K, x0 + ((x1 - x0) * c) / 3, G.shojiTop, G.shojiBottom, true, 2.6, 7000 + x0 * 3 + c);
+        for (let rr = 1; rr < rows; rr++) carvedBar(K, G.shojiTop + cellH * rr, x0 + f, x1 - f, false, 2.6, 7100 + x0 * 3 + rr);
         // frame
         P1.fillStyle = SUSUDAKE;
         P1.fillRect(x0, G.shojiTop, f, G.shojiBottom - G.shojiTop);
@@ -376,16 +543,26 @@
         P4.fillRect(0, G.shojiTop, W, G.shojiBottom - G.shojiTop);
       }
       // the eave's moon-shadow across the tops of the shoji (and the 小壁), diagonal edge
+      // Its edge is the thatch's own cut lip thrown long across the paper: a row of shallow
+      // scallops (one per cut bundle, stretched by the slant of the light), not a ruled line.
+      const lip = (x, d) => {
+        const ph = (x / 58 + 0.4 * U.noise1(x * 0.006, 91)) % 1, sc = Math.sin(Math.PI * ph);
+        return eaveShadowY(x) + d + 2.6 * sc * sc - 1.3 + 0.8 * U.wobble(x * 0.013, 88);
+      };
+      const edge = (d) => { const pts = []; for (let x = 0; x <= W; x += 6) pts.push([x, lip(x, d)]); return pts; };
       P4.save();
       P4.beginPath();
       P4.moveTo(0, G.kokabe[0]); P4.lineTo(W, G.kokabe[0]);
-      P4.lineTo(W, G.eaveShadowR); P4.lineTo(0, G.eaveShadowL); P4.closePath();
+      for (const [x, y] of edge(0).reverse()) P4.lineTo(x, y);
+      P4.closePath();
       P4.fillStyle = U.rgba(AINEZU, 0.6);
       P4.fill();
       // soft edge: two thinner pulls below the line
       for (const [d, a] of [[5, 0.12], [10, 0.06]]) {
+        const top = edge(0), bot = edge(d).reverse();
         P4.beginPath();
-        P4.moveTo(0, G.eaveShadowL); P4.lineTo(W, G.eaveShadowR); P4.lineTo(W, G.eaveShadowR + d); P4.lineTo(0, G.eaveShadowL + d); P4.closePath();
+        top.concat(bot).forEach(([x, y], i) => (i ? P4.lineTo(x, y) : P4.moveTo(x, y)));
+        P4.closePath();
         P4.fillStyle = U.rgba(AINEZU, a);
         P4.fill();
       }
@@ -398,6 +575,8 @@
         P4.moveTo(px, eaveShadowY(px)); P4.lineTo(px + 34, eaveShadowY(px + 34)); P4.lineTo(px + 34, G.shojiBottom); P4.lineTo(px, G.shojiBottom); P4.closePath();
         P4.fill();
       }
+      paperLife(P1, P4, P7, K);
+      susukiShadow(P4);
       // sill (敷居) with its grooves and a thin moon catch-light
       P1.fillStyle = SUSUDAKE;
       P1.fillRect(0, G.sill[0], W, G.sill[1] - G.sill[0]);

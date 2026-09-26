@@ -1345,12 +1345,37 @@
   };
   E.smokeX = smokeX;
 
-  /** The rim's 胡粉 line at the contact: runs 0.8 s, holds, gone by 215.3 (her rim is still ≥ 19 px above the plateau). */
+  /**
+   * The rim's light at the contact (214.0). From the point the smoke touched,
+   * a carved line of 胡粉 runs up her cut edge both ways — widest at the touch,
+   * tapering to a hairline and fading as it travels — and dies out ≈ 120° each
+   * way, far short of the top: her lower rim lit from below, never an outline
+   * round the disc. The heads are the freshest ink; behind them the line
+   * settles, and all of it has gone by 215.3 (her rim is still ≥ 19 px above
+   * the plateau). A few hard mica points catch the light once as a head passes.
+   */
   const KIRA = {
-    run: 0.8, hold: 214.75, end: 215.3,
-    // mica points along the rim: [turns from the contact point, arm (±1), size px, radial offset px]
-    points: [[0.035, 1, 1.9, 0.2], [0.075, -1, 1.5, -0.4], [0.16, 1, 1.4, 0.5], [0.215, -1, 2.1, 0], [0.3, 1, 1.6, -0.3], [0.37, -1, 1.4, 0.4], [0.455, 1, 1.8, 0.1]],
+    run: 0.95,                               // s for a head to reach the end of its arm (outSine: fast, then slowing)
+    reach: [0.335, 0.315],                   // arm length in turns (clockwise, anticlockwise from the touch) — a hand, not a compass
+    w0: 2.2, w1: 0.45,                       // line width at the touch → at the arm's end (stage px, before the push)
+    fall: 214.85, end: 215.3,                 // the whole line fades out
+    // mica points: [turns from the contact point, arm (+1 cw, −1 ccw, 0 the touch itself), size px, radial offset px]
+    points: [[0, 0, 1.8, 0.3], [0.035, 1, 1.35, 0.15], [0.07, -1, 1.3, -0.15], [0.125, 1, 1.25, 0.25], [0.165, -1, 1.45, 0], [0.22, 1, 1.1, -0.15], [0.26, -1, 1.0, 0.2]],
   };
+  /** Where each arm's head is at T (turns from the touch), and when a head passed θ. */
+  const kiraHead = (T, arm) => KIRA.reach[arm] * Math.sin(Math.PI / 2 * U.clamp((T - 214) / KIRA.run));
+  const kiraPass = (th, arm) => 214 + KIRA.run * (2 / Math.PI) * Math.asin(Math.min(1, th / KIRA.reach[arm]));
+  /** The line's strength at θ turns along an arm whose head is at h (0 ahead of the head). */
+  const kiraInk = (th, h, arm, T) => {
+    if (th > h) return 0;
+    const R = KIRA.reach[arm];
+    const lead = U.smoothstep(0, 0.014, h - th);                     // the head comes to a soft point
+    const along = Math.pow(Math.max(0, 1 - th / R), 0.8);            // it fades as it travels
+    const age = T - kiraPass(th, arm);
+    const trail = 0.66 + 0.34 * Math.exp(-age / 0.3);                // the freshest ink at the head, then it settles
+    return lead * along * trail;
+  };
+  const kiraWidth = (th, arm) => U.lerp(KIRA.w0, KIRA.w1, Math.pow(U.clamp(th / KIRA.reach[arm]), 0.6));
 
   let skyClip = null;
   /** Everything but the mountain (fill with 'evenodd'). */
@@ -1387,54 +1412,70 @@
       });
       ctx.restore();
     }
-    // 214.0 — the smoke touches the lower rim. A thin line of 胡粉 runs round
-    // her cut edge from the point of contact, both ways, and closes at the
-    // top (0.8 s); the few hard mica points it passes catch the light once.
-    // A printed rim, lit — no bloom, no flare.
+    // 214.0 — the smoke touches the lower rim, and her cut edge takes the
+    // light from there, both ways, for a moment (see KIRA). A printed rim,
+    // lit — no bloom, no flare, and never a ring.
     if (T >= 214 && T < KIRA.end && part !== 'under') {
       // where the thread's hairline tip met her rim (fixed on the disc: the light starts there)
       const m0 = E.moon(214), tx = smokeX(E.smokeTip(214), 214);
       const a0 = Math.atan2(Math.sqrt(Math.max(0, m0.r * m0.r - (tx - m0.x) * (tx - m0.x))), tx - m0.x);
+      const hs = [kiraHead(T, 0), kiraHead(T, 1)];                  // clockwise, anticlockwise
+      const out = 1 - U.smoothstep(KIRA.fall, KIRA.end, T);
       PRINT.with(ctx, 'P8', T, (c) => {
-        const p = U.clamp((T - 214) / KIRA.run);
-        const e = U.ease.outSine(p) * 0.5;                   // how far each arm has run (turns)
-        const fade = 1 - U.smoothstep(KIRA.hold, KIRA.end, T);
         c.save();
-        // the line itself: 2 px, straddling the cut edge, crisp; the arms'
-        // heads are the freshest ink (a touch denser over their last 20°)
-        c.lineCap = 'butt';
-        c.lineWidth = 2;
-        const R = m.r + 0.35;
-        const arcs = (x0, x1) => {
-          c.beginPath();
-          if (x1 - x0 >= 0.998) c.arc(m.x, m.y, R, 0, TAU);
-          else if (x1 > x0) {
-            c.arc(m.x, m.y, R, a0 + x0 * TAU, a0 + x1 * TAU);
-            c.moveTo(m.x + Math.cos(a0 - x0 * TAU) * R, m.y + Math.sin(a0 - x0 * TAU) * R);
-            c.arc(m.x, m.y, R, a0 - x0 * TAU, a0 - x1 * TAU, true);
-          }
-          c.stroke();
+        // a band: a tapered ring segment from −h1 to +h0 (turns), width k·w(θ),
+        // its middle at r + sh·w(θ) (sh > 0: mostly outside the cut edge, where
+        // the pale 藍 shows it), filled with a conic gradient (the touch at
+        // offset 0.5) that carries the ink along it
+        const band = (k, sh, ink) => {
+          const n0 = Math.max(2, Math.ceil(hs[0] * 160)), n1 = Math.max(2, Math.ceil(hs[1] * 160));
+          const p = new Path2D();
+          const pt = (th, arm, rr) => {
+            const ang = a0 + (arm === 0 ? th : -th) * TAU;
+            return [m.x + Math.cos(ang) * rr, m.y + Math.sin(ang) * rr];
+          };
+          // outer edge: anticlockwise end → touch → clockwise end; inner edge back
+          const outer = [], inner = [];
+          for (let i = n1; i >= 1; i--) { const th = hs[1] * i / n1, wd = kiraWidth(th, 1), R = m.r + sh * wd, w = k * wd / 2; outer.push(pt(th, 1, R + w)); inner.push(pt(th, 1, R - w)); }
+          for (let i = 0; i <= n0; i++) { const th = hs[0] * i / n0, wd = kiraWidth(th, 0), R = m.r + sh * wd, w = k * wd / 2; outer.push(pt(th, 0, R + w)); inner.push(pt(th, 0, R - w)); }
+          p.moveTo(outer[0][0], outer[0][1]);
+          for (let i = 1; i < outer.length; i++) p.lineTo(outer[i][0], outer[i][1]);
+          for (let i = inner.length - 1; i >= 0; i--) p.lineTo(inner[i][0], inner[i][1]);
+          p.closePath();
+          const g = c.createConicGradient(a0 + Math.PI, m.x, m.y);
+          const stops = (arm, sign) => {
+            const h = hs[arm], list = [];
+            for (let th = 0; th < h - 0.016; th += 0.008) list.push(th);
+            for (let j = 4; j >= 0; j--) list.push(Math.max(0, h - 0.004 * j));
+            list.push(h + 0.002);
+            return list.map((th) => [0.5 + sign * th, ink(th, h, arm)]);
+          };
+          const all = stops(1, -1).reverse().concat(stops(0, 1));
+          g.addColorStop(0, 'rgba(0,0,0,0)');
+          for (const [o, v] of all) g.addColorStop(U.clamp(o), v);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          c.fillStyle = g;
+          c.fill(p);
         };
-        c.strokeStyle = U.rgba(C.gofun, 0.8 * fade);
-        if (e >= 0.499) arcs(0, 1); else arcs(0, e);
-        // the mica in it: the same line, catching the light (hard-edged — a
-        // line of light, not a glow), brightest where the heads are
+        const rgb = U.hexToRgb(C.gofun).join(',');
+        band(1, 0.3, (th, h, arm) => `rgba(${rgb},${(0.95 * out * kiraInk(th, h, arm, T)).toFixed(3)})`);
+        // the mica in it: the whole line catches the light — her own edge with
+        // it — brightest at the heads (hard-edged: a line of light, not a glow;
+        // 胡粉 alone would only read as a wider disc against the pale 藍)
         c.globalCompositeOperation = 'lighter';
-        c.lineWidth = 1.4;
-        c.strokeStyle = `rgba(255,250,236,${(0.3 * fade).toFixed(3)})`;
-        if (e >= 0.499) arcs(0, 1); else arcs(0, e);
-        if (e < 0.499 && e > 0.015) {
-          c.strokeStyle = `rgba(255,250,236,${(0.4 * fade).toFixed(3)})`;
-          arcs(Math.max(0, e - 0.05), e);
-        }
+        band(0.8, -0.05, (th, h, arm) => {
+          const head = Math.exp(-Math.max(0, T - kiraPass(th, arm)) / 0.16);
+          return `rgba(255,250,236,${((0.25 + 0.45 * head) * out * kiraInk(th, h, arm, T)).toFixed(3)})`;
+        });
         // mica points: each lights as a head passes it, once, and goes out
         for (const [f, side, sz, dr] of KIRA.points) {
-          if (f > e) continue;
-          const at = 214 + KIRA.run * (2 / Math.PI) * Math.asin(Math.min(1, 2 * f));   // when the head passed
-          const age = T - at;
-          const tw = (age < 0.05 ? age / 0.05 : Math.exp(-(age - 0.05) / 0.22)) * fade;
+          const arm = side < 0 ? 1 : 0;
+          if (f > hs[arm]) continue;
+          const age = T - kiraPass(f, arm);
+          const along = Math.pow(Math.max(0, 1 - f / KIRA.reach[arm]), 0.6);
+          const tw = (age < 0.05 ? age / 0.05 : Math.exp(-(age - 0.05) / 0.16)) * along * out;
           if (tw < 0.03) continue;
-          const ang = a0 + side * f * TAU;
+          const ang = a0 + (side < 0 ? -f : f) * TAU;
           const gx = m.x + Math.cos(ang) * (m.r + dr), gy = m.y + Math.sin(ang) * (m.r + dr);
           c.fillStyle = `rgba(255,251,240,${(0.95 * tw).toFixed(3)})`;
           c.beginPath();                                    // a cut diamond of mica
