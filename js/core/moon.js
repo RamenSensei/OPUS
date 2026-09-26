@@ -351,9 +351,11 @@
    * Draw the paper moon at (x, y, r) for film time T.
    * opts:
    *   paper    — disc base colour (default 生成: the washi itself)
-   *   glaze    — override {color, alpha}
+   *   glaze    — override {color, alpha}: printed flat over the disc, with a
+   *              3–4 px 当て無し rim one step deeper at the cut edge
    *   maria    — override rabbit alpha (default 0.22 after T 106, else 0)
-   *   halo     — 0..1 月暈 strength (bokashi ring outside the disc)
+   *   halo     — 0..1 月暈 strength: MOON.ring, a carved flat band one step
+   *              lighter than the sky with one outer bokashi (not an airbrush)
    *   haloColor, haloR
    *   kira     — 0..1 multiplier on the mica sweep (default by hour)
    *   fringe   — true: chromatic misregistration fringes from TSUKI.PRINT
@@ -364,18 +366,7 @@
     if (a <= 0 || r <= 0) return;
     ctx.save();
     ctx.globalAlpha *= a;
-    if (opts.halo) {
-      const hr = opts.haloR || r * 1.7;
-      const g = ctx.createRadialGradient(x, y, r, x, y, hr);
-      const hc = opts.haloColor || C.geppaku;
-      g.addColorStop(0, U.rgba(hc, 0.28 * opts.halo));
-      g.addColorStop(0.55, U.rgba(hc, 0.1 * opts.halo));
-      g.addColorStop(1, U.rgba(hc, 0));
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(x, y, hr, 0, U.TAU);
-      ctx.fill();
-    }
+    if (opts.halo) MOON.ring(ctx, x, y, r, opts.halo, opts.haloR, opts.haloColor);
     // misregistration fringes: the hole in each plate moves with its plate
     const P = TSUKI.PRINT;
     if (opts.fringe !== false && P) {
@@ -403,16 +394,23 @@
     ctx.beginPath();
     ctx.arc(x, y, r, 0, U.TAU);
     ctx.fill();
-    // glaze
+    // glaze: ONE flat impression over the disc (a hole to the paper is not a
+    // lit sphere), and the 当て無し rim — the glaze pooled a little at the
+    // hole's cut edge, a 3–4 px band one step deeper, crisp inside and out
     const gz = opts.glaze || MOON.glaze(T);
     if (gz.alpha > 0) {
-      const g = ctx.createRadialGradient(x - r * 0.2, y - r * 0.25, r * 0.1, x, y, r);
-      g.addColorStop(0, U.rgba(gz.color, gz.alpha * 0.75));
-      g.addColorStop(1, U.rgba(gz.color, Math.min(1, gz.alpha * 1.15)));
-      ctx.fillStyle = g;
+      ctx.fillStyle = U.rgba(gz.color, gz.alpha);
       ctx.beginPath();
       ctx.arc(x, y, r, 0, U.TAU);
       ctx.fill();
+      const rw = U.clamp(r * 0.035, 1.2, 4);
+      if (r > 12) {
+        ctx.fillStyle = U.rgba(gz.color, Math.min(0.45, gz.alpha * 0.36 + 0.025));
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, U.TAU);
+        ctx.arc(x, y, r - rw, 0, U.TAU, true);
+        ctx.fill('evenodd');
+      }
     }
     // the rabbit
     const ma = opts.maria != null ? opts.maria : T >= MOON.MARIA_BORN ? 0.22 : 0;
@@ -421,6 +419,37 @@
     // light a little more as a wide, soft window passes every 7 s
     const kira = (opts.kira == null ? 1 : opts.kira) * MOON.kira(T);
     if (kira > 0.01) MOON.mica(ctx, x, y, r, T, kira);
+    ctx.restore();
+  };
+
+  /* ---------------- 月暈: the carved ring ------------------------------- */
+  /**
+   * The halo as a printer carves it (not an airbrush): a flat band one step
+   * lighter than the sky, crisp at the disc, then ONE bokashi outward.
+   *   MOON.ring(ctx, x, y, r, strength 0..1, haloR (outer, default 1.7 r),
+   *             color (default 月白), band (fraction of haloR − r that is flat, 0.42))
+   * Shots that want a glow round the moon call this instead of rolling their own.
+   */
+  MOON.ring = (ctx, x, y, r, strength, haloR, color, band) => {
+    const s = strength == null ? 0.35 : strength;
+    if (s <= 0.001 || r <= 0) return;
+    const hr = Math.max(r + 4, haloR || r * 1.7);
+    const hc = color || C.geppaku;
+    const f = U.clamp(band == null ? 0.42 : band, 0.05, 0.95);
+    const A = 0.22 * s;
+    const g = ctx.createRadialGradient(x, y, r, x, y, hr);
+    // flat band (the block's face), a crisp shoulder, then one wiped bokashi
+    g.addColorStop(0, U.rgba(hc, A));
+    g.addColorStop(f, U.rgba(hc, A));
+    g.addColorStop(f + (1 - f) * 0.08, U.rgba(hc, A * 0.72));
+    g.addColorStop(f + (1 - f) * 0.45, U.rgba(hc, A * 0.3));
+    g.addColorStop(1, U.rgba(hc, 0));
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, hr, 0, U.TAU);
+    ctx.arc(x, y, Math.max(0, r - 0.5), 0, U.TAU, true);
+    ctx.fill('evenodd');
     ctx.restore();
   };
 

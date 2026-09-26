@@ -7,7 +7,7 @@
    on top of both masters, travelling from Shot D's (960,430) r 260 to
    MOON.A(111), its halo fading. Shot D's susuki (its bottom edge) leave
    first (108.2–108.8), before they could hang in Shot A's sky. The join is
-   never seen: a 180 px 紺 bokashi is printed across it, and soft
+   never seen: a 180 px 紺 bokashi is printed across it, and crisp
    suyari-gasumi ride it — behind the moon (nothing touches the moon), the
    one right of the Buson pocket staying to the end. The pestle keeps
    striking; only its sound fades. From 111: Shot A (SHOTS.A.drawGarden),
@@ -18,34 +18,13 @@
   'use strict';
   const U = TSUKI.U, B = TSUKI.B, C = TSUKI.C;
   const PRINT = TSUKI.PRINT, MOON = TSUKI.MOON;
-  const TAU = Math.PI * 2;
   const E = U.ease;
   const TILT = [108.0, 111.0];
 
-  /** The 月暈 ring, live (matches Shot D's P7 halo plate at scale 1). */
+  /** The 月暈, live (Shot D's P7 halo plate at any radius: TSUKI.SHOTS.D.haloBand). */
   function haloRing(ctx, x, y, R, a, T) {
     if (a <= 0.004) return;
-    PRINT.with(ctx, 'P7', T, (c) => {
-      c.save();
-      c.globalAlpha *= a;
-      c.translate(x, y);
-      const w = 46 * (R / 420);
-      const band = c.createRadialGradient(0, 0, R - w, 0, 0, R);
-      band.addColorStop(0, U.rgba(C.gofun, 0));
-      band.addColorStop(0.8, U.rgba(C.gofun, 0.08));
-      band.addColorStop(1, U.rgba(C.gofun, 0.02));
-      c.fillStyle = band;
-      c.beginPath();
-      c.arc(0, 0, R, 0, TAU);
-      c.arc(0, 0, R - w, 0, TAU, true);
-      c.fill();
-      c.strokeStyle = U.rgba(C.gofun, 0.18);
-      c.lineWidth = 2;
-      c.beginPath();
-      c.arc(0, 0, R, 0, TAU);
-      c.stroke();
-      c.restore();
-    });
+    PRINT.with(ctx, 'P7', T, (c) => TSUKI.SHOTS.D.haloBand(c, x, y, R, a));
   }
 
   /** Shot A at T, with or without its own moon (fallback: a night sky if A isn't carved). */
@@ -60,58 +39,74 @@
     }
   }
 
-  /* ---- すやり霞 on the seam: flat 胡粉 bands, soft top and bottom -------- */
+  /* ---- すやり霞 on the seam: crisp flat 胡粉 bands ----------------------- */
+  /*
+   * Cut as the engine's kasumi transition cuts them (and Shot A's mist):
+   * one flat 胡粉 impression per band, a hard top edge carrying a short
+   * bokashi of the deeper ink, the lower edge wiped a little (a bottom
+   * bokashi, never feathered all round), the ends elongated half-ovals with
+   * the nose a little above mid-height — and some bands stepped by a second,
+   * thinner bar laid along one edge, the emaki way.
+   */
   const MIST = [
-    // x0, x1 (at e = 0 → 1), width, dy from the seam, height, alpha, seed.
+    // x at e = 0 → 1, length, dy from the seam, height, alpha, and the stepped bar
+    // [its left nose, right nose (relative to the main bar's), height ×, below?].
     // The Buson poem writes at x ≈ 1150–1400 from 110.0: the left bands end
     // before it, the right one starts after it, so none has to leave early.
-    { x: [-240, -160], w: 1300, dy: -76, h: 82, a: 0.56, seed: 41 },
-    { x: [1560, 1500], w: 900, dy: -22, h: 64, a: 0.5, seed: 43 },
-    { x: [140, 200], w: 980, dy: 32, h: 50, a: 0.42, seed: 47 },
+    { x: [-240, -160], w: 1300, dy: -70, h: 52, a: 0.84, step: [150, -300, 0.5, true] },
+    { x: [1560, 1500], w: 900, dy: -18, h: 40, a: 0.76, step: [-70, 0, 0.55, false] },
+    { x: [140, 200], w: 960, dy: 34, h: 30, a: 0.66, step: null },
   ];
   /** The seam's bokashi: the mid-tone between Shot D's foot (紺) and Shot A's head. */
   const SEAM = { h: 180, col: U.mix(C.kon, C.koiai, 0.35) };
   let mistSpr = null;
-  function mistSprites(k) {
-    if (mistSpr && Math.abs(mistSpr.k - k) / k < 0.1) return mistSpr;
-    mistSpr = MIST.map((m) => {
-      const q = k, W = Math.ceil(m.w * q), H = Math.ceil(m.h * q);
-      const cv = B.canvas(W, H), c = cv.getContext('2d');
-      const r = U.rng(m.seed), rad = H / 2;
-      // a capsule with gently irregular long edges and round ends
-      const top = [], bot = [], N = 14;
-      for (let i = 0; i <= N; i++) {
-        const px = rad + (W - 2 * rad) * (i / N);
-        top.push([px, H * 0.08 * r()]);
-        bot.push([px, H - H * 0.08 * r()]);
-      }
-      c.beginPath();
-      c.moveTo(top[0][0], top[0][1] + 1);
-      for (const p of top) c.lineTo(p[0], p[1] + 1);
-      c.arc(W - rad, rad, rad * 0.98, -Math.PI / 2, Math.PI / 2);
-      for (let i = bot.length - 1; i >= 0; i--) c.lineTo(bot[i][0], bot[i][1] - 1);
-      c.arc(rad, rad, rad * 0.98, Math.PI / 2, Math.PI * 1.5);
+  /** One stepped suyari band, carved at k device px per logical px. */
+  function mistSprite(m, k) {
+    const parts = [{ x0: 0, x1: m.w, top: 0, h: m.h }];
+    if (m.step) {
+      const [dl, dr, hk, below] = m.step, sh = m.h * hk;
+      parts.push({ x0: dl, x1: m.w + dr, top: below ? m.h - sh * 0.42 : -sh * 0.58, h: sh });
+    }
+    const L = Math.min(...parts.map((q) => q.x0)), R = Math.max(...parts.map((q) => q.x1));
+    const T0 = Math.min(...parts.map((q) => q.top)), B0 = Math.max(...parts.map((q) => q.top + q.h));
+    const pad = 2, W = Math.ceil((R - L) * k) + pad * 2, H = Math.ceil((B0 - T0) * k) + pad * 2;
+    const cv = B.canvas(W, H), c = cv.getContext('2d');
+    c.setTransform(k, 0, 0, k, pad - L * k, pad - T0 * k);
+    c.beginPath();
+    for (const q of parts) {
+      const x0 = q.x0, x1 = q.x1, t = q.top, b = q.top + q.h, hh = q.h;
+      const cl = hh * 1.75, cr = hh * 1.45, xl = x0 + cl, xr = x1 - cr;
+      c.moveTo(xl, t);
+      c.lineTo(xr, t);
+      c.bezierCurveTo(xr + cr * 0.52, t, x1, t + hh * 0.24, x1, t + hh * 0.52);
+      c.bezierCurveTo(x1, t + hh * 0.8, xr + cr * 0.5, b, xr, b);
+      c.lineTo(xl, b);
+      c.bezierCurveTo(xl - cl * 0.5, b, x0, t + hh * 0.86, x0, t + hh * 0.45);
+      c.bezierCurveTo(x0, t + hh * 0.12, xl - cl * 0.6, t, xl, t);
       c.closePath();
-      c.fillStyle = C.gofun;
-      c.fill();
-      // bokashi: soft into the top, softer out of the bottom — no hard edge
-      c.globalCompositeOperation = 'destination-in';
-      const g = c.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, 'rgba(0,0,0,0.15)');
-      g.addColorStop(0.3, 'rgba(0,0,0,1)');
-      g.addColorStop(0.55, 'rgba(0,0,0,1)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      c.fillStyle = g;
-      c.fillRect(0, 0, W, H);
-      const hg = c.createLinearGradient(0, 0, W, 0);
-      hg.addColorStop(0, 'rgba(0,0,0,0)');
-      hg.addColorStop(0.06, 'rgba(0,0,0,1)');
-      hg.addColorStop(0.94, 'rgba(0,0,0,1)');
-      hg.addColorStop(1, 'rgba(0,0,0,0)');
-      c.fillStyle = hg;
-      c.fillRect(0, 0, W, H);
-      return cv;
-    });
+    }
+    // flat 胡粉; the top edge carries a short bokashi of the deeper ink
+    const deep = U.mix(C.gofun, C.kinari, 0.6);
+    const g = c.createLinearGradient(0, T0, 0, B0);
+    g.addColorStop(0, deep);
+    g.addColorStop(Math.min(0.2, 5 / (B0 - T0)), U.mix(deep, C.gofun, 0.5));
+    g.addColorStop(Math.min(0.4, 12 / (B0 - T0)), C.gofun);
+    g.addColorStop(1, C.gofun);
+    c.fillStyle = g;
+    c.fill('nonzero');
+    // the lower edge wiped a little
+    c.globalCompositeOperation = 'destination-in';
+    const w = c.createLinearGradient(0, T0, 0, B0);
+    w.addColorStop(0, 'rgba(0,0,0,1)');
+    w.addColorStop(0.62, 'rgba(0,0,0,1)');
+    w.addColorStop(1, 'rgba(0,0,0,0.45)');
+    c.fillStyle = w;
+    c.fillRect(L - 4, T0 - 4, R - L + 8, B0 - T0 + 8);
+    return { cv, ox: L - pad / k, oy: T0 - pad / k, w: W / k, h: H / k };
+  }
+  function mistSprites(k) {
+    if (mistSpr && Math.abs(mistSpr.k - k) / k < 0.01) return mistSpr;
+    mistSpr = MIST.map((m) => mistSprite(m, k));
     mistSpr.k = k;
     return mistSpr;
   }
@@ -163,7 +158,7 @@
         c.fillRect(0, dn - h0, 1920, h0 + h1);
       });
     }
-    // soft suyari-gasumi ride the seam — printed before the moon, which is a hole over them
+    // crisp suyari-gasumi ride the seam — printed before the moon, which is a hole over them
     if (e > 0.001 && e < 0.999) {
       const k = Math.min(1, Math.sin(Math.PI * e) * 2.2);
       const spr = mistSprites(ctx.getTransform().a);
@@ -173,7 +168,8 @@
           if (al <= 0.003) return;
           c.save();
           c.globalAlpha *= al;
-          c.drawImage(spr[i], U.lerp(m.x[0], m.x[1], e), dn + m.dy, m.w, m.h);
+          const sp = spr[i];
+          c.drawImage(sp.cv, U.lerp(m.x[0], m.x[1], e) + sp.ox, dn + m.dy + sp.oy, sp.w, sp.h);
           c.restore();
         });
       });
@@ -182,8 +178,8 @@
     const a = MOON.A(TILT[1]);
     const x = U.lerp(SD.MOON.x, a.x, e), y = U.lerp(SD.MOON.y, a.y, e), r = U.lerp(SD.MOON.r, a.r, e);
     haloRing(ctx, x, y, SD.MOON.haloR * (r / SD.MOON.r), 1 - e, T);
-    // its own halo eases from Shot D's (0.25, r 380) to Shot A's (0.35, 1.9 r)
-    MOON.draw(ctx, x, y, r, T, { halo: U.lerp(0.25, 0.35, e), haloR: U.lerp(380 * (r / SD.MOON.r), r * 1.9, e), maria: 0 });
+    // Shot D's 月暈 (the carved band above) hands over to Shot A's halo (0.35, 1.9 r)
+    MOON.draw(ctx, x, y, r, T, { halo: 0.35 * e, haloR: r * 1.9, maria: 0 });
     MOON.maria(ctx, x, y, r, 0.22, C.sumi, { pestle: SD.pestle(T) });
   }
 

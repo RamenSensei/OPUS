@@ -14,12 +14,14 @@
    (たけ's body and arm, far from the paper, lighter, 6–10 px penumbra) then
    'shadow' (puppets held against the paper, sharp). Overlaps never
    compound within a buffer; puppets over her body read darker.
-   Drawn here (not CAST): the hand-shadows (a fist on the stick: the carry
-   and the paper moon), the offerings still-life (panel 1, bottom-left), the
+   Drawn here (not CAST): the carry's hand-shadow (a fist on the stick), the
+   paper moon's bamboo pole (sharp at the disc, softening into たけ's own
+   raised fists: one connected shadow), the offerings still-life (panel 1), the
    engawa card (eave, 御簾 with its slits, post, 高欄, boards — Kaguya a hole
    of light before it, her hair parted from her robe by a line of card, her
    袂 raised before her bowed face), 小夜 in the foreground (a back-lit
-   silhouette with a moon rim; her heko-obi bow below the subtitle band).
+   silhouette with a moon rim, three-quarter back, turned toward Kaguya; her
+   紅 shibori heko-obi off-centre below the subtitle band).
    The bamboo-cutter is CAST's puppet with its hatchet cut away (the tale has
    no axe); the growth morph is CAST's negative 'kaguya' puppet.
    ========================================================================== */
@@ -71,16 +73,70 @@
   }
 
   /**
-   * the paper moon: centre, and how far it has come (0..1). It is lifted on the last
-   * rustle (59.8) from fully beyond panel 4's right edge (1620 + r + 20), so its shadow
-   * slides in from the right over the 60.0 beat, and aligns with the glow at 63.0.
+   * the paper moon: a disc cut from card on the end of a long bamboo pole in たけ's own
+   * hands (one connected shadow: moon → pole → her fists → her arms → her bowed back).
+   * She lifts it on the last rustle (59.8): the disc rises out from under panel 3's bottom
+   * rail in an arc — steep at first, then gliding in from the right — and settles on the
+   * glow at 63.0; then it tracks the glow. The ease is the pole's weight: a slow start
+   * (s ≈ 2.6·u^1.5), a long careful landing (the last half-second moves ≈ 12 px).
+   * Returns the centre and how far it has come (0..1).
    */
+  const MOON_ARC = { p0: [1190, 1122], c: [930, 468] };   // start (the disc just under the rail) · arc control
   function paperMoon(T) {
     const gl = SB.glow(T);
     const t0 = rustle()[4];
-    const u = E.outCubic(U.seg(T, t0, 63));
-    const start = [1790, 548];
-    return { x: U.lerp(start[0], gl.x, u), y: U.lerp(start[1], gl.y, u), r: 150, u, on: T >= t0 };
+    const u = U.seg(T, t0, 63);
+    const s = 1 - Math.pow(1 - Math.pow(u, 1.5), 2.6);
+    const a = (1 - s) * (1 - s), b = 2 * s * (1 - s), c = s * s;
+    const p0 = MOON_ARC.p0, p1 = MOON_ARC.c;
+    return { x: a * p0[0] + b * p1[0] + c * gl.x, y: a * p0[1] + b * p1[1] + c * gl.y, r: 150, u: s, on: T >= t0 };
+  }
+
+  /** たけ's arms on the pole: at her lap (0) → raised before her, as far forward as they reach (0.5) */
+  const poleLift = (T) => 0.5 * E.inOutSine(U.seg(T, rustle()[4] - 0.1, 61.8));
+
+  /**
+   * the pole's centre line from the disc's centre (d) to her grip (g), bowed a little under
+   * the disc's weight (sag px at the middle, always downward): n+1 points, 0 = disc, n = grip
+   */
+  function polePts(d, g, sag, n) {
+    const dx = g[0] - d[0], dy = g[1] - d[1], L = Math.hypot(dx, dy) || 1;
+    let nx = -dy / L, ny = dx / L;
+    if (ny < 0) { nx = -nx; ny = -ny; }
+    const mx = (d[0] + g[0]) / 2 + nx * sag * 2, my = (d[1] + g[1]) / 2 + ny * sag * 2;
+    return B.qpts(d[0], d[1], mx, my, g[0], g[1], n);
+  }
+
+  /**
+   * a band along the pole over fractions [f0, f1] (past 1 = the butt through her fist),
+   * tapering w0 → w1, with the bamboo's nodes as slight swellings (fixed on the pole:
+   * px from the disc's centre, so they ride out with it as she feeds the pole through her hands)
+   */
+  const POLE_NODES = [212, 358, 504, 650];
+  function poleBand(pts, f0, f1, w0, w1) {
+    const n = pts.length - 1, L = [], R = [];
+    let len = 0;
+    for (let i = 0; i < n; i++) len += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+    const nodes = POLE_NODES.filter((d) => d < len - 60).map((d) => d / len), nw = len / 5.5;
+    const at = (f) => {
+      const x = U.clamp(f, 0, 1) * n, i = Math.min(n - 1, Math.floor(x)), k = x - i;
+      const p = [U.lerp(pts[i][0], pts[i + 1][0], k), U.lerp(pts[i][1], pts[i + 1][1], k)];
+      const dx = pts[i + 1][0] - pts[i][0], dy = pts[i + 1][1] - pts[i][1], dl = Math.hypot(dx, dy) || 1;
+      if (f > 1) { p[0] += (dx / dl) * (f - 1) * n * dl; p[1] += (dy / dl) * (f - 1) * n * dl; }
+      return { p, nx: -dy / dl, ny: dx / dl };
+    };
+    const steps = Math.max(2, Math.ceil(((f1 - f0) * len) / 4));
+    for (let j = 0; j <= steps; j++) {
+      const f = U.lerp(f0, f1, j / steps), q = at(f);
+      let w = U.lerp(w0, w1, U.clamp(f)) / 2;
+      for (const k of nodes) w += 0.6 * Math.max(0, 1 - Math.abs(f - k) * nw);
+      L.push([q.p[0] + q.nx * w, q.p[1] + q.ny * w]); R.push([q.p[0] - q.nx * w, q.p[1] - q.ny * w]);
+    }
+    const p = new Path2D();
+    L.forEach((q, i) => (i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])));
+    for (let i = R.length - 1; i >= 0; i--) p.lineTo(R[i][0], R[i][1]);
+    p.closePath();
+    return p;
   }
 
   /* ------------------------------------------------------------------ */
@@ -203,6 +259,7 @@
     const sw = Math.sin(T * 0.8) * 0.5;
     c.save();
     c.translate(x, y);
+    c.rotate(-0.12);
     c.scale(s, s);
     const loops = (k) => {
       for (const dir of [-1, 1]) {
@@ -227,6 +284,13 @@
       c.fill();
     }
     c.beginPath(); c.ellipse(0, 1, 6, 5.5, 0, 0, U.TAU); c.fill();
+    // shibori: small resist rings, paler, over the loops
+    c.fillStyle = U.rgba(U.mix(C.beni, C.gofun, 0.4), 0.45);
+    const rr = U.rng(58);
+    for (let i = 0; i < 26; i++) {
+      const dir = rr() < 0.5 ? -1 : 1, px = dir * U.lerp(8, 29, rr()), py = U.lerp(-9, 6, rr());
+      c.beginPath(); c.arc(px, py, 0.9, 0, U.TAU); c.fill();
+    }
     // the thin line of moonlight along the loops' upper edges only
     c.strokeStyle = U.rgba(U.mix(C.beni, C.gofun, 0.45), 0.7);
     c.lineWidth = 1.2 / s;
@@ -320,18 +384,38 @@
   /* ------------------------------------------------------------------ */
   /* the shadow-play                                                     */
   /* ------------------------------------------------------------------ */
-  /** the paper moon's hand: grip below the disc (the stick short), the forearm off to the lower right */
-  function moonGrip(pm) { return [pm.x + 92, pm.y + 322]; }
-
   function shadows(c, T) {
     // ---------- たけ: body and arm, far from the paper (soft, lighter) ----------
     const R = rustle();
     const liftBamboo = U.env(T, R[0], R[0] + 1.0, 42.1, 42.9) * 0.34;   // the arm moves on the rustle; the culms rise on the biwa (41.0)
-    const reach = U.seg(T, 59.6, 60.4, E.inOutSine) * 0.22;         // her arm goes out low, off the paper, to the moon
-    const lift = Math.max(liftBamboo, reach);
+    const pl = poleLift(T);                                          // (59.7–61.8) her arms raise the pole
+    const lift = Math.max(liftBamboo, pl);
     const breath = Math.sin(T * 1.3) * 0.6;
+    const pm = paperMoon(T);
     const soft = SB.softLayer(c, 'take', [TAKE.x - 300, TAKE.y - 420, G.panels[3][1], G.bottom], 0.28);
-    CAST.grandma(soft, TAKE.x, TAKE.y + breath, TAKE.s, { pose: 'hold-puppet', facing: -1, lift, arms: 'both', stick: 12, silhouette: AINEZU, t: T, look: -0.05 });
+    // she looks up after the moon she lifts (−: the head tips back)
+    // (the little puppet sticks in her fists are let go as she takes up the pole)
+    const take = CAST.grandma(soft, TAKE.x, TAKE.y + breath, TAKE.s, { pose: 'hold-puppet', facing: -1, lift, arms: 'both', stick: Math.max(0, 12 * (1 - 5 * pl)), silhouette: AINEZU, t: T, look: -0.05 - 0.36 * pl });
+    // the pole: from the disc's centre (hidden behind the card) down to her near fist, on through it.
+    // Near the paper it is sharp and dark (in the puppets' layer below), lightening as it leaves the
+    // paper; by her hands, far from the paper, it has crossed into her own soft shadow (here). The
+    // cross-over [fb, fz] (fractions disc → grip) sits just inside her soft layer's left edge.
+    // It comes into the light as she takes it up (59.75–60.15) and leaves it in the push-in (64.1–65.3).
+    const poleA = U.seg(T, 59.75, 60.15, E.inOutSine) * (1 - U.seg(T, 64.1, 65.3, E.inOutSine));
+    let pole = null, fb = 0, fz = 0;
+    if (pm.on && poleA > 0.001) {
+      const g = take.hands[0];
+      const L = Math.hypot(g[0] - pm.x, g[1] - pm.y);
+      pole = polePts([pm.x, pm.y], g, 4 + L * 0.008, 96);
+      fb = U.clamp((TAKE.x - 300 + 14 - pm.x) / ((g[0] - pm.x) || 1), 0.3, 0.9);
+      fz = Math.min(1, fb + 0.14);
+      const gs = soft.createLinearGradient(pm.x, pm.y, g[0], g[1]);
+      gs.addColorStop(fb, U.rgba(AINEZU, 0));
+      gs.addColorStop(fz, U.rgba(AINEZU, poleA));
+      soft.fillStyle = gs;
+      soft.fill(poleBand(pole, fb, 1 + 34 / (L || 1), 5.5, 7.5));
+      soft.fillStyle = AINEZU;
+    }
     // the hand that carries Kaguya (49.6–57.2): a fist on her card's stick, the forearm from the lower right
     let carryGrip = null;
     if (T >= 49.6 && T < 57.3) {
@@ -343,17 +427,6 @@
       carryGrip = [g[0], g[1] + (1 - up) * 220];
       const hl = SB.softLayer(c, 'hand', [carryGrip[0] - 70, carryGrip[1] - 60, carryGrip[0] + 280, Math.min(G.bottom + 40, carryGrip[1] + 330)], 0.34);
       hl.fill(fistPath(carryGrip[0], carryGrip[1], 1.15, 1.05, T > 56.6));
-    }
-    // the hand that holds up the paper moon (60–)
-    const pm = paperMoon(T);
-    let moonHand = null;
-    if (pm.on) moonHand = moonGrip(pm);
-    // one soft layer for both hands and たけ: they never compound
-    const pushFade = 1 - U.seg(T, 64.1, 65.3, E.inOutSine);
-    if (moonHand && pushFade > 0.01 && moonHand[0] - 70 < G.panels[3][1]) {
-      const hl2 = SB.softLayer(c, 'mhand', [moonHand[0] - 70, moonHand[1] - 60, Math.min(G.panels[3][1], moonHand[0] + 300), G.bottom + 40], 0.34);
-      hl2.fill(fistPath(moonHand[0], moonHand[1], 1.3, 1.12, false));
-      SB.softPrint(c, T, 'mhand', { alpha: 0.6 * pushFade });
     }
     SB.softPrint(c, T, 'take', { alpha: 0.6 });
     if (carryGrip) SB.softPrint(c, T, 'hand', { alpha: 0.6 });
@@ -410,13 +483,20 @@
       const RO = O.canvas.__region;
       S.drawImage(O.canvas, 0, 0, RO.w, RO.h, RO.x0, RO.y0, RO.w / RO.s, RO.h / RO.s);
     }
-    // the paper moon (a disc cut from card) and its stick: short, from the disc's lower rim into the fist
+    // the paper moon (a disc cut from card) and the near-paper length of its pole, sharp and dark,
+    // thinning into the soft shadow of her hands (the pole leaves the paper as it nears her)
     if (pm.on) {
       S.beginPath(); S.arc(pm.x, pm.y, pm.r, 0, U.TAU); S.fill();
-      const g = L2([pm.x + 40, pm.y + pm.r - 6], moonHand, pushFade);
-      const r0 = [pm.x + 40, pm.y + pm.r - 6];
-      const dx = g[0] - r0[0], dy = g[1] - r0[1], dl = Math.hypot(dx, dy) || 1, nx = -dy / dl * 1.9, ny = dx / dl * 1.9;
-      S.beginPath(); S.moveTo(r0[0] + nx, r0[1] + ny); S.lineTo(g[0] + nx * 1.2, g[1] + ny * 1.2); S.lineTo(g[0] - nx * 1.2, g[1] - ny * 1.2); S.lineTo(r0[0] - nx, r0[1] - ny); S.closePath(); S.fill();
+      if (pole) {
+        const g = pole[pole.length - 1];
+        const gs = S.createLinearGradient(pm.x, pm.y, g[0], g[1]);
+        gs.addColorStop(Math.min(0.42, fb - 0.06), U.rgba(AINEZU, poleA));
+        gs.addColorStop(fb, U.rgba(AINEZU, 0.6 * poleA));
+        gs.addColorStop(fz, U.rgba(AINEZU, 0));
+        S.fillStyle = gs;
+        S.fill(poleBand(pole, 0, fz, 3.4, 4.6));
+        S.fillStyle = AINEZU;
+      }
     }
     SB.softPrint(c, T, 'puppets', { mode: 'multiply' });
     // Kaguya: the oval card (48–57), then the cut-out engawa (56.4–)
@@ -434,19 +514,46 @@
       engawaCard(K2, T, raise);
       SB.softPrint(c, T, 'engawa', { mode: 'multiply', alpha: swap });
     }
-    // the paper moon: a flat black disc (藍鼠 deepening to 墨), its rim the only softness
+    // the paper moon: a shadow like the other puppets', one step darker (藍鼠 × 藍鼠: card held
+    // flat against the paper), flat-filled with a crisp edge — a hand-made eclipse, not a photograph
     if (pm.on) {
-      PRINT.with(c, 'K', T, (k) => {
-        k.globalCompositeOperation = 'multiply';
-        const d = 0.55 + 0.45 * pm.u;
-        const g = k.createRadialGradient(pm.x, pm.y, pm.r * 0.55, pm.x, pm.y, pm.r);
-        g.addColorStop(0, U.rgba(C.sumi, 0.8 * d));
-        g.addColorStop(0.82, U.rgba(C.sumi, 0.74 * d));
-        g.addColorStop(1, U.rgba(C.sumi, 0.34 * d));
-        k.fillStyle = g;
+      PRINT.with(c, 'P4', T, (k) => {
         k.save();
         SB.paperClip(k);
+        k.globalCompositeOperation = 'multiply';
+        k.fillStyle = U.rgba(AINEZU, 0.3 + 0.2 * pm.u);
         k.beginPath(); k.arc(pm.x, pm.y, pm.r - 0.5, 0, U.TAU); k.fill();
+        k.restore();
+      });
+    }
+    // the corona: where the card leaves the real glow, a flat ring of 胡粉 (hard edges; SB.light
+    // carves the one bokashi outside it) and nine fixed flecks of mica on it, glinting in turn
+    const cor = E.inOutSine(U.seg(T, 62.0, 63.2));
+    if (pm.on && cor > 0.001) {
+      const gl = SB.glow(T), rOut = 190;          // (= SB.light's eclipse disc: 150–190 flat, then one 36 px bokashi — at 66 the ring lands on the basin's rim)
+      PRINT.with(c, 'P7', T, (k) => {
+        k.save();
+        SB.paperClip(k);
+        k.globalCompositeOperation = 'lighter';
+        k.fillStyle = U.rgba(C.gofun, 0.3 * cor);
+        k.beginPath();
+        k.arc(gl.x, gl.y, rOut, 0, U.TAU);
+        k.arc(pm.x, pm.y, pm.r, 0, U.TAU, true);
+        k.fill('evenodd');
+        k.restore();
+      });
+      PRINT.with(c, 'P8', T, (k) => {
+        k.save();
+        SB.paperClip(k);
+        k.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 9; i++) {
+          const an = (i / 9) * U.TAU + 0.35 + U.hash(i + 41) * 0.4;
+          const rr = pm.r + 42 + U.hash(i + 7) * 26;         // (on the corona's outer band, where the paper greys: there mica can glint)
+          const tw = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(T * 2.1 + i * 2.4), 3);
+          const fx = pm.x + Math.cos(an) * rr, fy = pm.y + Math.sin(an) * rr, fr = 1.1 + U.hash(i + 13) * 1.1;
+          k.fillStyle = U.rgba(C.gofun, 0.85 * tw * cor);
+          k.beginPath(); k.moveTo(fx - fr * 2.2, fy); k.lineTo(fx, fy - fr * 0.7); k.lineTo(fx + fr * 2.2, fy); k.lineTo(fx, fy + fr * 0.7); k.closePath(); k.fill();
+        }
         k.restore();
       });
     }
@@ -506,62 +613,73 @@
   /* 小夜 in the foreground                                              */
   /* ------------------------------------------------------------------ */
   function sayo(c, T) {
+    // three-quarter back view, kneeling, turned toward panel 1 (Kaguya): her head, the round
+    // window and the girl of light make one diagonal; the subtitle clears her head.
     // 58.5 she tips her head back toward the round window; 60 she lowers it (the paper moon rises)
     const up = U.seg(T, 58.5, 59.1, E.inOutSine) * (1 - U.seg(T, 60.0, 60.7, E.inOutSine));
     const down = U.seg(T, 60.0, 60.8, E.inOutSine);
-    const X = 962, br = Math.sin(T * 1.2) * 0.6;
-    const hy = 934 + 8 * up + 5 * down + br * 0.3;               // head centre
+    const X = 652, br = Math.sin(T * 1.2) * 0.6;
+    const hx = X - 3 - 2 * up;                                   // the head a little toward Kaguya
+    const hy = 932 + 8 * up + 5 * down + br * 0.3;               // head centre
     const sy = 1 - 0.1 * up;                                     // tipped back: the dome foreshortens
-    const hemY = 960 + 4 * up - 3 * down;
-    const flare = 3 * up;
-    // the okappa from behind: a dome, the hem cut straight but not quite (a little ragged)
+    const hemL = 954 + 4 * up - 3 * down, hemR = hemL + 5;       // the bob's hem, slanting with the turn
+    // the okappa from behind, turned: a dome, the hem cut straight but not quite; below its left end
+    // the line of her cheek and jaw (lost profile) — she is looking toward the girl of light
     const head = new Path2D();
-    head.moveTo(X - 27 - flare, hemY);
-    head.bezierCurveTo(X - 33 - flare, hy - 6 * sy, X - 29, hy - 27 * sy, X, hy - 27 * sy);
-    head.bezierCurveTo(X + 29, hy - 27 * sy, X + 33 + flare, hy - 6 * sy, X + 27 + flare, hemY);
+    head.moveTo(hx - 26, hemL);
+    head.bezierCurveTo(hx - 33, hy - 7 * sy, hx - 27, hy - 27 * sy, hx + 1, hy - 27 * sy);
+    head.bezierCurveTo(hx + 28, hy - 27 * sy, hx + 32, hy - 6 * sy, hx + 25, hemR);
     const teeth = 10;
     for (let i = teeth; i >= 0; i--) {
-      const x = X - 27 - flare + ((54 + 2 * flare) * i) / teeth;
-      head.lineTo(x, hemY + (i % 2 ? 1.6 : -0.4) + Math.sin(i * 2.7) * 0.8);
+      const f = i / teeth, x = U.lerp(hx - 26, hx + 25, f);
+      head.lineTo(x, U.lerp(hemL, hemR, f) + (i % 2 ? 1.6 : -0.4) + Math.sin(i * 2.7) * 0.8);
     }
     head.closePath();
-    // shoulders and the kneeling back (no neck: the bob sits on the collar); sleeves at the sides
+    const cheek = new Path2D();
+    cheek.moveTo(hx - 25, hemL - 4);
+    cheek.bezierCurveTo(hx - 28, hemL + 3, hx - 24, hemL + 9, hx - 16, hemL + 10);
+    cheek.lineTo(hx - 10, hemL + 2);
+    cheek.closePath();
+    // the nape under the bob: a narrow neck between hair and collar, paper light on either side
+    const neck = new Path2D();
+    neck.moveTo(hx - 9, hemL); neck.lineTo(hx + 9, hemR - 1); neck.lineTo(hx + 12, hemR + 9); neck.lineTo(hx - 11, hemL + 9); neck.closePath();
+    // shoulders and the kneeling back, turned: the far (left) shoulder falls away narrower, the near
+    // one broad; the near sleeve's 袂 hangs from her elbow, a soft bag at her side
     const body = new Path2D();
-    body.moveTo(X - 15, hemY - 4);
-    body.lineTo(X - 17, hemY + 3);
-    body.bezierCurveTo(X - 36, hemY + 5 + br, X - 50, hemY + 12, X - 56, 1002);
-    body.bezierCurveTo(X - 62, 1024, X - 64, 1050, X - 76, 1090);
-    body.lineTo(X + 76, 1090);
-    body.bezierCurveTo(X + 64, 1050, X + 62, 1024, X + 56, 1002);
-    body.bezierCurveTo(X + 50, hemY + 12, X + 36, hemY + 5 + br, X + 17, hemY + 3);
-    body.lineTo(X + 15, hemY - 4);
+    body.moveTo(hx - 13, hemL + 6);
+    body.bezierCurveTo(hx - 28, hemL + 9 + br, hx - 40, hemL + 18, hx - 44, 1004);
+    body.bezierCurveTo(hx - 49, 1028, hx - 52, 1054, hx - 60, 1090);
+    body.lineTo(hx + 80, 1090);
+    body.bezierCurveTo(hx + 78, 1066, hx + 84, 1046, hx + 80, 1026);
+    body.bezierCurveTo(hx + 76, 1006, hx + 66, 994, hx + 56, 990);
+    body.bezierCurveTo(hx + 44, hemR + 14, hx + 30, hemR + 8 + br, hx + 14, hemR + 5);
     body.closePath();
     // the figure: a near-pure 墨 silhouette against the lit paper …
     PRINT.with(c, 'K', T, (k) => {
       k.fillStyle = U.mix(C.sumi, C.kon, 0.12);
-      k.fill(body); k.fill(head);
+      k.fill(body); k.fill(neck); k.fill(cheek); k.fill(head);
     });
-    // … with a thin rim of moonlight just inside its upper edges (head and shoulders)
+    // … with a thin rim of moonlight just inside its upper edges (the dome, the near shoulder)
     PRINT.with(c, 'P7', T, (k) => {
       k.save();
       k.strokeStyle = U.rgba(C.geppaku, 0.55);
       k.lineWidth = 3;
       k.save(); k.clip(head);
       k.beginPath();
-      k.moveTo(X - 31 - flare, hy - 6 * sy);
-      k.bezierCurveTo(X - 29, hy - 27 * sy, X - 14, hy - 27 * sy, X, hy - 27 * sy);
-      k.bezierCurveTo(X + 14, hy - 27 * sy, X + 29, hy - 27 * sy, X + 31 + flare, hy - 6 * sy);
+      k.moveTo(hx - 30, hy - 7 * sy);
+      k.bezierCurveTo(hx - 27, hy - 27 * sy, hx - 12, hy - 27 * sy, hx + 1, hy - 27 * sy);
+      k.bezierCurveTo(hx + 15, hy - 27 * sy, hx + 28, hy - 27 * sy, hx + 31, hy - 6 * sy);
       k.stroke();
       k.restore();
       k.clip(body);
       k.beginPath();
-      k.moveTo(X - 18, hemY + 3); k.bezierCurveTo(X - 36, hemY + 7, X - 50, 984, X - 56, 1004);
-      k.moveTo(X + 18, hemY + 3); k.bezierCurveTo(X + 36, hemY + 7, X + 50, 984, X + 56, 1004);
+      k.moveTo(hx + 16, hemR + 6); k.bezierCurveTo(hx + 32, hemR + 10, hx + 46, 988, hx + 58, 992);
+      k.moveTo(hx - 14, hemL + 8); k.bezierCurveTo(hx - 28, hemL + 11, hx - 38, 988, hx - 44, 1004);
       k.stroke();
       k.restore();
     });
-    // the heko-obi bow at the small of her back, below the subtitle band
-    PRINT.with(c, 'P2', T, (k) => drawBow(k, X, 1054, 0.95, T));
+    // the heko-obi: a soft 紅 shibori butterfly at the small of her back, off-centre with the turn
+    PRINT.with(c, 'P2', T, (k) => drawBow(k, hx + 17, 1056, 0.92, T));
   }
 
   TSUKI.scene('kage-e-taketori', {

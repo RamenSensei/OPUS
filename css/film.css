@@ -194,14 +194,17 @@ body.ended #subs { visibility: hidden; }
   font-size: calc(34px * var(--sub-k, 1));
   line-height: 1.5;
   letter-spacing: 0.12em;
-  color: var(--gofun);
-  text-shadow: 0 0 10px rgba(8, 10, 20, 0.85), 0 0 2px rgba(8, 10, 20, 0.9), 0 2px 18px rgba(8, 10, 20, 0.6);
+  /* the ink and its halo fade separately (text.js sets --sa = a, --ss = a²):
+     the pale line surfaces first and its dark halo gathers behind it, so a
+     line never arrives as dark ghost text over the water */
+  color: rgba(243, 237, 224, var(--sa, 1));
+  text-shadow: 0 0 10px rgba(8, 10, 20, calc(0.85 * var(--ss, 1))), 0 0 2px rgba(8, 10, 20, calc(0.9 * var(--ss, 1))), 0 2px 18px rgba(8, 10, 20, calc(0.6 * var(--ss, 1)));
   text-wrap: balance;
 }
-.sub-en { font-size: calc(20px * var(--sub-k, 1)); letter-spacing: 0.1em; opacity: 0.7; margin-top: 4px; }
-/* sumi subtitle over pale paper (cue.sub_ink = 'dark') */
-#subs.dark .sub-zh, #subs.dark .sub-en { color: var(--sumi); text-shadow: 0 0 10px rgba(243, 237, 224, 0.85), 0 0 2px rgba(243, 237, 224, 0.9); }
-#subs.dark .sub-zh { opacity: 0.9; }
+.sub-en { font-size: calc(20px * var(--sub-k, 1)); letter-spacing: 0.1em; color: rgba(243, 237, 224, calc(0.7 * var(--sa, 1))); margin-top: 4px; }
+/* sumi subtitle over pale paper (cue.sub_ink = 'dark'): the same split, mirrored */
+#subs.dark .sub-zh { color: rgba(28, 26, 24, calc(0.9 * var(--sa, 1))); text-shadow: 0 0 10px rgba(243, 237, 224, calc(0.85 * var(--ss, 1))), 0 0 2px rgba(243, 237, 224, calc(0.9 * var(--ss, 1))); }
+#subs.dark .sub-en { color: rgba(28, 26, 24, calc(0.63 * var(--sa, 1))); text-shadow: 0 0 10px rgba(243, 237, 224, calc(0.85 * var(--ss, 1))), 0 0 2px rgba(243, 237, 224, calc(0.9 * var(--ss, 1))); }
 .sub-en:empty { display: none; }
 
 /* -------------------------------------------------------------- curtain */

@@ -39,7 +39,13 @@
     { ids: ['P1', 'P3', 'P4'], a: 225.0, b: 226.5 },
     { ids: ['K'], a: 226.5, b: 228.0 },
   ];
-  PRINT.TIMES = { printStart: 2, keyDone: 6, landStart: 6, landStep: 0.6, tears: 140, click: 147.8, jolt: 160, joltDur: 0.6, unprint: 222, blank: 228 };
+  /** a colour block is laid this long before its kentō click, off register (序) */
+  const LAND_PRE = 0.3;
+  // the key block's rub (the baren spiral) ends as the first colour block is
+  // laid: kentō[0] − LAND_PRE (5.7 with the score's 6.0), so the 黄土 block too
+  // hangs off register for 0.3 s before its click
+  // (score.js loads after this file; its CUES.baren.to should read 5.7 too)
+  PRINT.TIMES = { printStart: 2, keyDone: 6 - LAND_PRE, landStart: 6, landStep: 0.6, landPre: LAND_PRE, tears: 140, click: 147.8, jolt: 160, joltDur: 0.6, unprint: 222, blank: 228 };
 
   const seedDir = (id, salt) => {
     const h = U.hash(id.charCodeAt(0) * 131 + (id.charCodeAt(1) || 0) * 17 + (id.charCodeAt(2) || 0) + salt * 977);
@@ -66,16 +72,22 @@
       if (T < X.keyDone) {
         keyReveal = { cx: 1180, cy: 560, width: 160, reach: 1300 * U.ease.inOutSine(U.clamp((T - X.printStart) / (X.keyDone - X.printStart))) };
       }
-      // plates land on the score's kentō clicks (TSUKI.CUES.kento) so every
-      // block touches register exactly as its click sounds
+      // plates land on the score's kentō clicks (TSUKI.CUES.kento). Every
+      // landing is a small CLICK — the grammar 147.8 depends on: the block is
+      // laid 0.3 s early, visibly off register (10–14 px, the scale of the
+      // TEARS table), held there; on its click it snaps home in 0.06 s,
+      // overshoots 1.2 px and settles. (Cues are 0.6 s apart, so a block
+      // never appears while the previous one is still snapping.)
       const kento = TSUKI.CUES && TSUKI.CUES.kento;
       PRINT.LAND.forEach((id, i) => {
         const tl = kento && kento[i] != null ? kento[i] : X.landStart + X.landStep * i;
-        const a = U.clamp((T - tl) / 0.12);
-        const settle = 1 - U.ease.outCubic(U.clamp((T - tl) / 0.45));
-        const d = seedDir(id, 1), mag = U.lerp(4, 6, U.hash(i + 11));
+        const pre = LAND_PRE;
+        const a = pre > 0 ? U.ease.outSine(U.clamp((T - (tl - pre)) / 0.18)) : U.clamp((T - tl) / 0.03);
+        const k = T < tl ? 1 : 1 - U.clamp((T - tl) / 0.06);
+        const d = seedDir(id, 1), mag = U.lerp(10, 14, U.hash(i + 11));
+        const over = 1.2 * U.env(T, tl + 0.04, tl + 0.07, tl + 0.07, tl + 0.16, U.ease.inOutSine);
         alpha[id] = a;
-        off[id] = [d[0] * mag * settle, d[1] * mag * settle];
+        off[id] = [d[0] * (mag * k - over), d[1] * (mag * k - over)];
         if (id === 'P6') { alpha.P6i = 0; off.P6i = off.P6; }
       });
       const skyAt = kento && kento[5] != null ? kento[5] : 8.9; // P6 lands, then its band is wiped on
@@ -228,7 +240,7 @@
     return { c: out, x: px0 / q, y: py0 / q, w: (px1 - px0) / q, h: (py1 - py0) / q };
   }
 
-  /** Carve the late-impression variant of a plate: goma-zuri speckle, K gaps & cracks. */
+  /** Carve the late-impression variant of a plate: grain wear (colour blocks), K gaps & cracks. */
   function wearOut(pl, id, seed) {
     const c = B.canvas(pl.c.width, pl.c.height);
     const x = c.getContext('2d');
@@ -262,15 +274,82 @@
         x.stroke();
       }
     } else {
-      const n = Math.round(area / (900 * sc * sc));
-      x.fillStyle = 'rgba(0,0,0,0.85)';
-      for (let i = 0; i < n; i++) {
-        const s = U.lerp(0.6, 1.8, r()) * sc;
-        x.fillRect(r() * c.width, r() * c.height, s, s);
-      }
+      PRINT.grainWear(x, pl.c, seed, { sc, ox: pl.x, oy: pl.y });
     }
     return { c, x: pl.x, y: pl.y, w: pl.w, h: pl.h };
   }
+
+  /**
+   * Grain wear of a colour block (後摺): the ink thins where the worn block
+   * no longer holds it — never an even snow of bright points. Punches
+   * (destination-out, α .25–.5) short streaks along the wood grain (1 × 3–7
+   * px at 0° ± 8°, 1–3 specks in a line), whose density follows a slow noise
+   * (patches of the block worn, others still crisp) and rises near the
+   * edges of the ink and on its high points; no speck lands inside a region
+   * narrower than 6 px (thin blades and lines keep their ink).
+   *   dst  — context to punch (identity transform: backing px), already holding the ink
+   *   src  — canvas whose alpha says where the ink is (usually dst's own content)
+   *   opts — sc (backing px per logical px, 1), ox/oy (logical origin of the
+   *          canvas, so the noise is fixed to the stage), density (1)
+   * Used by the automatic worn plates; shots carving their own '~worn'
+   * plates can call it the same way.
+   */
+  PRINT.grainWear = (dst, src, seed, opts = {}) => {
+    const sc = opts.sc || 1, ox = opts.ox || 0, oy = opts.oy || 0;
+    const w = src.width, h = src.height;
+    if (w < 4 || h < 4) return;
+    let data;
+    try { data = src.getContext('2d').getImageData(0, 0, w, h).data; } catch (e) { return; }
+    const A = (px, py) => {
+      px = px | 0; py = py | 0;
+      return px < 0 || py < 0 || px >= w || py >= h ? 0 : data[(py * w + px) * 4 + 3];
+    };
+    const r = U.rng(seed);
+    const lw = w / sc, lh = h / sc;                     // logical size
+    const n = Math.round((lw * lh) / 170 * (opts.density == null ? 1 : opts.density));
+    const NARROW = 3 * sc, NEAR = 11 * sc, FAR = 26 * sc;
+    const D8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7]];
+    const solid = (px, py, rad) => {
+      for (const [dx, dy] of D8) if (A(px + dx * rad, py + dy * rad) < 150) return false;
+      return true;
+    };
+    dst.save();
+    dst.setTransform(1, 0, 0, 1, 0, 0);
+    dst.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < n; i++) {
+      const px = r() * w, py = r() * h;
+      const u = r(), len0 = r(), ang0 = r(), cnt = r(), al = r();
+      if (A(px, py) < 200 || !solid(px, py, NARROW)) continue;
+      // where the block wears: slow patches, the edges of the ink, the high points
+      const lx = ox + px / sc, ly = oy + py / sc;
+      const patch = U.fbm2(lx / 210, ly / 150, 3, seed % 97);
+      const high = U.fbm2(lx / 60, ly / 60, 2, (seed % 97) + 5);
+      let p = Math.pow(U.clamp((patch - 0.38) * 2.4), 1.6) * 0.55 + (high > 0.7 ? 0.25 : 0);
+      if (!solid(px, py, NEAR)) p = p * 1.6 + 0.16;
+      else if (!solid(px, py, FAR)) p = p * 1.3 + 0.06;
+      if (u > p * 0.5) continue;
+      // on a dark ink the paper shows through hard: thin it less there
+      const o4 = ((py | 0) * w + (px | 0)) * 4;
+      const lum = (0.3 * data[o4] + 0.59 * data[o4 + 1] + 0.11 * data[o4 + 2]) / 255;
+      const ak = U.lerp(0.55, 1, U.clamp(lum / 0.5));
+      // a short streak along the grain
+      const a = U.deg(U.lerp(-8, 8, ang0));
+      const ca = Math.cos(a), sa = Math.sin(a);
+      const m = 1 + Math.floor(cnt * 3);
+      let d = 0;
+      for (let j = 0; j < m; j++) {
+        const L = U.lerp(3, 7, j === 0 ? len0 : U.hash(i * 7 + j)) * sc;
+        const cx = px + ca * (d + L / 2), cy = py + sa * (d + L / 2);
+        if (j > 0 && (A(cx, cy) < 200 || !solid(cx, cy, NARROW))) break;
+        const th = U.lerp(0.8, 1.2, U.hash(i * 13 + j)) * sc;
+        dst.fillStyle = `rgba(0,0,0,${(ak * U.lerp(0.25, 0.5, j === 0 ? al : U.hash(i * 3 + j + 7))).toFixed(3)})`;
+        dst.setTransform(ca, sa, -sa, ca, cx, cy);
+        dst.fillRect(-L / 2, -th / 2, L, th);
+        d += L + U.lerp(1.5, 4, U.hash(i * 5 + j)) * sc;
+      }
+    }
+    dst.restore();
+  };
 
   function build(id) {
     const def = defs[id];

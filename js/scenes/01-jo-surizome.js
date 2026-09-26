@@ -397,35 +397,13 @@
   /* the moon before the moon: a 山吹 warmth on the bare paper (no disc),  */
   /* and the disc only as a karazuri — a blind-embossed rim               */
   /* ------------------------------------------------------------------ */
-  let glowCv = null;
-  const GLOW = { x0: -130, y0: 460, w: 620, h: 400, cx: 180, cy: 770 };
-  function glowSprite(k) {
-    if (glowCv && glowCv.k === k) return glowCv.cv;
-    const cv = B.canvas(GLOW.w * k, GLOW.h * k), c = cv.getContext('2d');
-    c.setTransform(k, 0, 0, k, -GLOW.x0 * k, -GLOW.y0 * k);
-    const g = c.createRadialGradient(GLOW.cx, GLOW.cy, 60, GLOW.cx, GLOW.cy, 300);
-    g.addColorStop(0, U.rgba(C.yamabuki, 0.35));
-    g.addColorStop(0.4, U.rgba(C.yamabuki, 0.13));
-    g.addColorStop(1, U.rgba(C.yamabuki, 0));
-    c.fillStyle = g;
-    c.fillRect(GLOW.x0, GLOW.y0, GLOW.w, GLOW.h);
-    // its foot feathered away into the (still unprinted) bank — no ruled edge
-    c.globalCompositeOperation = 'destination-out';
-    const f = c.createLinearGradient(0, 800, 0, 842);
-    f.addColorStop(0, 'rgba(0,0,0,0)');
-    f.addColorStop(1, 'rgba(0,0,0,1)');
-    c.fillStyle = f;
-    c.fillRect(GLOW.x0, 800, GLOW.w, GLOW.y0 + GLOW.h - 800);
-    glowCv = { cv, k };
-    return cv;
-  }
+  // the warmth is Shot A's own 山吹 band (A.glowBand): a flat bokashi with a
+  // hard foot on the far bank — on the bare paper until the sky block lands,
+  // then printed with it (A.drawGarden's glow). It breathes ±6 % on 7 s.
   function moonBefore(ctx, T, k, glow, rim) {
-    if (glow > 0.002) {
+    if (glow > 0.002 && A.glowBand) {
       const br = 1 + 0.06 * Math.sin((TAU * T) / 7);
-      ctx.save();
-      ctx.globalAlpha *= glow * br;
-      ctx.drawImage(glowSprite(k), GLOW.x0, GLOW.y0, GLOW.w, GLOW.h);
-      ctx.restore();
+      A.glowBand(ctx, 0.34 * glow * br);
     }
     if (rim > 0.002) {
       const m = TSUKI.MOON.A(T);
@@ -454,7 +432,6 @@
       // everything 序 needs, built before the first frame (released again once 一 has begun: A.releaseJo)
       const k = S.k || 1, kk = Math.min(2, Math.max(0.5, k));
       const cw = Math.round(W * k), ch = Math.round((cw * H) / W);
-      glowSprite(kk);
       deckleSprite(Math.min(1.5, kk));
       panels(Math.max(1, Math.min(2, k)));
       try { keySheets(cw, ch); } catch (e) { /* built on demand */ }
@@ -485,7 +462,7 @@
           still: T < 13,             // near susuki, 萩, sōzu from the carved block until the first gust
           figures: false,
           moonAlpha: glaze,
-          glow: warm * skyA,
+          glow: warm,                // the 山吹 band, printed with the sky block (× its landing)
         });
       }
       A.titlePanels(ctx, T, 1);

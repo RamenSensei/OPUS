@@ -35,6 +35,16 @@
                        wash (the Jataka on the moon); wash 0.1 = wash alpha
      palette    {}     overrides of the character's colour table (see the
                        tables below and CAST.palettes; hex strings)
+     print      null   { T, fill: 'P5', line: 'K' } — draw the figure (inside
+                       PRINT.with(ctx, line, T, …)) with its colour fills moved
+                       by PRINT.state(T).off[fill] − off[line]: the tears, the
+                       jolt and the unprinting show between fill and key line
+   KEY LINES are carved ribbons: each P.line is the path united with a copy
+   shifted down-right (≈1.4 px light side → 3.2 px heavy side at s = 1,
+   heavier on the lower/outer edges), with ~2.5 % of its length left as
+   breaks; fills sit 1–1.5 px off the key block (a sliver of paper shows on
+   the upper-left edges). Faces are 引目鉤鼻: one slit stroke per eye (thin
+   in, full, thin out), a thin brow, the nose's hooked wing, a dot of 紅.
    Level of detail follows the on-screen size: kasane bands, faces and folds
    from ~90 px tall; textile patterns (波兎, stripes, 絣), hair strands,
    whiskers at scale ≥ 0.6–0.8.
@@ -74,6 +84,8 @@
                        (anchor = the lip); dango: true → dango in the hand
                 haori  sleep: false → no haori over her; haoriPalette
                 boy    true → a boy's cropped head; cry: true
+                turn   sit: 0..1 the head turned ¾ toward us (okappa fringe,
+                       引目鉤鼻 face) — the girl looking out of the window
      hands    close-ups (scale 1 = the fox window's inner diamond 300×230)
               fox-window · cupped · grab · ladle
                 age    0 smooth young → 1 old, knuckled, veined, liver-spotted
@@ -140,12 +152,21 @@
                     staff + hatchet) | 'cut' (swing 0 raised … 1 struck)
      bamboo         three culms with leaf sprays (620 px): shine 0..1 (a slit
                     of light in the node → .node), split 0..1 (the culm opens)
-     kaguya         NEGATIVE puppet (evenodd): an arched dark card with her
-                    figure cut out as light, paper bridges for sleeve, hair,
-                    hem, hairline. grow 0..1: child 42 → girl 112 → woman
-                    190 px, one continuous morph; raise 0..1 sleeve to the
-                    face; card: 'oval'
-     kaguya-engawa  negative puppet on a cut-out engawa (eave, post, boards);
+     kaguya         NEGATIVE puppet (evenodd): a dark card with her figure
+                    cut out as light — face and robe, the 垂髪 as its own
+                    channel of light down her back parting into three strands
+                    at the floor, the train's layered hems (重ね) fanning
+                    behind her as nested arcs; lines of card for the sleeve,
+                    the layered cuff, collar and hem. grow 0..1: child 42 →
+                    girl 112 → woman 190 px, one continuous morph; raise 0..1
+                    the great sleeve (袂) up before her bowed face;
+                    card: 'cloud' (雲形, scalloped cut paper — also what
+                    'oval' gives) | 'culm' (a section of the split culm) |
+                    'ellipse' (plain) | none (arched top, flat foot)
+     kaguya-engawa  negative puppet on a cut-out engawa: eave, the 御簾
+                    rolled half up above her crown (head and hair cut clean
+                    against the dark room), tassels, post, boards, a short
+                    高欄; she stands at (8, −16) (= the carry card's end);
                     raise 0..1
      palanquin      鳳輦 with phoenix finial, sudare slits, four bearers (phase)
      cloud          瑞雲 bearing seven flying tennyo and a canopy (羅蓋) with
@@ -260,6 +281,7 @@
    * small figure).
    */
   const patterns = new Map(); // CanvasPattern cache (name|fg|bg|size)
+  const NODASH = [];
   function makePen(ctx, total, o, s) {
     if (s == null) s = total;
     const sil = o.silhouette === true ? C.sumi : o.silhouette || null;
@@ -278,18 +300,29 @@
       mid: !sil && (s >= 0.3 || wash > 0), // medium detail: faces, folds, kasane
       fx: !sil && !wash,           // colour effects: glows, sparkles, accents
       tiny: s < 0.2,
-      reg: sil || wash ? 0 : U.clamp(0.35 + 0.55 * s, 0.35, 1.1) * inv, // registration offset
+      // the colour blocks sit 1–1.5 px off the key block (down-right): a sliver
+      // of paper shows along the upper-left edges, as in a real impression
+      reg: sil || wash ? 0 : U.clamp(0.45 + 0.85 * s, 0.45, 1.5) * inv,
       ink: U.rgba(inkCol, ol),
+      nLine: 0,
     };
     P.nb = s < 0.22 ? 2 : s < 1.1 ? 3 : 99; // kasane layers shown (all 6–7 at hero scale)
     P.band = U.clamp(1.3 + 1.3 * s, 1.5, 3.0) * inv;        // kasane band width (local)
+    // printed through the plates (opts.print = { T, fill: 'P5', line: 'K' }): the
+    // colour blocks move against the key block with PRINT's table — the tears,
+    // the jolt at 160, the unprinting — on top of the carved registration gap
+    let rx = P.reg, ry = P.reg * 0.6;
+    if (o.print && !sil && !wash && TSUKI.PRINT) {
+      const st = TSUKI.PRINT.state(o.print.T), f = st.off[o.print.fill || 'P5'], k = st.off[o.print.line || 'K'];
+      if (f && k) { rx += (f[0] - k[0]) * inv; ry += (f[1] - k[1]) * inv; }
+    }
     P.fill = (path, col) => {
       if (wash) { ctx.fillStyle = U.rgba(inkCol, wash); ctx.fill(path); return; }
       ctx.fillStyle = sil || col;
-      if (P.reg) {
-        ctx.translate(P.reg, P.reg * 0.6);
+      if (rx || ry) {
+        ctx.translate(rx, ry);
         ctx.fill(path);
-        ctx.translate(-P.reg, -P.reg * 0.6);
+        ctx.translate(-rx, -ry);
       } else ctx.fill(path);
       if (sil) {
         ctx.strokeStyle = sil;
@@ -302,11 +335,39 @@
       ctx.fillStyle = wash ? U.rgba(inkCol, wash) : sil || col;
       ctx.fill(path);
     };
+    /**
+     * The key-block line: a carved ribbon, not a hairline. One stroke of the
+     * path united with a copy shifted down-right, so the line swells on its
+     * lower/outer side and at the backs of curves (≈1.4 → 3.2 px at s = 1,
+     * like a knife cut heavier on one side) — one stroke() call, so the two
+     * never double their ink. The block is carved with a few breaks: ~2.5 %
+     * of each line's length left uncut (a varying rhythm, different on every
+     * line, fixed to the figure). Fine lines (mul < 0.7) are left whole.
+     */
+    const DASH = [[41, 1.3, 63, 1.6, 29, 1.2], [55, 1.5, 33, 1.1, 71, 1.7], [37, 1.2, 49, 1.4, 58, 1.5]];
+    const off = new DOMMatrix();
     P.line = (path, mul, a) => {
       if (sil || ol <= 0) return;
+      const m = mul == null ? 1 : mul;
       ctx.strokeStyle = a == null ? P.ink : U.rgba(inkCol, ol * a);
-      ctx.lineWidth = P.lw * (mul == null ? 1 : mul);
-      ctx.stroke(path);
+      const w0 = P.lw * 0.72 * m, d = P.lw * 0.92 * m * (wash ? 0.5 : 1);
+      const n = P.nLine++;
+      let p2 = path;
+      if (d * total > 0.35) {
+        off.e = d * 0.42; off.f = d * 0.9;
+        p2 = new Path2D();
+        p2.addPath(path);
+        p2.addPath(path, off);
+      }
+      ctx.lineWidth = w0;
+      if (m >= 0.7 && s >= 0.25) {
+        // breaks: gaps a little wider than the line (the round caps close narrower ones)
+        const g = w0 + 1.1 * inv, pat = DASH[n % 3].map((v, i) => (i % 2 ? g * v : 1.4 * v * inv * (0.6 + 0.4 * Math.min(2, s))));
+        ctx.setLineDash(pat);
+        ctx.lineDashOffset = U.hash(n * 7.13 + 3) * 200 * inv;
+        ctx.stroke(p2);
+        ctx.setLineDash(NODASH);
+      } else ctx.stroke(p2);
     };
     /** Textile pattern as a fill style (hi detail only; the base colour otherwise). */
     P.pat = (name, fg, bg, size, a) => {
@@ -1489,18 +1550,31 @@
       const L = new Path2D();
       const fw = Math.max(P.lw * 0.45, 0.6 * P.inv);
       const cry = o.cry;
-      // eye: a single line (closed/squinting when old or crying)
+      // 引目鉤鼻: the eye one slit stroke (入り抜き: thin in, full, thin out),
+      // a thin brow, the nose's hooked wing, a dot of a mouth — no pupils
+      const slit = (pts, w) => taperTo(L, crs(pts, 4), w * 0.25, w * 0.25, 3);
       if (kid) {
-        if (cry) taperTo(L, [[5.8, -1.5], [7.6, -0.4], [9.4, -1.6]], fw, fw, 0.3);
-        else { L.moveTo(8.4, -1); L.ellipse(7.9, -1, 1.3, 1.5, 0, 0, TAU); }
-      } else if (style === 'take') taperTo(L, [[5.6, -1.4], [7.5, -0.2], [9.3, -0.9]], fw * 1.5, fw * 0.7, 0.3); // closed eye
-      else taperTo(L, [[6.2, -1.2], [7.8, -0.4], [9.4, -0.9]], fw * 1.3, fw * 0.8, 0.2);
+        if (cry) slit([[5.8, -1.5], [7.6, -0.4], [9.4, -1.6]], fw * 1.4);
+        else slit([[6.3, -1.2], [7.9, -0.7], [9.3, -1.1]], fw * 1.5);
+      } else if (style === 'take') slit([[5.2, -1.5], [7.3, -0.5], [9.3, -1.0]], fw * 1.35); // lowered lids
+      else slit([[6.0, -1.3], [7.8, -0.6], [9.4, -1.0]], fw * 1.3);
+      if (P.hi || (P.mid && style === 'take')) {
+        taperTo(L, crs([[4.6, -5.3], [7, -6.0], [9.1, -5.5]], 3), fw * 0.35, fw * 0.12, 0.6);          // brow
+        taperTo(L, crs([[11.2, 2.3], [10.2, 3.2], [10.7, 4.1]], 3), fw * 0.7, fw * 0.25, 0.2);        // the nose's hooked wing
+      }
       if (style === 'okina' || style === 'ouna') {
         taperTo(L, [[3.5, -7], [6, -7.6], [8.4, -6.8]], fw * 0.6, fw * 0.4, 0);
         taperTo(L, [[7.4, 3.6], [8.6, 6.2], [8.6, 9]], fw * 0.8, fw * 0.3, 0);
         taperTo(L, [[5.4, 0.8], [6.6, 1.8]], fw * 0.5, fw * 0.3, 0);
       }
-      if (style === 'take') { P.strokes(L, 0.85); ctx.restore(); takeHair(P, x, y, a, K); return; }
+      if (style === 'take') {
+        // an old woman's face: the fold from the nose, the closed mouth, a dot of 臙脂
+        if (P.hi) taperTo(L, crs([[8.9, 4.4], [8.5, 6.4], [9.3, 8.6]], 3), fw * 0.5, fw * 0.15, 0.3);
+        taperTo(L, crs([[9.7, 7.2], [10.4, 7.35], [11.1, 7.1]], 3), fw * 0.7, fw * 0.3, 0.2);
+        P.strokes(L, 0.85);
+        if (P.fx) { const m = new Path2D(); m.ellipse(10.7, 7.25, 0.6, 0.38, 0, 0, TAU); P.flat(m, U.rgba(C.enji, 0.55)); }
+        ctx.restore(); takeHair(P, x, y, a, K); return;
+      }
       // ear
       L.moveTo(-1, -1.5);
       L.bezierCurveTo(-4.5, -3, -5, 4.5, -1.2, 4);
@@ -2591,6 +2665,29 @@
     return { head: [0, hy] };
   }
 
+  /**
+   * 小夜's head turned three-quarters toward us (sit · turn): the okappa as a
+   * cap with its fringe cut straight across the brows and the side hair to the
+   * jaw, and under it a small 引目鉤鼻 face — slit eyes, a hooked nose, a dot
+   * of 紅 — the way Harunobu draws a child, not a doll with round eyes.
+   */
+  function childTurnedHead(P, K, turn, tilt) {
+    const ctx = P.ctx;
+    ctx.save();
+    ctx.rotate(tilt || 0);
+    const u = 0.35 + 0.65 * turn;                      // how far round toward us (the face's centre drifts to +x)
+    const hairBack = sp([[-12.4, 10, 1], [-14.2, -1], [-11.6, -10.8], [-3, -14.6], [7, -13.4], [12.6, -6.6], [13.4, 2], [12.4, 10, 1]], true);
+    P.shape(hairBack, K.hair, 0.6, 0.85);
+    face(P, 1.4 + 1.4 * u, 3.4, 19, 'q', 'child', K.skin, 0.02);
+    // the fringe (前髪), cut straight across at the brows; side hair falling to the jaw
+    const fringe = sp([[-8.6, 0.2, 1], [-9.8, -7.6], [-3.4, -12.8], [6, -12], [11.2, -6.6], [11.2, 0.6, 1]], true);
+    P.shape(fringe, K.hair, 0.55, 0.85);
+    const side = sp([[-8.6, 0, 1], [-11, 3], [-10.6, 10.4, 1], [-7.4, 10.6, 1], [-7.2, 2.2]], true);
+    P.shape(side, K.hair, 0.5, 0.85);
+    if (P.hi) P.folds([[[[-5.6, -10.8], [-8, -6], [-8.2, -1.6]], 0.3, 0.1], [[[4, -11], [7.4, -7.6], [8.6, -1.4]], 0.3, 0.1]], 0.35);
+    ctx.restore();
+  }
+
   function drawChild(ctx, P, o, K) {
     const t = o.t, pose = o.pose;
     if (pose === 'kneel-back') return childBack(ctx, P, o, K);
@@ -2634,7 +2731,8 @@
     ctx.translate(J.head[0], J.head[1]);
     ctx.scale(1.08, 1.08);
     const hb = q.run ? Math.sin(t * TAU * 3) * 0.04 : 0;
-    head(P, 0, 0, J.s2 * 0.6 + (q.neck || 0) + hb, K, o.boy ? 'boy' : 'girl', { cry: q.cry || o.cry, t });
+    if (o.turn && !o.boy && P.mid) childTurnedHead(P, K, U.clamp(o.turn), J.s2 * 0.3);
+    else head(P, 0, 0, J.s2 * 0.6 + (q.neck || 0) + hb, K, o.boy ? 'boy' : 'girl', { cry: q.cry || o.cry, t });
     ctx.restore();
     ret.head = J.head;
     ret.hands = [J.armN[2], J.armF[2]];
@@ -4042,12 +4140,21 @@
   function beggarPose(pose, t, o) {
     if (pose === 'sit') return { kneel: true, spine: 0.36, hunch: 0.5, neck: 0.25, legN: [1.18, -1.54], legF: [1.08, -1.6], armN: [0.95, 1.7], armF: [0.8, 1.66] };
     if (pose === 'rise') {
-      // from bent old age to upright, arms opening: the god shows himself
-      const r = U.ease.inOutSine(U.clamp(o.rise == null ? 1 : o.rise));
+      // from the kneeling beggar ('sit' exactly at rise 0) to the god upright,
+      // arms opening. o.rise is already eased by the caller (not eased again).
+      // r1: off the knees — the legs unfold and the hips lift (the old man's
+      // effort, weight still forward); r2 (overlapping): the back straightens,
+      // the head lifts, the arms open.
+      const r = U.clamp(o.rise == null ? 1 : o.rise);
+      const r1 = smooth01(r / 0.45), r2 = smooth01((r - 0.35) / 0.65);
+      const push = Math.sin(Math.PI * U.clamp(r / 0.5)) * (1 - r2);   // hands braced on the knees as he gets up
       return {
-        spine: U.lerp(0.3, -0.05, r), hunch: U.lerp(0.5, 0, r), neck: U.lerp(0.12, -0.3, r),
-        legN: [U.lerp(0.2, 0.1, r), U.lerp(-0.12, 0.02, r)], legF: [U.lerp(-0.04, -0.08, r), U.lerp(-0.22, -0.06, r)],
-        armN: [U.lerp(0.5, 2.25, r), U.lerp(1.2, 2.55, r)], armF: [U.lerp(-0.4, 1.95, r), U.lerp(0.9, 2.3, r)],
+        kneel: r1 < 0.5,
+        spine: U.lerp(0.36, -0.05, r2) + 0.16 * push, hunch: U.lerp(0.5, 0, r2), neck: U.lerp(0.25, -0.3, r2),
+        legN: [U.lerp(1.18, 0.2, r1) + U.lerp(0, -0.1, r2), U.lerp(-1.54, -0.12, r1) + U.lerp(0, 0.14, r2)],
+        legF: [U.lerp(1.08, -0.04, r1) + U.lerp(0, -0.04, r2), U.lerp(-1.6, -0.22, r1) + U.lerp(0, 0.16, r2)],
+        armN: [U.lerp(0.95, 2.25, r2) - 0.35 * push, U.lerp(1.7, 2.55, r2) - 0.25 * push],
+        armF: [U.lerp(0.8, 1.95, r2) - 0.3 * push, U.lerp(1.66, 2.3, r2) - 0.2 * push],
       };
     }
     // shuffle: tiny steps, bent double, the staff planted ahead
@@ -4074,11 +4181,20 @@
     head(P, J.head[0], J.head[1], J.s2 * 0.6 + (q.neck || 0), K, 'okina', o);
     if (pose === 'shuffle') P.shape(handPath(J.armN, 10, true), K.skin, 0.6);
     let bowl = null;
+    const bowlAt = (JJ) => { const a = JJ.armN[2], b = JJ.armF[2]; return [(a[0] + b[0]) / 2 + 6, (a[1] + b[1]) / 2 - 4]; };
+    const drawBowl = (b) => P.shape(sp([[b[0] - 13, b[1] - 3, 1], [b[0] + 13, b[1] - 3, 1], [b[0] + 9, b[1] + 7], [b[0] - 9, b[1] + 7]], true), K.bowl, 0.7);
     if (pose === 'sit') {
-      const a = J.armN[2], b = J.armF[2];
-      bowl = [(a[0] + b[0]) / 2 + 6, (a[1] + b[1]) / 2 - 4];
-      const bw = sp([[bowl[0] - 13, bowl[1] - 3, 1], [bowl[0] + 13, bowl[1] - 3, 1], [bowl[0] + 9, bowl[1] + 7], [bowl[0] - 9, bowl[1] + 7]], true);
-      P.shape(bw, K.bowl, 0.7);
+      bowl = bowlAt(J);
+      drawBowl(bowl);
+      P.shape(handPath(J.armN, 10, false), K.skin, 0.6);
+    } else if (pose === 'rise') {
+      // the begging bowl (no pop at the switch from 'sit'): held as he gets up,
+      // it slips from his hands as they open, and falls to the ground before him
+      const r = U.clamp(o.rise == null ? 1 : o.rise);
+      const held = bowlAt(rig(beggarPose('rise', t, Object.assign({}, o, { rise: Math.min(r, 0.3) })), OKINA_D));
+      const f = U.clamp((r - 0.3) / 0.2);
+      bowl = [held[0] + 8 * f, held[1] + (-7 - held[1]) * f * f];
+      drawBowl(bowl);
       P.shape(handPath(J.armN, 10, false), K.skin, 0.6);
     }
     return { head: J.head, hands: [J.armN[2], J.armF[2]], bowl };
@@ -4362,48 +4478,250 @@
     return { node, grips: [[-70, -60], [60, -60]], bbox: [-162, -640, 324, 654], stickLen: 220 };
   }
 
-  /* --- かぐや姫 as a negative puppet: child → girl → woman, one path of 22 keypoints --- */
-  //   crown, forehead, brow, nose, lips, chin, throat, collar, sleeve top, sleeve fore,
-  //   sleeve back, knee, hem front, hem, train end, train top, hair end, hair hips,
-  //   hair waist, hair back, nape, back of head — facing +x, feet at (0,0)
-  const KAG_CHILD = [[-2, -42], [4, -40], [7, -36], [8, -34.5, 1], [7, -33], [5.5, -31], [2.5, -29.5], [6, -28], [9, -25], [11, -15], [2, -14], [7, -9], [8, -1], [3, 0], [-7, 0, 1], [-6, -2], [-6, -8], [-6, -13], [-6, -20], [-6, -26], [-7.5, -31, 1], [-7, -38]];
-  const KAG_GIRL = [[-4, -112], [5, -107], [9, -100], [11, -97, 1], [9, -94], [7, -90], [3, -87], [9, -82], [15, -74], [20, -46], [3, -42], [11, -28], [15, -3], [5, 0], [-22, 0, 1], [-16, -5], [-14, -30], [-13, -48], [-13, -66], [-12, -80], [-11, -93], [-10, -104]];
-  const KAG_WOMAN = [[-4, -190], [8, -185], [12, -178], [17, -172, 1], [13, -168], [14, -165], [10, -160], [3, -156], [18, -140], [32, -82, 1], [14, -72], [18, -44], [24, -2], [8, 0], [-60, 0, 1], [-40, -7], [-28, -3], [-26, -70], [-24, -112], [-21, -142], [-19, -162], [-14, -183]];
-  // paper bridges left inside her hole (dark slits under evenodd): the sleeve's back
-  // edge, the hair falling apart from the robe, two hem layers, the hairline by the face.
-  // [points..., width] per keyframe, same counts so they morph with her.
-  const KAG_SLITS = {
-    child: [[[5, -25], [4, -20], [3, -15], 0.8], [[-5, -30], [-5, -28], [-5, -27], [-5, -26], 0], [[7, -3], [2, -3], [-2, -3], [-5, -2], 0], [[6, -5], [2, -5], [-2, -4], 0], [[0.8, -39.5], [-0.4, -36], [0.6, -32], 0.8]],
-    girl: [[[10, -74], [7, -58], [4, -44], 1.6], [[-8, -92], [-10, -76], [-11, -60], [-12, -48], 1.4], [[13, -6], [0, -6], [-10, -5], [-18, -3], 1.1], [[12, -11], [2, -11], [-6, -9], 0.3], [[1.5, -107], [-0.5, -99], [1, -91], 1.2]],
-    woman: [[[14, -136], [15, -106], [14, -76], 2.2], [[-13, -160], [-17, -120], [-19, -80], [-21, -18], 2.0], [[22, -9], [0, -10], [-26, -8], [-50, -4], 1.6], [[20, -17], [-2, -18], [-24, -14], 1.4], [[1, -187], [-3, -175], [0, -163], 1.8]],
+  /* --- かぐや姫 as a negative puppet: child → girl → woman, one continuous morph --- */
+  // She is light: holes in a dark card. Her 垂髪 is the card itself — black
+  // hair, drawn as kirie draws it: a dark band from the crown to the floor,
+  // outlined by one fine line of light and combed with two more, splitting
+  // at the floor into three strands over the 十二単's hems, which fan out
+  // behind her as stepped, nested arcs (重ね). The great sleeve carries a
+  // layered cuff (袖口); the collar is layered; the face is a small white
+  // profile under the dark hair. Lines of card left inside her (slits) carve
+  // the folds. Authored once as the woman (190 px, facing +x, feet at (0,0));
+  // the girl and the child are the same drawing with a larger head, narrower
+  // robe, shorter hair and no train — one set of parameters, one morph.
+  const KW = {
+    // forehead-top (hairline), forehead, brow, nose tip, nose base, lip, mouth, chin, under-chin, throat
+    face: [[4.6, -187.6], [7.2, -185.4], [9.9, -180.6], [12.9, -176.6], [10.2, -174.6], [10.9, -172.7], [9.8, -171.5], [10.2, -169.3], [6.8, -166.2], [4.6, -162.6]],
+    // the hairline behind the cheek, from the nape up to the temple
+    hairline: [[-1.6, -165.4], [-0.6, -171.5], [0.8, -178.6], [2.6, -184.6]],
+    // over the crown: temple-top, crown, back of head, nape (the hair's outer edge at the head)
+    crown: [[3.2, -188.8], [-2.2, -190.4], [-8.8, -187], [-12.8, -178]],
+    chest: [[6.2, -158], [13.5, -150]],
+    sleeve: [[27.5, -121], [29.8, -95], [29.4, -72], [25, -65.6], [16, -64], [8.5, -63]],
+    robe: [[18.5, -57], [22.6, -36], [27, -16], [33, -4.5], [36.5, 0]],
+    // the robe's back = the hair's front edge (nape → floor) · the hair's outer edge
+    RB: [[-4.5, -163.5], [-8.6, -150], [-11.6, -125], [-14, -100], [-16.4, -75], [-19, -52], [-22.2, -33], [-26.4, -16], [-30, 0]],
+    HO: [[-13.6, -168], [-17.6, -150], [-21, -125], [-24, -100], [-26.8, -75], [-29.6, -52], [-33, -33], [-37.6, -16], [-42, 0]],
   };
-  function kaguyaKeys(grow, raise) {
+  // the train: its upper edge from the hair down to the floor's end · where the layers' arcs leave it · where they end on the floor
+  const KTRAIN = { edge: [[-33, -48], [-41, -40], [-52, -30], [-64, -20.5], [-77, -12], [-90, -5], [-103, 0]], steps: [0.3, 0.52, 0.74], ends: [-79, -88, -97] };
+  // the three strands at the floor: leaving the band at y, width, tip, the rise of their arc
+  const KSTR = [{ y: -2.6, w: 5.2, tip: [-72, -0.6], arc: 0.8 }, { y: -8.2, w: 4.8, tip: [-65, -5.4], arc: 1.4 }, { y: -13.6, w: 4.6, tip: [-57, -10.6], arc: 1.6 }];
+  const key3 = (g, a, b, c) => (g < 0.5 ? U.lerp(a, b, smooth01(g / 0.5)) : U.lerp(b, c, smooth01((g - 0.5) / 0.5)));
+  const run = (pts, per) => (pts.length > 2 ? crs(pts, per || 5) : pts.slice());
+  /** point along a polyline at parameter s (0..1 by index), Catmull-Rom */
+  function along(pts, s) {
+    const n = pts.length - 1, f = U.clamp(s) * n, i = Math.min(n - 1, Math.floor(f)), t = f - i;
+    const g = (k) => pts[Math.max(0, Math.min(n, k))];
+    const p0 = g(i - 1), p1 = g(i), p2 = g(i + 1), p3 = g(i + 2), t2 = t * t, t3 = t2 * t;
+    return [0, 1].map((d) => 0.5 * (2 * p1[d] + (-p0[d] + p2[d]) * t + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * t2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * t3));
+  }
+  /** offset a polyline sideways by d (+ = to the left of its direction in screen space) */
+  function offsetLine(pts, d) {
+    const n = pts.length;
+    return pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+      const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      return [p[0] + ((b[1] - a[1]) / l) * d, p[1] - ((b[0] - a[0]) / l) * d];
+    });
+  }
+  /**
+   * Her figure at growth g (0 child, .5 girl, 1 woman) and sleeve raise r:
+   * { holes: [polylines of light], slits: [[pts, w]] (card inside a hole, or
+   *   a fine line of light in the card), H, head, box }
+   */
+  function kaguyaFigure(grow, raise) {
     const g = U.clamp(grow == null ? 1 : grow);
-    const A = g < 0.5 ? KAG_CHILD : KAG_GIRL, Bk = g < 0.5 ? KAG_GIRL : KAG_WOMAN;
-    const SA = g < 0.5 ? KAG_SLITS.child : KAG_SLITS.girl, SB = g < 0.5 ? KAG_SLITS.girl : KAG_SLITS.woman;
-    const f = smooth01(g < 0.5 ? g / 0.5 : (g - 0.5) / 0.5);
-    const pts = A.map((p, i) => [U.lerp(p[0], Bk[i][0], f), U.lerp(p[1], Bk[i][1], f), p[2]]);
-    const slits = SA.map((sl, i) => sl.map((p, j) => (typeof p === 'number' ? U.lerp(p, SB[i][j], f) : [U.lerp(p[0], SB[i][j][0], f), U.lerp(p[1], SB[i][j][1], f)])));
     const r = smooth01(raise || 0);
-    if (r > 0) {
-      const H = -pts[0][1], k = H / 190;
-      const neck = pts[6];
-      const R = (p) => rot(p, neck[0], neck[1], 0.22 * r);
-      // bow the head, and lift the sleeve to the face: the forearm rises, the sleeve hangs from it
-      for (const i of [0, 1, 2, 3, 4, 5, 21]) { const q = R(pts[i]); pts[i] = [q[0], q[1], pts[i][2]]; }
-      slits[4] = slits[4].map((p) => (typeof p === 'number' ? p : R(p)));
-      // the sleeve covers her face below the eyes: nose, lips and chin slide under its edge
-      const up = [[25, -171], [35, -106], [14, -96]];
-      for (let j = 0; j < 3; j++) pts[8 + j] = [U.lerp(pts[8 + j][0], up[j][0] * k, r), U.lerp(pts[8 + j][1], up[j][1] * k, r), j === 1 ? 1 : 0];
-      for (let j = 4; j <= 7; j++) { const q = lerpPt(pts[3], pts[8], (j - 3) / 5); pts[j] = [U.lerp(pts[j][0], q[0], r), U.lerp(pts[j][1], q[1], r)]; }
-      const us = [[15, -164], [16, -134], [15, -100]];
-      slits[0] = slits[0].map((p, j) => (typeof p === 'number' ? p : [U.lerp(p[0], us[j][0] * k, r), U.lerp(p[1], us[j][1] * k, r)]));
+    const H = key3(g, 42, 112, 190);
+    const headLen = key3(g, 12.5, 20.5, 26);          // crown → neck
+    const hk = headLen / 26;
+    const bodyH = H - headLen, sy = bodyH / 164;
+    const wk = key3(g, 1.3, 1.08, 1);                 // robe width (relative)
+    const slv = key3(g, 0.62, 0.86, 1);                // sleeve reach
+    const trainK = key3(g, 0, 0.3, 1);                 // the train of hems
+    const hairLen = key3(g, 0.14, 0.7, 1.3);           // 1 = the floor; beyond it, the strands
+    const kas = key3(g, 0, 0.45, 1);                   // layered edges (slit widths)
+    const B = (p) => [p[0] * sy * wk, p[1] * sy];
+    const neck = B([4, -164]);
+    const bow = 0.05 + 0.24 * r;                       // a little demure at rest; bowed in the weep
+    const Hd = (p) => rot([neck[0] + (p[0] - 4) * hk, neck[1] + (p[1] + 164) * hk], neck[0], neck[1] + 2 * hk, bow);
+    const SLV = (p) => { const q = B(p); const x0 = 10 * sy * wk; return [x0 + (q[0] - x0) * slv, q[1]]; };
+    const lw = (w) => w * Math.sqrt(sy) * (0.6 + 0.4 * hk);   // line widths shrink gently with her
+    const gap = (w) => Math.max(0.5, w * Math.sqrt(sy));     // bridges of card between her parts
+
+    // ---- the sleeve: hanging (rest) → raised before her bowed face (weep): a
+    // large angular 袂 from the eyes down, the forearm hidden along its top
+    const face = KW.face.map(Hd);
+    const eye = Hd([9.2, -179]);
+    const slRest = KW.sleeve.map(SLV);
+    const slUp = [[eye[0] + 10.5 * hk, eye[1] - 3.5 * hk], [eye[0] + 17 * hk + 4 * sy, eye[1] + 24 * sy], [eye[0] + 17 * hk + 5 * sy, eye[1] + 60 * sy], [eye[0] + 14 * hk + 3 * sy, eye[1] + 65 * sy], B([13, -117]), B([6, -115])];
+    const sleeve = slRest.map((p, i) => [U.lerp(p[0], slUp[i][0], r), U.lerp(p[1], slUp[i][1], r)]);
+    // the lower face, collar and chest slide in behind the raised sleeve's edge
+    const lower = face.slice(3).concat(KW.chest.map(B));
+    const lowerR = lower.map((p, j) => {
+      const q = j === 0 ? [eye[0] + 3.5 * hk, eye[1] + 0.4] : lerpPt(eye, sleeve[0], (j + 1) / (lower.length + 1));
+      return [U.lerp(p[0], q[0], r), U.lerp(p[1], q[1], r)];
+    });
+    const robe = KW.robe.map(B);
+    if (r > 0) { const q = B([15, -100]); robe[0] = [U.lerp(robe[0][0], q[0], r), U.lerp(robe[0][1], q[1], r)]; }
+
+    const RB = KW.RB.map(B), HO = KW.HO.map(B);
+    const holes = [], slits = [];
+    const hairline = [RB[0]].concat(KW.hairline.map(Hd)).concat([face[0]]);
+
+    // ---- hole 1: face and robe, down to the floor and back up her back
+    {
+      const h = [];
+      const push = (pts) => { for (const p of pts) h.push(p); };
+      push(run([face[0], face[1], face[2], lowerR[0]], 5));
+      push(run(lowerR.concat([sleeve[0]]), 3).slice(1));
+      push(run(sleeve, 5).slice(1));
+      push(run([sleeve[sleeve.length - 1]].concat(robe), 5).slice(1));
+      push(run(RB.slice().reverse(), 4));
+      push(run(hairline, 4).slice(1, -1));
+      holes.push(h);
     }
-    return { pts, slits };
+
+    // ---- hole 2: the hair — its own channel of light from the crown down her
+    // back (a line of card between it and her face, a wider one between it and
+    // her robe), as long as she is old; at the floor it parts into three strands
+    const sEnd = Math.min(1, hairLen);
+    const N = 26;
+    const gIn = (s) => gap(U.lerp(2.2, 3.4, s));       // the robe's bridge widens toward the floor (the hair hangs straight)
+    const inner = [], outer = [];
+    for (let i = 0; i <= N; i++) {
+      const s = (sEnd * i) / N;
+      const a = along(RB, s), b = along(HO, s), d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const gi = Math.min(gIn(s), d * 0.45);
+      inner.push([a[0] + ((b[0] - a[0]) / d) * gi, a[1] + ((b[1] - a[1]) / d) * gi]);
+      outer.push(b);
+    }
+    const crown = KW.crown.map(Hd);
+    const hl = offsetLine(run(hairline, 4), gap(1.5));      // the hairline's bridge (hair side)
+    const sk = sEnd >= 1 ? U.clamp((hairLen - 1) / 0.3) : 0;
+    // strands: tongues of light leaving the band's outer side at the floor, fanning back
+    const strands = KSTR.map((st) => {
+      const y0 = st.y * sy, base = [along(HO, 1)[0] + (y0 / (HO[HO.length - 1][1] - HO[HO.length - 2][1] || 1)) * 0, y0];
+      const bx = (() => { for (let i = 0; i < outer.length - 1; i++) { const p = outer[i], q = outer[i + 1]; if ((p[1] - y0) * (q[1] - y0) <= 0) { const t = (y0 - p[1]) / ((q[1] - p[1]) || 1); return p[0] + (q[0] - p[0]) * t; } } return outer[outer.length - 1][0]; })();
+      base[0] = bx + 1.2 * sy;
+      const tip = B(st.tip);
+      const c = (t) => { const e = t * sk; return [U.lerp(base[0], tip[0], e), U.lerp(base[1], tip[1], e) - Math.sin(Math.PI * e) * st.arc * sy]; };
+      const w = (t) => st.w * sy * Math.pow(1 - t, 0.8);
+      return { up: (t) => { const p = c(t); return [p[0], p[1] - w(t) / 2]; }, lo: (t) => { const p = c(t); return [p[0], Math.min(0, p[1] + w(t) / 2)]; }, tip: () => c(1), yTop: y0 - st.w * sy / 2 };
+    });
+    const TS = [0, 0.15, 0.3, 0.46, 0.62, 0.78, 0.9, 1];
+    {
+      const h = [];
+      const push = (pts) => { for (const p of pts) h.push(p); };
+      push(run(crown, 4));
+      if (sk > 0.001) {
+        // down the outer edge to the top strand, then out and back along each strand
+        const yC = strands[strands.length - 1].yTop;
+        for (const p of outer.slice(1)) if (p[1] < yC - 0.3) h.push(p);
+        for (let k = strands.length - 1; k >= 0; k--) {
+          const S = strands[k];
+          for (const t of TS) h.push(S.up(t));
+          for (const t of TS.slice().reverse().slice(1)) h.push(S.lo(t));
+          if (k > 0) {
+            // the notch between two strands, a little way out from the band
+            const a2 = S.lo(0.12), b2 = strands[k - 1].up(0.12);
+            h.push([(a2[0] + b2[0]) / 2 + 0.5 * sy, (a2[1] + b2[1]) / 2]);
+          }
+        }
+        h.push([inner[inner.length - 1][0], 0]);
+      } else {
+        push(outer.slice(1));
+      }
+      // back up the robe's side of the band, and the hairline to the temple
+      push(inner.slice().reverse());
+      const hlr = hl.slice().reverse();
+      push(hlr.slice(1, -1));
+      holes.push(h);
+    }
+    // a comb line of card down the middle of the band (the hair's fall)
+    if (hairLen > 0.28) {
+      const b = sEnd - 0.04, pts = [];
+      for (let i = 0; i <= 12; i++) { const s = 0.08 + ((b - 0.08) * i) / 12; pts.push(lerpPt(inner[Math.round((s / sEnd) * N)], outer[Math.round((s / sEnd) * N)], 0.5)); }
+      slits.push([pts, lw(1.05) * U.clamp((hairLen - 0.28) / 0.3)]);
+    }
+
+    // ---- hole 3: the train behind her (grown): one sweep from the hair down to
+    // the floor's end, a line of card along the hair and round the strands; the
+    // layered hems (重ね) inside it as nested arcs fanning to the floor, each
+    // layer's end a small step
+    if (trainK > 0.02) {
+      const g2 = gap(1.5);
+      const pickX = (arr, y) => { for (let i = 0; i < arr.length - 1; i++) { const p = arr[i], q = arr[i + 1]; if ((p[1] - y) * (q[1] - y) <= 0) { const t = (y - p[1]) / ((q[1] - p[1]) || 1); return p[0] + (q[0] - p[0]) * t; } } return arr[arr.length - 1][0]; };
+      const yEnd = outer[outer.length - 1][1];
+      // its front edge: the hair's outer edge (where the hair hangs), else the robe's back
+      const X = (y) => (y <= yEnd ? pickX(outer, y) - g2 : pickX(RB, y) - gap(2.2));
+      const heelX = RB[RB.length - 1][0];
+      const Fp = (p) => { const q = B(p); return [heelX + (q[0] - heelX) * trainK, q[1] * (0.5 + 0.5 * trainK)]; };
+      const TE0 = KTRAIN.edge.map(Fp);
+      const yTop = TE0[0][1];
+      TE0[0] = [X(yTop), yTop];
+      const TE = run(TE0, 6);
+      const nIn = (i) => { const p = TE[Math.max(0, i - 1)], q = TE[Math.min(TE.length - 1, i + 1)], l = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1; return [-(q[1] - p[1]) / l, (q[0] - p[0]) / l]; };
+      const cutI = KTRAIN.steps.map((u) => Math.round(u * (TE.length - 1)));
+      const notch = 1.7 * sy * kas;
+      const h = [];
+      for (let i = 0; i < TE.length; i++) {
+        if (notch > 0.2 && cutI.indexOf(i) >= 0) { const n = nIn(i); h.push([TE[i][0] - n[0] * notch, TE[i][1] - n[1] * notch]); }
+        else h.push(TE[i]);
+      }
+      h[h.length - 1] = [h[h.length - 1][0], 0];
+      const ends = KTRAIN.ends.map((x) => Fp([x, 0])[0]);
+      for (const x of ends) if (notch > 0.2) h.push([x - 1.6 * sy, 0], [x, -notch], [x + 1.6 * sy, 0]);
+      let yStop = 0;
+      if (sk > 0.001) {
+        // round the strands' tips, a line of card clear of them
+        const tA = strands[0].tip();
+        h.push([tA[0] - g2 - 1.5 * sy, 0]);
+        for (let k = 0; k < strands.length; k++) {
+          const S = strands[k];
+          const p = S.up(0.97), q = S.up(0.8);
+          h.push([S.tip()[0] - g2, S.tip()[1] - g2 * 0.4], [q[0] - g2 * 0.3, q[1] - g2]);
+          if (k === strands.length - 1) for (const t of [0.62, 0.46, 0.3, 0.15, 0]) { const u = S.up(t); h.push([u[0], u[1] - g2]); }
+          void p;
+        }
+        yStop = strands[strands.length - 1].yTop - g2;
+      }
+      for (let i = 0; i <= 14; i++) { const y = U.lerp(0, yTop, i / 14); if (sk > 0.001 ? y < yStop - 0.5 : true) h.push([X(y), y]); }
+      holes.push(h);
+      // the layers' edges: nested arcs from each step of the upper edge down to its end on the floor
+      cutI.forEach((ci, j) => {
+        const n = nIn(ci), s0 = [TE[ci][0] - n[0] * (notch + 1.4 * sy), TE[ci][1] - n[1] * (notch + 1.4 * sy)];
+        const e = [ends[j], -notch - 1.2 * sy];
+        const m = [U.lerp(s0[0], e[0], 0.55) + 2.2 * sy, U.lerp(s0[1], e[1], 0.55)];
+        slits.push([[s0, m, e], lw(1.2) * kas]);
+      });
+    }
+
+    // ---- lines of card inside the robe
+    // the sleeve's back edge (sleeve | body): hanging → along the raised forearm
+    {
+      const rest = [SLV([6.5, -138]), SLV([7, -118]), SLV([7.4, -94]), SLV([8.2, -70])];
+      const up = [[eye[0] + 6 * hk, eye[1] + 3.5 * hk], lerpPt(eye, B([4, -140]), 0.45), B([4.5, -130]), B([5.5, -121])];
+      slits.push([rest.map((p, i) => lerpPt(p, up[i], r)), lw(1.9)]);
+    }
+    // the layered cuff (袖口の重ね): two lines just inside the sleeve's front edge
+    for (const [d, w] of [[3.4, 1.25], [6.8, 1.1]]) {
+      const pts = [sleeve[0], sleeve[1], sleeve[2]].map((p, i) => [p[0] - d * sy * slv * (1 - 0.15 * i), p[1] + (i === 0 ? 4 : i === 2 ? -4 : 0) * sy]);
+      slits.push([pts, lw(w) * kas]);
+    }
+    // the layered collar (襟の重ね), hidden by the raised sleeve
+    for (const [d, w] of [[0, 1.15], [3.2, 1.0]]) slits.push([[B([5.2 - d * 0.4, -157.5 + d]), B([9 - d * 0.2, -151.5 + d]), B([12.4, -145.5 + d])], lw(w) * kas * (1 - r)]);
+    // the layered hem at the front (裾の重ね): arcs stepping down to the toe
+    for (const [d, w] of [[3.6, 1.2], [7.4, 1.05]]) slits.push([[B([18.5 - d * 0.8, -48]), B([22 - d, -30]), B([26.5 - d * 1.05, -14]), B([32 - d * 1.4, -2.6])], lw(w) * kas]);
+
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity;
+    for (const h of holes) for (const p of h) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); }
+    return { holes, slits, H, head: face[3], box: [x0, y0, x1, 0] };
   }
   /** A slit of paper left inside a hole: a closed sliver, pointed at both ends (no caps: evenodd-safe). */
   function slitPoly(pb, pts, w) {
-    if (w < 0.25) return;
+    if (!(w >= 0.25) || pts.length < 2) return;
     const c = crs(pts, 5), n = c.length, L = [], R = [];
     for (let i = 0; i < n; i++) {
       const a = c[Math.max(0, i - 1)], b = c[Math.min(n - 1, i + 1)];
@@ -4414,45 +4732,115 @@
     }
     pb.poly(L.concat(R.reverse().slice(1, -1)), false);
   }
-  function puppetKaguya(pb, o) {
-    const { pts, slits } = kaguyaKeys(o.grow, o.raise);
-    let x0 = Infinity, x1 = -Infinity;
-    for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); }
-    const H = -pts[0][1];
-    const cx = (x0 + x1) / 2;
-    const rx = (x1 - x0) / 2 + 6 + H * 0.07;
-    let ret;
-    if (o.card === 'oval') {
-      const orx = rx * 1.3, ory = H * 0.62 + 10;
-      pb.ell(cx, -H / 2, orx, ory);
-      ret = { center: [cx, -H / 2], rx: orx, ry: ory, grips: [[cx, -H / 2 + ory * 0.8]], bbox: [cx - orx, -H / 2 - ory, orx * 2, ory * 2] };
-    } else {
-      // the dark card: arched top, straight sides, a flat foot she stands on
-      const card = [], foot = 6 + H * 0.05, top = -H - 8 - H * 0.05, shoulder = top + rx * 1.1;
-      for (let i = 0; i <= 20; i++) { const a = Math.PI + (i / 20) * Math.PI; card.push([cx + rx * Math.cos(a), shoulder + (shoulder - top) * Math.sin(a)]); }
-      const rc = Math.min(8, rx * 0.2);
-      card.push([cx + rx, foot - rc], [cx + rx - rc * 0.3, foot - rc * 0.3], [cx + rx - rc, foot], [cx - rx + rc, foot], [cx - rx + rc * 0.3, foot - rc * 0.3], [cx - rx, foot - rc]);
-      pb.poly(card, false);
-      ret = { center: [cx, (top + foot) / 2], rx, ry: (foot - top) / 2, grips: [[cx, foot - 3]], bbox: [cx - rx, top, rx * 2, foot - top] };
-    }
-    pb.poly(pts, true);                              // her figure: a hole under evenodd
-    for (const sl of slits) slitPoly(pb, sl.slice(0, -1), sl[sl.length - 1]);
-    return Object.assign(ret, { rule: 'evenodd', head: pts[3], height: H, stickLen: 180 });
+  /** Her figure into a path builder (as holes), shifted by (dx, dy) and scaled by k. */
+  function kaguyaHoles(pb, fig, dx, dy, k) {
+    const T = (p) => [p[0] * k + dx, p[1] * k + dy];
+    for (const h of fig.holes) pb.poly(h.map(T), false);
+    for (const [pts, w] of fig.slits) slitPoly(pb, pts.map(T), w * k);
   }
-  /** Kaguya on a cut-out engawa: the card is eave, post and boards; she is light. raise 0..1. */
+  /**
+   * The cut-paper card she is cut from. kind: 'cloud' (雲形: a scalloped,
+   * hand-cut cloud — the cloud that will take her home) | 'culm' (a
+   * split section of the shining culm, nodes at its foot and head) |
+   * 'ellipse' (a plain oval) | default: arched top, flat foot.
+   * Returns { center, rx, ry, grips, bbox } in design px.
+   */
+  function kaguyaCard(pb, fig, kind) {
+    const [bx0, by0, bx1] = fig.box, H = fig.H;
+    const cx = (bx0 + bx1) / 2, w = bx1 - bx0;
+    if (kind === 'cloud') {
+      const n = 2.7, cy = -H / 2 + H * 0.02;
+      let a = w / 2 + 4 + H * 0.03, b = H / 2 + 6 + H * 0.03;
+      // grow the card just enough to hold all of her with a margin (the train's corner decides)
+      let worst = 0;
+      for (const hh of fig.holes) for (const p of hh) worst = Math.max(worst, Math.pow(Math.abs(p[0] - cx) / a, n) + Math.pow(Math.abs(p[1] - cy) / b, n));
+      const grow = Math.pow(Math.max(1, worst), 1 / n) * 1.06;
+      a *= grow; b *= grow;
+      const se = (th) => { const c = Math.cos(th), s = Math.sin(th); return [cx + a * Math.sign(c) * Math.pow(Math.abs(c), 2 / n), cy + b * Math.sign(s) * Math.pow(Math.abs(s), 2 / n)]; };
+      const L = 15, pts = [];
+      for (let i = 0; i < L; i++) {
+        const t0 = ((i + 0.18 * (U.hash(i + 71) - 0.5)) / L) * TAU, t1 = ((i + 1 + 0.18 * (U.hash(i + 72) - 0.5)) / L) * TAU;
+        const p0 = se(t0), p1 = se(t1);
+        const mx = (p0[0] + p1[0]) / 2, my = (p0[1] + p1[1]) / 2, dx = p1[0] - p0[0], dy = p1[1] - p0[1], ch = Math.hypot(dx, dy) || 1;
+        // outward normal (the curve runs anticlockwise in screen space → normal = (dy, -dx))
+        const nx = dy / ch, ny = -dx / ch;
+        const bulge = ch * U.lerp(0.26, 0.4, U.hash(i + 73));
+        for (let j = 0; j < 7; j++) {
+          const u = j / 7, h = Math.sin(Math.PI * u) * bulge;
+          pts.push([p0[0] + dx * u + nx * h, p0[1] + dy * u + ny * h]);
+        }
+      }
+      pb.poly(pts, false);
+      return { center: [cx, cy], rx: a, ry: b, grips: [[cx, cy + b * 0.96]], bbox: [cx - a * 1.1, cy - b * 1.1, a * 2.2, b * 2.2] };
+    }
+    if (kind === 'culm') {
+      // a section of the split culm: the slanted cut at its head, a node ring
+      // above her crown and another under her feet (two lines of light each)
+      const a = w / 2 + 10 + H * 0.05, foot = 8 + H * 0.05;
+      const ringY = -H - 12 - H * 0.03, topL = ringY - 10 - a * 0.12, topR = ringY - 10 - a * 0.62;
+      const pts = [[cx - a, foot], [cx - a * 1.02, (ringY + foot) / 2], [cx - a, topL], [cx + a, topR], [cx + a * 1.02, (ringY + foot) / 2], [cx + a, foot]];
+      pb.poly(pts, false);
+      const dd = 2.6 + H * 0.008, ww = 1 + H * 0.004;
+      for (const y of [ringY, foot - 6 - H * 0.02]) for (const d of [0, dd]) slitPoly(pb, [[cx - a * 0.9, y + d], [cx, y + d + 0.8], [cx + a * 0.9, y + d]], ww);
+      return { center: [cx, (topR + foot) / 2], rx: a, ry: (foot - topR) / 2, grips: [[cx, foot - 3]], bbox: [cx - a, topR, a * 2, foot - topR] };
+    }
+    if (kind === 'ellipse') {
+      const rx = w / 2 + 6 + H * 0.07, orx = rx * 1.3, ory = H * 0.62 + 10;
+      pb.ell(cx, -H / 2, orx, ory);
+      return { center: [cx, -H / 2], rx: orx, ry: ory, grips: [[cx, -H / 2 + ory * 0.8]], bbox: [cx - orx, -H / 2 - ory, orx * 2, ory * 2] };
+    }
+    // the dark card: arched top, straight sides, a flat foot she stands on
+    const rx = w / 2 + 6 + H * 0.07;
+    const card = [], foot = 6 + H * 0.05, top = -H - 8 - H * 0.05, shoulder = top + rx * 1.1;
+    for (let i = 0; i <= 20; i++) { const an = Math.PI + (i / 20) * Math.PI; card.push([cx + rx * Math.cos(an), shoulder + (shoulder - top) * Math.sin(an)]); }
+    const rc = Math.min(8, rx * 0.2);
+    card.push([cx + rx, foot - rc], [cx + rx - rc * 0.3, foot - rc * 0.3], [cx + rx - rc, foot], [cx - rx + rc, foot], [cx - rx + rc * 0.3, foot - rc * 0.3], [cx - rx, foot - rc]);
+    pb.poly(card, false);
+    return { center: [cx, (top + foot) / 2], rx, ry: (foot - top) / 2, grips: [[cx, foot - 3]], bbox: [cx - rx, top, rx * 2, foot - top] };
+  }
+  function puppetKaguya(pb, o) {
+    const fig = kaguyaFigure(o.grow, o.raise);
+    // 'oval' is the film's name for her card: the 雲形 cloud (the plain ellipse is 'ellipse')
+    const kind = o.card === 'oval' ? 'cloud' : o.card;
+    const ret = kaguyaCard(pb, fig, kind);
+    kaguyaHoles(pb, fig, 0, 0, 1);
+    return Object.assign(ret, { rule: 'evenodd', head: fig.head, height: fig.H, stickLen: 180 });
+  }
+  /**
+   * Kaguya on a cut-out engawa: eave, the 御簾 rolled half up (its lower edge
+   * above her crown, so her head and hair are cut clean against the dark room,
+   * not through the blind's slits), tassels, post, boards and a short 高欄.
+   * She stands at (8, −16) at the woman's full size (the carry card's end
+   * position). raise 0..1: the sleeve to her face.
+   */
   function puppetKaguyaEngawa(pb, o) {
-    const k = 0.92;
-    const kk = kaguyaKeys(1, o.raise == null ? 0 : o.raise);
-    const pts = kk.pts.map((p) => [p[0] * k + 6, p[1] * k - 12, p[2]]);
-    pb.poly([[-116, 12], [116, 12], [116, -214], [96, -214], [104, -236, 1], [-104, -236, 1], [-96, -214], [-116, -214]], false);
-    pb.poly(pts, true);
-    for (const sl of kk.slits) slitPoly(pb, sl.slice(0, -1).map((p) => [p[0] * k + 6, p[1] * k - 12]), sl[sl.length - 1] * k);
-    // light slits: the eave's lower edge, the post's edge, two board gaps
-    pb.poly([[-96, -212], [96, -212], [96, -208], [-96, -208]], false);
-    pb.poly([[-88, -206], [-85, -206], [-85, -14], [-88, -14]], false);
-    pb.poly([[-116, -6], [116, -6], [116, -4], [-116, -4]], false);
-    pb.poly([[-116, 3], [116, 3], [116, 5], [-116, 5]], false);
-    return { rule: 'evenodd', head: pts[3], grips: [[-60, 10], [70, 10]], bbox: [-118, -238, 236, 252], stickLen: 160 };
+    const fig = kaguyaFigure(1, o.raise == null ? 0 : o.raise);
+    const fx = 8, fy = -16;
+    const L = -106, R = 78;                           // (the theatre's card spans X − 100 … X + 76: the offerings sit to its left)
+    // the card: eave (tip turned up at the left) over the room, down to the boards
+    pb.poly([[L - 6, 14], [R, 14], [R, -252], [R - 10, -256], [-96, -258], [L - 14, -268], [L - 18, -262], [L - 6, -252]], false);
+    // light: under the eave, a line of paper above the blind's border (帽額)
+    slitPoly(pb, [[L + 8, -247], [0, -247.6], [R - 8, -247]], 2.6);
+    // the rolled-up blind: its slats as fine lines of light between the border and the roll
+    for (let y = -241; y <= -226; y += 3.8) slitPoly(pb, [[L + 14, y], [0, y + 0.2], [R - 12, y]], 1.2);
+    // the roll's lower edge, and the 総角 tassels hanging from its hooks
+    slitPoly(pb, [[L + 10, -219.6], [0, -219], [R - 10, -219.6]], 1.6);
+    for (const x of [L + 22, R - 16]) slitPoly(pb, [[x, -217], [x + 0.6, -205], [x, -192], [x - 0.4, -186]], 2.2);
+    // the post at the left, its edge a line of light
+    slitPoly(pb, [[L + 5, -214], [L + 5.4, -110], [L + 5, -14]], 2.0);
+    // the boards (簀子): two lines of paper between the planks
+    slitPoly(pb, [[L, -5.5], [0, -5.2], [R, -5.5]], 2.2);
+    slitPoly(pb, [[L, 4], [0, 4.2], [R, 4]], 1.8);
+    // a short 高欄 at the right edge before her: a post with its 擬宝珠 and the rail's end
+    {
+      const px = R - 8;
+      slitPoly(pb, [[px - 5, -58], [px - 5.2, -34], [px - 5, -9]], 1.6);
+      slitPoly(pb, [[px + 5, -58], [px + 5.2, -34], [px + 5, -9]], 1.6);
+      slitPoly(pb, [[px - 30, -52], [px - 16, -52.5], [px - 8, -52]], 1.5);
+      slitPoly(pb, [[px - 6, -61], [px - 3, -69], [px, -73], [px + 3, -69], [px + 6, -61]], 1.4);
+    }
+    kaguyaHoles(pb, fig, fx, fy, 1);
+    return { rule: 'evenodd', head: [fig.head[0] + fx, fig.head[1] + fy], grips: [[-60, 10], [50, 10]], bbox: [L - 20, -270, R - L + 20, 286], stickLen: 160 };
   }
 
   /* --- 鳳輦: the emperor's palanquin with a phoenix finial and four bearers (design px) --- */
@@ -4691,8 +5079,8 @@
   const PUPPETS = {
     okina: { build: puppetOkina, unit: 1 / 3, opts: 'pose walk|cut, phase (walk, default t·0.9), swing 0..1 (cut)' },
     bamboo: { build: puppetBamboo, unit: 1, opts: 'shine 0..1 (slit of light), split 0..1, wind' },
-    kaguya: { build: puppetKaguya, unit: 1, opts: 'grow 0..1 (child 42 → girl 112 → woman 190 px), raise 0..1' },
-    'kaguya-engawa': { build: puppetKaguyaEngawa, unit: 1, opts: 'raise 0..1 (sleeve to her face)' },
+    kaguya: { build: puppetKaguya, unit: 1, opts: "grow 0..1 (child 42 → girl 112 → woman 190 px), raise 0..1, card 'cloud'|'oval'(= cloud)|'culm'|'ellipse'" },
+    'kaguya-engawa': { build: puppetKaguyaEngawa, unit: 1, opts: 'raise 0..1 (sleeve to her face); she stands at (8, −16)' },
     palanquin: { build: puppetPalanquin, unit: 1, opts: 'phase (default t·1.1)' },
     cloud: { build: puppetCloud, unit: 1, opts: 'ribbon (scarf length multiplier, default 1.8)' },
     moon: { build: puppetMoon, unit: 1, opts: 'r (default 100)' },

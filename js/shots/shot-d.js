@@ -8,7 +8,9 @@
 
    Plates (PRINT shot 'D'):
      sky   P6 ベロ藍 → 紺 bokashi · P6i ichimonji (ベロ藍 + 墨 60%) · P8 faint kira
-     halo  P7 the 月暈 ring (2 px 胡粉 α .18, soft inner band α .08)
+     halo  P7 the 月暈: one flat impression a step lighter than the sky (群青
+           α .3), crisp at the disc, flat to R − 44, one bokashi out to R + 50
+           (no ring, no hairline — SD.haloBand, shared with the tilt)
 
    TSUKI.SHOTS.D
      MOON                     { x, y, r, haloR } — the fixed moon of Shot D
@@ -75,8 +77,36 @@
   })();
 
   const M = (SD.MOON = { x: 960, y: 430, r: 260, haloR: 420 });
+  /**
+   * The 月暈 as a printer carves it: ONE flat impression one step lighter than
+   * the sky (群青 over ベロ藍 — a lighter blue, never a grey veil), cut crisp
+   * at the disc, flat out to R − 44, a short shoulder, then one bokashi wiped
+   * outward to R + 50 — no hairline, no ring of darker sky inside it (both
+   * read as a lens or a bullseye). Shared with the tilt (05), which prints it
+   * live at any R (the disc scales with it: r = M.r · R / M.haloR).
+   */
+  const HALO = { col: C.gunjo, a: 0.3, flatTo: 44, wipe: 50 };
+  SD.haloBand = (c, x, y, R, a = 1) => {
+    if (a <= 0.004 || R <= 4) return;
+    const s = R / M.haloR;
+    const r0 = M.r * s, r1 = R + HALO.wipe * s, span = r1 - r0;
+    const f = (R - HALO.flatTo * s - r0) / span, A = HALO.a;
+    c.save();
+    c.globalAlpha *= a;
+    const g = c.createRadialGradient(x, y, r0, x, y, r1);
+    g.addColorStop(0, U.rgba(HALO.col, A));
+    g.addColorStop(f, U.rgba(HALO.col, A));                                  // the flat of the block
+    g.addColorStop(f + (1 - f) * 0.1, U.rgba(HALO.col, A * 0.66));           // its shoulder
+    g.addColorStop(f + (1 - f) * 0.5, U.rgba(HALO.col, A * 0.22));
+    g.addColorStop(1, U.rgba(HALO.col, 0));
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(x, y, r1, 0, TAU);
+    c.arc(x, y, Math.max(0, r0 - 1), 0, TAU, true);                          // under the disc's cut edge
+    c.fill('evenodd');
+    c.restore();
+  };
   const NIGHT_TOP = U.mix(C.bero, C.sumi, 0.6);
-  const GROUND = 580;                                  // the Jataka's ground line on the face
 
   /* ------------------------------------------------------------------ */
   /* carving                                                             */
@@ -132,8 +162,9 @@
       s.save();
       s.translate(M.x, M.y);
       const rg = s.createRadialGradient(0, 0, M.r, 0, 0, 520);
-      rg.addColorStop(0, U.rgba(U.mix(C.bero, C.hanada, 0.45), 0.25));
-      rg.addColorStop(0.5, U.rgba(U.mix(C.bero, C.hanada, 0.3), 0.08));
+      rg.addColorStop(0, U.rgba(U.mix(C.bero, C.hanada, 0.45), 0.16));
+      rg.addColorStop(0.3, U.rgba(U.mix(C.bero, C.hanada, 0.3), 0.05));
+      rg.addColorStop(0.5, U.rgba(C.bero, 0));
       rg.addColorStop(1, U.rgba(C.bero, 0));
       s.fillStyle = rg;
       s.fillRect(-560, -560, 1120, 1120);
@@ -153,25 +184,8 @@
         k.arc(x, y, U.lerp(0.8, 2, r()), 0, TAU);
         k.fill();
       }
-      // P7: the 月暈 ring — a 2 px 胡粉 line (α .18) with a soft inner band (α .08)
-      const h = P('halo', 'P7');
-      h.save();
-      h.translate(M.x, M.y);
-      const band = h.createRadialGradient(0, 0, M.haloR - 46, 0, 0, M.haloR);
-      band.addColorStop(0, U.rgba(C.gofun, 0));
-      band.addColorStop(0.8, U.rgba(C.gofun, 0.08));
-      band.addColorStop(1, U.rgba(C.gofun, 0.02));
-      h.fillStyle = band;
-      h.beginPath();
-      h.arc(0, 0, M.haloR, 0, TAU);
-      h.arc(0, 0, M.haloR - 46, 0, TAU, true);
-      h.fill();
-      h.strokeStyle = U.rgba(C.gofun, 0.18);
-      h.lineWidth = 2;
-      h.beginPath();
-      h.arc(0, 0, M.haloR, 0, TAU);
-      h.stroke();
-      h.restore();
+      // P7: the 月暈 — a band of 胡粉 bokashi, no line (a drawn ring reads as a lens)
+      SD.haloBand(P('halo', 'P7'), M.x, M.y, M.haloR, 1);
     },
   });
 
@@ -289,16 +303,38 @@
   /* ------------------------------------------------------------------ */
   /* the Jataka on the moon's face                                       */
   /* ------------------------------------------------------------------ */
+  /*
+   * The stage on the face: a ring round the fire seen from a little above,
+   * as a 絵巻 shows a gathering — the beggar and the rabbit on the near side,
+   * the monkey and the fox across the fire (higher, a little smaller, in a
+   * paler ink: further away). Each actor is authored at its own origin (its
+   * ground contact) and printed at (x, y) × g, so the whole play is about
+   * 1.4× the old single-file frieze and still sits in the lower part of the
+   * face, every figure ≥ 30 px inside the rim. `dx0` = where it enters from
+   * (authored px from its place).
+   */
   const J = {
-    beggar: { x: 866, s: 0.62 },
-    monkeyIn: [92.0, 93.4], monkey: { x0: 700, x1: 786, s: 1.12 },
-    foxIn: [93.4, 94.8], fox: { x0: 1250, x1: 1124, s: 1.15 },
-    rabbitIn: [94.8, 95.8], rabbit: { x0: 1220, x1: 1044, s: 1.15 },
+    beggar: { x: 834, y: 604, g: 1.36, s: 0.62 },
+    monkeyIn: [92.0, 93.4], monkey: { x: 778, y: 506, g: 1.16, dx0: -100, s: 1.12 },
+    foxIn: [93.4, 94.8], fox: { x: 1134, y: 484, g: 1.14, dx0: 136, s: 1.15 },
+    rabbitIn: [94.8, 95.8], rabbit: { x: 1079, y: 604, g: 1.4, dx0: 150, s: 1.15 },
     droop: 95.8, gaze: 97.0, leap: 98.0, into: 98.9, flash: 99.0, rise: 99.4, fade: [100, 103],
-    fire: { x: 960, y: GROUND },
+    fire: { x: 980, y: 600, g: 1.2 },
   };
   SD.J = J;
   const INK = C.sumi;
+  const INK_NEAR = U.mix(C.sumi, C.kinari, 0.13);      // ≈ 墨 α .86 on the moon's paper, but flat
+  const INK_FAR = U.mix(C.sumi, C.kinari, 0.36);       // 薄墨: across the fire
+  const STAFF_X = -8;                                  // the beggar's staff, planted at his heels
+  /** Draw fn in actor a's own frame: origin at its ground contact, scaled by a.g. */
+  const at = (ctx, a, fn, dx = 0) => {
+    ctx.save();
+    ctx.translate(a.x + dx * a.g, a.y);
+    ctx.scale(a.g, a.g);
+    const r = fn(ctx);
+    ctx.restore();
+    return r;
+  };
 
   /** Catmull-Rom closed path (CAST's spline: tension 1, [x,y,1] = corner), positively wound. */
   function spPath(p, pts) {
@@ -317,12 +353,46 @@
   }
   const ell = (p, cx, cy, rx, ry, a) => { p.moveTo(cx + rx * Math.cos(a), cy + rx * Math.sin(a)); p.ellipse(cx, cy, rx, ry, a, 0, TAU); };
 
+  /* ---- carved lines --------------------------------------------------- */
+  /*
+   * Every actor on the face is one flat ink from the key block, and the
+   * carver has cut two or three interior lines into it — ear, haunch, the
+   * fold of a sleeve — that print as grooves of a slightly lighter value.
+   * Each is a gouge: a quadratic stroke swelling in the middle and tapering
+   * to nothing at both ends, authored in the actor's own frame (its ground
+   * contact, × a.g) for the pose it holds, always well inside its silhouette.
+   * [x0, y0, cx, cy, x1, y1, width]
+   */
+  const LINE_NEAR = U.mix(INK_NEAR, C.kinari, 0.46);
+  const LINE_FAR = U.mix(INK_FAR, C.kinari, 0.4);
+  const CUTS = {
+    // the monkey, sitting up facing the fire: the folded thigh, the arm against its side, the ear
+    monkey: [[-12, -4, -3, -27, 11, -21, 1.3], [3, -47, 1, -36, 12, -33, 1.1], [1.5, -66, 0.5, -62, 3, -59, 0.9]],
+    // the fox (facing left): the haunch, the near foreleg, the ear's groove
+    fox: [[-4, -3, 4, -40, 24, -16, 1.4], [-9, -46, -7, -26, -9, -7, 1.1], [-9, -82, -8, -87, -5, -90, 0.9]],
+    // the beggar (facing the fire): his sleeve against the body, the fold across the hip, the collar
+    beggar: [[18, -57, 27, -45, 38, -40, 1.2], [-8, -26, 4, -14, 22, -11, 1.3], [26, -61, 30, -57, 32, -52, 0.9]],
+  };
+  /** Cut an actor's lines (a gouge per entry) into ctx, in its current frame. */
+  function cutLines(c, list, ink, alpha, mirror = 1) {
+    if (alpha <= 0.004) return;
+    c.save();
+    c.globalAlpha *= alpha;
+    for (const [x0, y0, cx, cy, x1, y1, w] of list) {
+      B.taper(c, B.qpts(x0 * mirror, y0, cx * mirror, cy, x1 * mirror, y1, 10), 0.15, 0.15, ink, w);
+    }
+    c.restore();
+  }
+
   /**
    * The empty-handed rabbit sitting (CAST.rabbit 'sit' geometry), with the
    * droop made legible for a silhouette: the head bows and the ears fall
-   * back and DOWN behind it, hanging below the line of the head.
+   * back and DOWN behind it, hanging below the line of the head. `lift`
+   * raises the head and ears again (the moment before it turns to us).
+   * Returns the silhouette and its carved lines (haunch, foreleg, ear, eye)
+   * in local px (drawn × s·0.55, mirrored by facing).
    */
-  function rabbitSit(ctx, x, y, s, droop, facing, alpha, T) {
+  function rabbitSitPaths(droop, T) {
     const p = new Path2D();
     const br = Math.sin(T * 2.1) * 0.6 * (1 - droop);
     spPath(p, [[12, -60], [0, -62 - br], [-16, -56], [-28, -44], [-35, -28], [-35, -12], [-28, -2], [-16, 1, 1], [18, 1, 1], [25, -10], [27, -26], [26, -42], [20, -54]]);
@@ -336,32 +406,64 @@
     ell(head, -2 + Math.sin(eB) * 20, -14 - Math.cos(eB) * 20, 6.2, 21, eB);
     spPath(head, [[-14, 2], [-12, -10], [-3, -16], [8, -14], [15, -6], [18, 3], [17.5, 6.5, 1], [12, 10.5], [1, 12], [-9, 9]]);
     ell(head, -6 + Math.sin(eA) * 21, -12 - Math.cos(eA) * 21, 7.2, 22.5, eA);
+    const cH = Math.cos(ha), sH = Math.sin(ha);
+    const hp = (x, y) => [hx + x * cH - y * sH, hy + x * sH + y * cH];
     p.addPath(head, new DOMMatrix().translate(hx, hy).rotate((ha * 180) / Math.PI));
+    // cuts: the haunch (a dome over the folded hind leg), the foreleg, the near ear's groove
+    const ux = Math.sin(eA), uy = -Math.cos(eA);
+    const e0 = hp(-6 + ux * 11, -12 + uy * 11), e1 = hp(-6 + ux * 33, -12 + uy * 33), em = hp(-6 + ux * 22 + uy * 1.2, -12 + uy * 22 - ux * 1.2);
+    const cuts = [[-4, -3, -14, -40, -31, -16, 2.3], [11, -31, 16, -16, 12, -4, 1.8], [e0[0], e0[1], em[0], em[1], e1[0], e1[1], 2]];
+    return { p, cuts, eye: hp(6, -3) };
+  }
+  function rabbitSit(ctx, x, y, s, droop, facing, alpha, T) {
+    const { p, cuts, eye } = rabbitSitPaths(droop, T);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s * 0.55 * facing, s * 0.55);
     ctx.globalAlpha *= alpha;
-    ctx.fillStyle = INK;
+    ctx.fillStyle = INK_NEAR;
     ctx.fill(p);
+    ctx.clip(p);
+    cutLines(ctx, cuts, LINE_NEAR, 1);
+    ctx.fillStyle = LINE_NEAR;
+    ctx.beginPath();
+    ctx.ellipse(eye[0], eye[1], 1.9, 2.2, 0, 0, TAU);
+    ctx.fill();
     ctx.restore();
   }
 
-  /** A frontal rabbit, sitting up and looking out of the moon at us. */
-  function rabbitFront(ctx, x, y, s, alpha, T) {
-    const p = new Path2D();
+  /**
+   * A frontal rabbit, sitting up and looking out of the moon at us.
+   * fold 0..1: the ears laid back (they shorten and splay as they tip away).
+   */
+  function rabbitFront(ctx, x, y, s, alpha, T, fold = 0) {
+    const p = new Path2D(), cuts = [];
     const breathe = Math.sin(T * 2.3) * 0.6;
     ell(p, 0, -22, 20, 23, 0);                             // body
     ell(p, -12, -4, 9, 5, 0.2); ell(p, 12, -4, 9, 5, -0.2);   // hind feet
     ell(p, 0, -52 - breathe, 15, 14, 0);                  // head
-    ell(p, -7, -80 - breathe, 5, 17, -0.14);              // ears
-    ell(p, 7, -81 - breathe, 5, 17, 0.12);
+    // ears: rooted at y ≈ −63, laid back they foreshorten and splay
+    const eL = 17 * (1 - 0.42 * fold), sp = 0.34 * fold;
+    for (const [sx, a0] of [[-7, -0.14], [7, 0.12]]) {
+      const a = a0 + Math.sign(sx) * sp;
+      const ux = Math.sin(a), uy = -Math.cos(a), ry = -63 - breathe;
+      ell(p, sx + ux * eL, ry + uy * eL, 5 * (1 + 0.12 * fold), eL, a);
+      // the ear's groove
+      cuts.push([sx + ux * eL * 0.45, ry + uy * eL * 0.45, sx + ux * eL, ry + uy * eL, sx + ux * eL * 1.6, ry + uy * eL * 1.6, 1.5]);
+    }
     ell(p, -6, -34, 4, 7, 0.3); ell(p, 6, -34, 4, 7, -0.3); // fore paws held to the chest
+    // the haunches, cut either side of the belly
+    cuts.push([-8, -4, -18, -9, -16, -23, 1.6], [8, -4, 18, -9, 16, -23, 1.6]);
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(s, s);
     ctx.globalAlpha *= alpha;
-    ctx.fillStyle = INK;
+    ctx.fillStyle = INK_NEAR;
     ctx.fill(p);
+    ctx.save();
+    ctx.clip(p);
+    cutLines(ctx, cuts, LINE_NEAR, 1);
+    ctx.restore();
     // the eyes: two points of the moon's own paper
     ctx.fillStyle = C.kinari;
     for (const sx of [-5.5, 5.5]) {
@@ -372,12 +474,21 @@
     ctx.restore();
   }
 
-  /* ---- the fire: seven Buddhist 火焔 tongues --------------------------- */
-  // [base dx, height, lean (|≤ .25|), curl side, width]
+  /* ---- the fire: five hooked 火焔 tongues (北斎) ------------------------ */
+  /*
+   * Printed as Hokusai cuts a fire: a few big tongues, each an S that rises
+   * and hooks back on itself at the tip (蕨手), each with its own tapering
+   * 墨 contour from the key block — thick where it leaves the logs, a hair at
+   * the hook — over flat 朱, a smaller hooked 山吹 core printed a little off
+   * register; the logs lie in front of their roots; 朱 embers as dots.
+   * Back → front: [base dx, height, lean, curl side, width, core?]
+   */
   const TONGUES = [
-    [0, 80, 0.0, 1, 32], [-14, 60, -0.12, -1, 27], [14, 64, 0.12, 1, 27], [-27, 42, -0.2, -1, 23],
-    [27, 46, 0.2, 1, 23], [-6, 38, -0.05, -1, 21], [8, 36, 0.06, 1, 19],
+    [-19, 50, -0.24, -1, 25, false], [19, 58, 0.22, 1, 25, false],
+    [2, 90, 0.07, 1, 36, true],
+    [-10, 42, -0.1, -1, 23, true], [12, 34, 0.15, 1, 19, false],
   ];
+  const FIRE_INK = U.rgba(INK, 0.92);
   function fireLevel(T) {
     const flare = U.env(T, J.into - 0.05, J.into + 0.08, J.flash + 0.1, J.rise + 0.2) * 0.4;
     // the flames go out inside the stop (99.0–100.2), with the fire's sound;
@@ -386,23 +497,25 @@
     return Math.max(0, die + flare * die);
   }
   /**
-   * One tongue as a filled outline: widest at its base, tapering steadily to
-   * the tip; the top quarter curls back on itself (蕨手), as flames do in the
-   * 火焔光背 of a Fudō.
+   * One tongue: its centreline (a slow travelling S that hooks back through
+   * ~230° over the last third) and the two edges, base → tip.
    */
-  function tongue(p, bx, by, h, w0, lean, curl, ph) {
-    const N = 18, cl = [], ws = [];
+  function tongueGeom(bx, by, h, w0, lean, curl, ph) {
+    const N = 24, cl = [], ws = [];
     let x = bx, y = by, th = -Math.PI / 2 + lean;
-    const ds = h / N;
+    const ds = h / 19.5;                                            // steps shorten into the curl
     for (let j = 0; j <= N; j++) {
       const s = j / N;
       cl.push([x, y]);
-      ws.push(Math.max(0.6, w0 * Math.pow(1 - s, 1.05) * (s > 0.76 ? U.lerp(1, 0.7, (s - 0.76) / 0.24) : 1)));
-      let turn = 0.07 * Math.sin(s * 5.5 + ph) * (1 - s);           // the S of the body
-      if (s > 0.74) turn += curl * 0.85 * ((s - 0.74) / 0.26);       // the hook at the tip (蕨手)
+      // a little fuller a third of the way up, then narrowing into the hook
+      ws.push(Math.max(0.5, w0 * (0.78 + 0.22 * Math.sin(Math.PI * Math.min(1, s * 1.5))) * Math.pow(1 - s, 0.9)));
+      let turn = 0.032 * Math.sin(s * 5.2 + ph) * (1 - s);          // the S of the body (a gentle sway)
+      const u = s > 0.62 ? (s - 0.62) / 0.38 : 0;
+      turn += curl * 0.74 * Math.pow(u, 0.8);                        // the hook (蕨手): a tightening curl
       th += turn;
-      x += Math.cos(th) * ds;
-      y += Math.sin(th) * ds;
+      const st = ds * (1 - 0.55 * u);
+      x += Math.cos(th) * st;
+      y += Math.sin(th) * st;
     }
     const L = [], R = [];
     for (let j = 0; j <= N; j++) {
@@ -412,86 +525,96 @@
       L.push([cl[j][0] + nx * hw, cl[j][1] + ny * hw]);
       R.push([cl[j][0] - nx * hw, cl[j][1] - ny * hw]);
     }
-    const pts = L.concat(R.reverse());
-    let area = 0;
-    for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; area += a[0] * b[1] - b[0] * a[1]; }
-    if (area < 0) pts.reverse();
-    p.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) p.lineTo(pts[i][0], pts[i][1]);
-    p.closePath();
+    const path = new Path2D();
+    path.moveTo(L[0][0], L[0][1]);
+    for (let q = 1; q <= N; q++) path.lineTo(L[q][0], L[q][1]);
+    for (let q = N; q >= 0; q--) path.lineTo(R[q][0], R[q][1]);
+    path.closePath();
+    return { path, L, R };
   }
-  function firePaths(T, lv) {
-    const f = J.fire;
-    const outer = new Path2D(), inner = new Path2D();
-    TONGUES.forEach(([dx, h0, lean, curl, w], i) => {
-      const h = h0 * lv * (1 + 0.1 * Math.sin(T * 8.3 + i * 2.1));
+  function fireTongues(T, lv) {
+    const out = [];
+    TONGUES.forEach(([dx, h0, lean, curl, w, core], i) => {
+      // they breathe, slowly: a gentle rise and fall and a lean that sways
+      const h = h0 * lv * (1 + 0.06 * Math.sin(T * 4.3 + i * 2.1) + 0.035 * Math.sin(T * 7.9 + i * 1.3));
       if (h < 4) return;
-      const ln = U.clamp(lean + 0.05 * Math.sin(T * 3.1 + i * 1.3), -0.25, 0.25);
-      const bx = f.x + dx * (0.6 + 0.4 * lv);
-      tongue(outer, bx, f.y - 2, h, Math.max(10, w * (0.55 + 0.45 * lv)), ln, curl, T * 4.2 + i * 1.7);
-      if (i < 5) tongue(inner, f.x + dx * 0.5 * lv, f.y - 3, h * 0.55, Math.max(5, w * 0.45 * (0.55 + 0.45 * lv)), ln * 0.8, curl, T * 4.6 + i * 1.3 + 0.8);
+      const ln = lean + 0.035 * Math.sin(T * 2.2 + i * 1.3);
+      const bx = dx * (0.6 + 0.4 * lv), ww = Math.max(9, w * (0.55 + 0.45 * lv));
+      const ph = T * 2.4 + i * 1.7;
+      const t = tongueGeom(bx, -2, h, ww, ln, curl, ph);
+      if (core) t.core = tongueGeom(bx + 1.4, -1.2, h * 0.56, ww * 0.44, ln * 0.85, curl, ph + 0.6).path;
+      out.push(t);
     });
-    return { outer, inner };
+    return out;
   }
+  /** The fire, printed in its own frame (origin = the middle of its base, × J.fire.g). */
   function drawFire(ctx, T) {
+    at(ctx, J.fire, (c) => fireAt(c, T));
+  }
+  function fireAt(ctx, T) {
     const lv = fireLevel(T);
-    const f = J.fire;
-    // the logs (薪): three crossed sticks and a bed of ash under them
-    const logA = U.clamp(1 - U.smoothstep(101.8, 104.6, T));
-    if (logA > 0) {
-      PRINT.with(ctx, 'K', T, (c) => {
-        c.save();
-        c.globalAlpha *= 0.85 * logA;
-        B.taper(c, [[f.x - 30, f.y + 5], [f.x, f.y + 3.5], [f.x + 30, f.y + 5]], 2.2, 0.8, U.rgba(INK, 0.35), 0.4);
-        B.taper(c, [[f.x - 36, f.y + 2], [f.x + 34, f.y - 7]], 6, 5, INK, 0);
-        B.taper(c, [[f.x - 32, f.y - 7], [f.x + 36, f.y + 1]], 6, 5, INK, 0);
-        B.taper(c, [[f.x - 18, f.y + 3], [f.x + 20, f.y + 4]], 5, 5, INK, 0);
-        c.restore();
-      });
-    }
-    // embers: the last of them fades at 106
+    const f = { x: 0, y: 0 };
+    // embers (朱 dots): the last of them fades at 106
     const emb = U.env(T, 89, 90, 103.5, 106.6);
     if (emb > 0) {
       PRINT.with(ctx, 'P2', T, (c) => {
         const r = U.rng(4242);
         for (let i = 0; i < 9; i++) {
-          const ex = f.x + U.lerp(-28, 28, r()), ey = f.y + U.lerp(-8, 2, r());
+          const ex = f.x + U.lerp(-30, 30, r()), ey = f.y + U.lerp(-6, 3, r());
           const last = i === 4;
-          const tw = 0.6 + 0.4 * Math.sin(T * U.lerp(3, 7, r()) + i);
+          const tw = 0.62 + 0.38 * Math.sin(T * U.lerp(1.6, 3.4, r()) + i);
           const a = emb * tw * (last ? 1 : 1 - U.smoothstep(103.5, 105.2, T));
+          const rr = last ? 3.2 : U.lerp(1.5, 2.8, r());
           if (a <= 0.01) continue;
-          c.fillStyle = U.rgba(i % 3 ? C.shu : C.yamabuki, a);
+          c.fillStyle = U.rgba(last ? C.yamabuki : C.shu, a);
           c.beginPath();
-          c.arc(last ? f.x + 2 : ex, last ? f.y - 3 : ey, last ? 3.2 : U.lerp(1.5, 2.8, r()), 0, TAU);
+          c.arc(last ? f.x + 2 : ex, last ? f.y - 3 : ey, rr, 0, TAU);
           c.fill();
         }
       });
     }
-    if (lv <= 0.01) return;
-    const { outer, inner } = firePaths(T, lv);
-    // key line: the union's outer silhouette only (stroked under the fill)
-    PRINT.with(ctx, 'K', T, (c) => {
-      c.strokeStyle = U.rgba(INK, 0.6);
-      c.lineWidth = 2;
-      c.lineJoin = 'round';
-      c.stroke(outer);
-    });
-    PRINT.with(ctx, 'P2', T, (c) => {
-      c.fillStyle = C.shu;
-      c.fill(outer);
-      c.fillStyle = C.yamabuki;
-      c.fill(inner);
-      // sparks rising
-      for (let i = 0; i < 9; i++) {
-        const ph = U.fract(T * 0.55 + i * 0.137);
-        const sx = f.x + U.lerp(-24, 24, U.hash(i + 7)) + Math.sin(ph * 6 + i) * 8;
-        const sy = f.y - 40 - ph * 90 * (0.5 + 0.5 * lv);
-        c.fillStyle = U.rgba(C.yamabuki, (1 - ph) * 0.9 * lv);
-        c.beginPath();
-        c.arc(sx, sy, 1.6, 0, TAU);
-        c.fill();
+    if (lv > 0.01) {
+      // back → front, each tongue whole: 朱, its 山吹 core off register, its contour
+      for (const t of fireTongues(T, lv)) {
+        PRINT.with(ctx, 'P2', T, (c) => {
+          c.fillStyle = C.shu;
+          c.fill(t.path);
+          if (t.core) {
+            c.fillStyle = C.yamabuki;
+            c.fill(t.core);
+          }
+        });
+        PRINT.with(ctx, 'K', T, (c) => {
+          B.taper(c, t.L, 1.55, 0.3, FIRE_INK, 0);
+          B.taper(c, t.R, 1.55, 0.3, FIRE_INK, 0);
+        });
       }
-    });
+      // sparks: a few 朱 and 山吹 points drifting up off the hooks
+      PRINT.with(ctx, 'P2', T, (c) => {
+        for (let i = 0; i < 6; i++) {
+          const ph = U.fract(T * 0.42 + i * 0.173);
+          const sx = f.x + U.lerp(-22, 22, U.hash(i + 7)) + Math.sin(ph * 5 + i) * 7;
+          const sy = f.y - 52 - ph * 80 * (0.5 + 0.5 * lv);
+          c.fillStyle = U.rgba(i % 2 ? C.shu : C.yamabuki, (1 - ph) * 0.9 * lv);
+          c.beginPath();
+          c.arc(sx, sy, 1.5, 0, TAU);
+          c.fill();
+        }
+      });
+    }
+    // the logs (薪) in front of the roots of the flames: three crossed sticks on a bed of ash
+    const logA = U.clamp(1 - U.smoothstep(101.8, 104.6, T));
+    if (logA > 0) {
+      PRINT.with(ctx, 'K', T, (c) => {
+        c.save();
+        c.globalAlpha *= 0.9 * logA;
+        B.taper(c, [[f.x - 32, f.y + 5], [f.x, f.y + 3.5], [f.x + 32, f.y + 5]], 2.2, 0.8, U.rgba(INK, 0.35), 0.4);
+        B.taper(c, [[f.x - 36, f.y + 2], [f.x + 34, f.y - 6]], 6, 5, INK, 0);
+        B.taper(c, [[f.x - 32, f.y - 6], [f.x + 36, f.y + 1]], 6, 5, INK, 0);
+        B.taper(c, [[f.x - 18, f.y + 3], [f.x + 20, f.y + 4]], 5, 5, INK, 0);
+        c.restore();
+      });
+    }
   }
 
   /* ---- the god in mica (帝釈天) ------------------------------------------ */
@@ -507,7 +630,7 @@
     if (a <= 0.004) return null;
     const tf = ctx.getTransform();
     const k = tf.a;
-    const bx0 = J.beggar.x - 75, by0 = GROUND - 222, bw = 165, bh = 232;
+    const bx0 = -75, by0 = -222, bw = 165, bh = 232;     // the beggar's own frame (origin = where he sits)
     const W = Math.ceil(bw * k) + 6, H = Math.ceil(bh * k) + 6;
     godBuffers(W, H);
     const g = god.a.getContext('2d'), rb = god.b.getContext('2d');
@@ -517,7 +640,7 @@
     g.globalAlpha = 1;
     g.clearRect(0, 0, W, H);
     g.setTransform(k, 0, 0, k, 3 - bx0 * k, 3 - by0 * k);
-    const ret = CAST.beggar(g, J.beggar.x, GROUND, J.beggar.s, { pose: 'rise', rise, t: T, silhouette: '#ffffff' });
+    const ret = CAST.beggar(g, 0, 0, J.beggar.s, { pose: 'rise', rise, t: T, silhouette: '#ffffff' });
     // the rim: the silhouette blotted four ways, minus itself
     rb.setTransform(1, 0, 0, 1, 0, 0);
     rb.globalCompositeOperation = 'source-over';
@@ -560,108 +683,160 @@
     return ret;
   }
 
-  /** Walk-in helper: x along [x0 → x1] over [a, b] with an ease. */
-  const walk = (T, a, b, x0, x1) => ({ x: U.lerp(x0, x1, E.outSine(U.seg(T, a, b))), u: U.seg(T, a, b) });
-
+  /**
+   * A short carved ground line under an actor (its own frame): a thin 薄墨
+   * stroke, fullest in the middle, that seats the figure on the face so the
+   * far side reads as further off rather than higher up. It stays when the
+   * actor leaves it (the rabbit's empty place) and goes with the play.
+   */
+  function groundLine(ctx, a, x0, x1, ink, alpha) {
+    if (alpha <= 0.004) return;
+    at(ctx, a, (c) => {
+      c.save();
+      c.globalAlpha *= alpha;
+      B.taper(c, B.qpts(x0, 1.6, (x0 + x1) / 2, 0.4, x1, 1.8, 10), 0.3, 0.3, ink, 5.5);
+      c.restore();
+    });
+  }
   function drawPlay(ctx, T) {
     const fade = 1 - U.smoothstep(J.fade[0], J.fade[1], T);
-    const sil = (a) => ({ silhouette: INK, alpha: 0.86 * a });
-    // the monkey: three hops in from the left, sitting up, with fruit; then offers
+    // the ground under each place, printed as its actor settles on it
+    const seat = (t0) => U.smoothstep(t0, t0 + 0.5, T) * fade;
+    groundLine(ctx, J.monkey, -40, 34, INK_FAR, 0.5 * seat(J.monkeyIn[1] - 0.15));
+    groundLine(ctx, J.fox, -44, 52, INK_FAR, 0.5 * seat(J.foxIn[1] - 0.1));
+    groundLine(ctx, J.beggar, -26, 74, INK_NEAR, 0.42 * fade);
+    groundLine(ctx, J.rabbit, -34, 28, INK_NEAR, 0.42 * seat(J.droop - 0.1));
+    // flat opaque inks, each actor one impression with its lines cut in:
+    // 墨 for the near side, a paler 薄墨 for the far side of the fire
+    // the far side first — the monkey: three hops in from the left, sitting up, with fruit; then offers
     if (T >= J.monkeyIn[0] && fade > 0) {
+      const Mk = J.monkey;
       const end = J.monkeyIn[1] - 0.15;
       const u = U.seg(T, J.monkeyIn[0], end);
-      const x = U.lerp(J.monkey.x0, J.monkey.x1, u);
       const hop = T < end ? Math.sin(U.fract(u * 3) * Math.PI) : 0;
       const tilt = T < end ? -0.12 * Math.sin(U.fract(u * 3) * TAU) : 0;
-      const k = J.monkey.s;
+      const k = Mk.s;
       const sw = 3 * Math.sin(T * 2.4);
-      ctx.save();
-      ctx.translate(x, GROUND - hop * 16);
-      ctx.rotate(tilt);
-      // its long tail, an upright arc curling behind it
-      ctx.save();
-      ctx.globalAlpha *= 0.86 * fade;
-      const tx = -12 * k;
-      B.taper(ctx, [[tx, -14 * k], [tx - 14 * k, -12 * k], [tx - 24 * k, -22 * k + sw * 0.3], [tx - 24 * k + sw, -38 * k], [tx - 16 * k + sw, -46 * k], [tx - 10 * k + sw, -40 * k]], 4 * k, 1.8 * k, INK, 0);
-      ctx.restore();
-      CAST.monkey(ctx, 0, 0, k, { pose: 'sit', offer: E.outSine(U.seg(T, end, end + 0.6)), fruit: 3, t: T, ...sil(fade) });
-      ctx.restore();
+      const offer = E.outSine(U.seg(T, end, end + 0.6));
+      const fig = (c, o) => CAST.monkey(c, 0, 0, k, { pose: 'sit', offer, fruit: 3, t: T, ...o });
+      at(ctx, Mk, (c) => {
+        c.translate(0, -hop * 16);
+        c.rotate(tilt);
+        // its long tail, an upright arc curling behind it
+        c.save();
+        c.globalAlpha *= fade;
+        const tx = -12 * k;
+        B.taper(c, [[tx, -14 * k], [tx - 10 * k, -13 * k], [tx - 17 * k, -22 * k + sw * 0.3], [tx - 17 * k + sw, -38 * k], [tx - 11 * k + sw, -46 * k], [tx - 6 * k + sw, -41 * k]], 4 * k, 1.8 * k, INK_FAR, 0);
+        c.restore();
+        fig(c, { silhouette: INK_FAR, alpha: fade });
+        cutLines(c, CUTS.monkey, LINE_FAR, fade);
+      }, U.lerp(Mk.dx0, 0, u));
     }
     // the fox: from the right with a fish
     if (T >= J.foxIn[0] && fade > 0) {
-      const w = walk(T, J.foxIn[0], J.foxIn[1] - 0.1, J.fox.x0, J.fox.x1);
-      if (T < J.foxIn[1] - 0.1) CAST.fox(ctx, w.x, GROUND, J.fox.s, { pose: 'walk', carry: 'fish', facing: -1, t: T * 1.3, ...sil(fade) });
-      else CAST.fox(ctx, J.fox.x1, GROUND, J.fox.s, { pose: 'sit', carry: 'fish', facing: -1, t: T, ...sil(fade) });
+      const Fx = J.fox;
+      const arrive = J.foxIn[1] - 0.1;
+      const dx = U.lerp(Fx.dx0, 0, E.outSine(U.seg(T, J.foxIn[0], arrive)));
+      const fig = T < arrive
+        ? (c, o) => CAST.fox(c, 0, 0, Fx.s, { pose: 'walk', carry: 'fish', facing: -1, t: T * 1.3, ...o })
+        : (c, o) => CAST.fox(c, 0, 0, Fx.s, { pose: 'sit', carry: 'fish', facing: -1, t: T, ...o });
+      at(ctx, Fx, (c) => {
+        fig(c, { silhouette: INK_FAR, alpha: fade });
+        // its cuts come as it sits
+        cutLines(c, CUTS.fox, LINE_FAR, fade * U.smoothstep(arrive, arrive + 0.3, T));
+      }, dx);
     }
-    // the beggar: hunched by the fire, his staff planted beside him;
-    // at the flash he rises and turns to mica (帝釈天)
+    // the near side — the beggar: hunched by the fire, his staff planted
+    // beside him; at the flash he rises and turns to mica (帝釈天)
     if (T < J.rise + 0.6) {
       const a = 1 - U.smoothstep(J.rise, J.rise + 0.6, T);
-      ctx.save();
-      ctx.globalAlpha *= 0.86 * a;
-      const sx = J.beggar.x - 22;
-      B.taper(ctx, [[sx, GROUND + 1], [sx - 4, GROUND - 40], [sx - 7, GROUND - 76], [sx - 8, GROUND - 84]], 2.2, 2.8, INK, 0);
-      ctx.fillStyle = INK;
-      ctx.beginPath();
-      ctx.ellipse(sx - 8, GROUND - 86, 2.8, 3.6, -0.2, 0, TAU);
-      ctx.fill();
-      ctx.restore();
-      if (T < J.rise) CAST.beggar(ctx, J.beggar.x, GROUND, J.beggar.s, { pose: 'sit', t: T, ...sil(1) });
-      else CAST.beggar(ctx, J.beggar.x, GROUND, J.beggar.s, { pose: 'rise', rise: E.inOutSine(U.seg(T, J.rise, J.rise + 0.9)), t: T, ...sil(a) });
+      const fig = T < J.rise
+        ? (c, o) => CAST.beggar(c, 0, 0, J.beggar.s, { pose: 'sit', t: T, ...o })
+        : (c, o) => CAST.beggar(c, 0, 0, J.beggar.s, { pose: 'rise', rise: E.inOutSine(U.seg(T, J.rise, J.rise + 0.9)), t: T, ...o });
+      at(ctx, J.beggar, (c) => {
+        c.save();
+        c.globalAlpha *= a;
+        const sx = STAFF_X;
+        B.taper(c, [[sx, 1], [sx - 4, -40], [sx - 7, -76], [sx - 8, -84]], 2.2, 2.8, INK_NEAR, 0);
+        c.fillStyle = INK_NEAR;
+        c.beginPath();
+        c.ellipse(sx - 8, -86, 2.8, 3.6, -0.2, 0, TAU);
+        c.fill();
+        c.restore();
+        fig(c, { silhouette: INK_NEAR, alpha: a });
+        // his cuts (the sitting pose's) go as he begins to rise
+        cutLines(c, CUTS.beggar, LINE_NEAR, a * (1 - U.smoothstep(J.rise, J.rise + 0.25, T)));
+      });
     }
     if (T >= J.rise && fade > 0) {
       const rise = E.inOutSine(U.seg(T, J.rise, J.rise + 0.9));
       const mica = U.smoothstep(J.rise, J.rise + 0.6, T) * fade;
-      const ret = drawGod(ctx, T, rise, mica);
-      // a thin nimbus, and a few motes of mica
-      const hd = ret && ret.head ? ret.head : [J.beggar.x, GROUND - 120];
-      ctx.save();
-      ctx.globalAlpha *= 0.5 * mica;
-      ctx.strokeStyle = U.rgba(U.mix(C.kin, C.ginnezu, 0.4), 0.85);
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.arc(hd[0], hd[1] - 2, 19, 0, TAU);
-      ctx.stroke();
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 12; i++) {
-        const an = U.hash(i + 5) * TAU, d = U.lerp(8, 52, U.hash(i + 9));
-        const tw = Math.pow(Math.max(0, Math.sin(T * 4 + i * 2.3)), 6);
-        ctx.fillStyle = `rgba(255,250,236,${0.7 * tw})`;
-        ctx.fillRect(J.beggar.x + Math.cos(an) * d * 0.6 - 1, GROUND - 70 + Math.sin(an) * d * 1.5 - 1, 2, 2);
-      }
-      ctx.restore();
+      at(ctx, J.beggar, (c) => {
+        const ret = drawGod(c, T, rise, mica);
+        // a thin nimbus, and a few motes of mica
+        const hd = ret && ret.head ? ret.head : [0, -120];
+        c.save();
+        c.globalAlpha *= 0.5 * mica;
+        c.strokeStyle = U.rgba(U.mix(C.kin, C.ginnezu, 0.4), 0.85);
+        c.lineWidth = 1.1;
+        c.beginPath();
+        c.arc(hd[0], hd[1] - 2, 19, 0, TAU);
+        c.stroke();
+        c.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 12; i++) {
+          const an = U.hash(i + 5) * TAU, d = U.lerp(8, 52, U.hash(i + 9));
+          const tw = Math.pow(Math.max(0, Math.sin(T * 4 + i * 2.3)), 6);
+          c.fillStyle = `rgba(255,250,236,${0.7 * tw})`;
+          c.fillRect(Math.cos(an) * d * 0.6 - 1, -70 + Math.sin(an) * d * 1.5 - 1, 2, 2);
+        }
+        c.restore();
+      });
     }
-    // the rabbit: hops in with nothing, ears droop, looks out at us, leaps
+    // the rabbit: hops in with nothing, ears droop, looks out at us, gathers
+    // itself and leaps
     if (T >= J.rabbitIn[0] && T < J.into) {
       const R = J.rabbit;
       if (T < J.droop) {
         const u = U.seg(T, J.rabbitIn[0], J.droop);
         const hop = u * 2, ph = hop - Math.floor(hop);
-        const x = U.lerp(R.x0, R.x1, E.outSine(u));
-        // a paper edge where it passes in front of the fox, as cut-paper puppets overlap
-        if (Math.abs(x - J.fox.x1) < 90) {
-          for (const [ox, oy] of [[-2, 0], [2, 0], [0, -2], [0, 2]]) CAST.rabbit(ctx, x + ox, GROUND + oy, R.s, { pose: 'hop', phase: ph, facing: -1, t: T, silhouette: C.kinari, noBuffer: true });
-        }
-        CAST.rabbit(ctx, x, GROUND, R.s, { pose: 'hop', phase: ph, facing: -1, t: T, ...sil(1) });
+        const fig = (c, o) => CAST.rabbit(c, 0, 0, R.s, { pose: 'hop', phase: ph, facing: -1, t: T, ...o });
+        at(ctx, R, (c) => fig(c, { silhouette: INK_NEAR }), U.lerp(R.dx0, 0, E.outSine(u)));
+      } else if (T < J.gaze) {
+        // the ears droop (95.8, 0.45 s) and hang; from 96.7 the head comes up again
+        const d = E.inOutSine(U.seg(T, J.droop, J.droop + 0.45)) * (1 - E.inOutSine(U.seg(T, J.gaze - 0.3, J.gaze - 0.02)));
+        at(ctx, R, (c) => rabbitSit(c, 0, 0, R.s, d, -1, 1, T));
       } else if (T < J.leap) {
-        // droop (95.8, 0.45 s, held); at 96.9–97.1 it turns to face us
-        const d = E.inOutSine(U.seg(T, J.droop, J.droop + 0.45)) * (1 - E.inOutSine(U.seg(T, J.gaze - 0.1, J.gaze + 0.1)));
-        const turn = U.seg(T, J.gaze - 0.1, J.gaze + 0.1, E.inOutSine);
-        if (turn < 1) rabbitSit(ctx, R.x1, GROUND, R.s, d, -1, 0.86 * (1 - turn), T);
-        if (turn > 0) rabbitFront(ctx, R.x1, GROUND, R.s * 0.92, 0.86 * turn, T);
+        // 97.0 it turns to us — a cut on the koto's harmonic, and it settles
+        // (0.22 s); the look holds; then it gathers itself for the leap,
+        // crouching about its feet, ears laid back (97.84–98.0)
+        const settle = E.outSine(U.seg(T, J.gaze, J.gaze + 0.22));
+        const cr = E.inQuad(U.seg(T, J.leap - 0.16, J.leap));
+        at(ctx, R, (c) => {
+          c.scale((1 + 0.08 * cr) * (1 + 0.025 * (1 - settle)), (1 - 0.16 * cr) * (0.955 + 0.045 * settle));
+          rabbitFront(c, 0, 0, R.s * 0.92, 1, T, Math.max(0.7 * cr, 0.3 * (1 - settle)));
+        });
       } else {
-        // a parabola from its place into the fire, apex 60 px above the flames
+        // 98.0, on the bachi: it springs in profile — the swap hidden in the
+        // fastest frame — stretched along its flight for 0.14 s, on a
+        // ballistic parabola of its body (the pivot `lift` px above its
+        // feet) from where it sat into the heart of the fire, apex 60 px
+        // above the flame tips: nose-up, and in head first
+        const F = J.fire;
         const u = U.seg(T, J.leap, J.into);
-        const x = U.lerp(R.x1, J.fire.x + 4, u);
-        const flameTop = J.fire.y - 76;
-        const apex = flameTop - 60;
-        const y0 = GROUND, y1 = J.fire.y - 18;
+        const g = U.lerp(R.g, F.g, u);
+        const lift = 52;
+        const x = U.lerp(R.x, F.x + 4 * F.g, u);
+        const apex = F.y - 80 * F.g - 60;
+        const y0 = R.y - lift * R.g, y1 = F.y - 30 * F.g;
         const y = (1 - u) * (1 - u) * y0 + 2 * u * (1 - u) * (2 * apex - (y0 + y1) / 2) + u * u * y1;
-        const vis = 1 - U.smoothstep(0.88, 1, u);
+        const vis = 1 - U.smoothstep(0.86, 1, u);
+        const st = 1 - E.outQuad(U.seg(T, J.leap, J.leap + 0.14));
+        const fig = (c, o) => CAST.rabbit(c, 0, lift, R.s, { pose: 'leap', phase: u, facing: -1, t: T, ...o });
         ctx.save();
         ctx.translate(x, y);
-        ctx.rotate(U.lerp(-0.25, 0.6, u));
-        CAST.rabbit(ctx, 0, 0, R.s, { pose: 'leap', phase: u, facing: -1, t: T, silhouette: INK, alpha: 0.86 * vis });
+        ctx.rotate(U.lerp(0.12, -0.95, E.inSine(u)));
+        ctx.scale(g * (1 + 0.14 * st), g * (1 - 0.08 * st));
+        fig(ctx, { silhouette: INK_NEAR, alpha: vis });
         ctx.restore();
       }
     }
@@ -725,7 +900,7 @@
     const grow = E.outSine(U.clamp(age / 2.2));
     const f = J.fire;
     const L = sm.len * (0.22 + 0.78 * grow);
-    const bx = f.x + sm.dx * 0.2, by = f.y - 44;
+    const bx = f.x + sm.dx * 0.2 * f.g, by = f.y - 44 * f.g;
     const pts = [];
     for (let j = 0; j < 6; j++) {
       const q = j / 5;
@@ -801,9 +976,16 @@
     ctx.scale(k, k);
     ctx.translate(-M.x, -M.y);
     const Tj = Math.max(T, 89.5);          // before 90 (inside the fox window) the play is as at 90
-    if (T < 103.2) PRINT.with(ctx, 'K', Tj, (c) => drawPlay(c, Tj));
-    if (T < 106.3) drawFire(ctx, Tj);
-    if (T >= 100 && T < 106.55) drawSmoke(ctx, T);
+    // Through the fox window the face is blank, waiting (87.2–89.4); the
+    // beggar and his fire print in as the window passes the frame, so 四
+    // opens on them (90.2) — and a clipped flame never shows at the diamond's point
+    const pre = T < 90.2 ? U.seg(T, 89.4, 90.2, E.inOutSine) : 1;
+    if (pre > 0.002) {
+      ctx.globalAlpha *= pre;
+      if (T < 103.2) PRINT.with(ctx, 'K', Tj, (c) => drawPlay(c, Tj));
+      if (T < 106.3) drawFire(ctx, Tj);
+      if (T >= 100 && T < 106.55) drawSmoke(ctx, T);
+    }
     ctx.restore();
     // the maria, printed at 106 — with the pestle's swing
     if (T >= 106.0) {
@@ -862,7 +1044,8 @@
     TSUKI.SHOTS.flatPrint(ctx, 'D', o.haloAlpha === 0 ? ['sky'] : ['sky', 'halo'], T, { state: st });
     ctx.restore();
     if (o.moon !== false) {
-      MOON.draw(ctx, M.x, M.y + dy, M.r, T, { halo: 0.25, haloR: 380, maria: 0 });
+      // no second halo: the 月暈 is the carved band of the 'halo' plate alone
+      MOON.draw(ctx, M.x, M.y + dy, M.r, T, { halo: 0, maria: 0 });
       SD.face(ctx, T, M.x, M.y + dy, M.r);
       flash(ctx, T, dy);
     }

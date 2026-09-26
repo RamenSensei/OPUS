@@ -54,107 +54,124 @@
   const NIGHT_PAL = nightPal(0.24);
   const CHILD_PAL = Object.assign({}, NIGHT_PAL, { crease: U.mix(NIGHT_PAL.crease, NIGHT_PAL.skin, 0.5) });
 
-  /* ---------------- shards: the reflection crazed into 40 pieces ------- */
+  /* ---------------- shards: the reflection broken into arcs of light ---- */
   /*
-   * Four rings of 3 / 8 / 12 / 17 pieces. The ring boundaries wander and the
-   * radial cracks lean, but every edge is shared by its two neighbours, so at
-   * rest the pieces tile the disc exactly (unit-disc coordinates).
+   * The disc cracks into sixteen pieces — a core of 3, a ring of 5, a rim of
+   * 8 — whose edges are shared, so at rest they tile it exactly (unit-disc
+   * coordinates). Struck, each piece rides out on the ripples as an ARC of
+   * the rim: it keeps to its circle about the centre, stretching along it and
+   * thinning across it into a crescent, each at its own speed and distance,
+   * turning a little on its own — never an orderly ring — and each glints
+   * ('lighter' kira) and dims on its own clock. They regather with τ 0.5 s,
+   * dock with no gap by 71.4, and the whole reflection closes over them.
    */
+  const ORIGINS = [[0, 0.12], [-1.55, 0.5], [1.55, 0.5]];   // unit-disc coords (y before perspective)
   const SHARDS = (() => {
     const out = [];
-    const bands = [[0, 0.3, 3], [0.3, 0.56, 8], [0.56, 0.8, 12], [0.8, 1.0, 17]];
-    const bound = (R, th) => (R <= 0 || R >= 1 ? R : R + 0.045 * (U.noise1(th * 2.2 + R * 17, 83) * 2 - 1));
-    const r = U.rng(8081);
+    const bands = [[0, 0.4, 3], [0.4, 0.72, 5], [0.72, 1.0, 8]];
+    const bound = (R, th) => (R <= 0 || R >= 1 ? R : R + 0.05 * (U.noise1(th * 2.2 + R * 17, 83) * 2 - 1));
+    const r = U.rng(8087);
     for (const [r0, r1, n] of bands) {
       const off = r() * TAU;
       const cracks = [];
-      for (let i = 0; i < n; i++) cracks.push({ a: off + (i / n) * TAU + U.lerp(-0.25, 0.25, r()) * (TAU / n) * 0.5, lean: U.lerp(-0.35, 0.35, r()) * (TAU / n) });
+      for (let i = 0; i < n; i++) cracks.push({ a: off + (i / n) * TAU + U.lerp(-0.3, 0.3, r()) * (TAU / n) * 0.5, lean: U.lerp(-0.3, 0.3, r()) * (TAU / n) });
       for (let i = 0; i < n; i++) {
         const c0 = cracks[i], c1 = cracks[(i + 1) % n];
         let a0 = c0.a, a1 = c1.a;
         if (a1 <= a0) a1 += TAU;
-        const pts = [];
-        const N = 6;
-        // inner edge (a0 → a1), outer edge back (a1 → a0), the cracks leaning between
-        const aIn0 = a0, aIn1 = a1, aOut0 = a0 + c0.lean, aOut1 = a1 + c1.lean;
-        for (let q = 0; q <= N; q++) { const t = aIn0 + (aIn1 - aIn0) * q / N; const rr = bound(r0, t); pts.push([Math.cos(t) * rr, Math.sin(t) * rr]); }
-        for (let q = N; q >= 0; q--) { const t = aOut0 + (aOut1 - aOut0) * q / N; const rr = bound(r1, t); pts.push([Math.cos(t) * rr, Math.sin(t) * rr]); }
+        const pol = [];                                 // [ρ, θ] round the piece
+        const N = 8;
+        const aOut0 = a0 + c0.lean, aOut1 = a1 + c1.lean;
+        for (let q = 0; q <= N; q++) { const t = a0 + (a1 - a0) * q / N; pol.push([bound(r0, t), t]); }
+        for (let q = N; q >= 0; q--) { const t = aOut0 + (aOut1 - aOut0) * q / N; pol.push([bound(r1, t), t]); }
+        const pts = pol.map(([rr, t]) => [Math.cos(t) * rr, Math.sin(t) * rr]);
         const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length, cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
-        const am = Math.atan2(cy, cx);
+        // the ripple it rides: the plunge at the centre, or the ring from one
+        // of the two hands — so the arcs never share one circle
+        const o = ORIGINS[r() < 0.5 ? 0 : cx < 0 ? 1 : 2];
+        const rc = Math.hypot(cx - o[0], cy - o[1]), tc = Math.atan2(cy - o[1], cx - o[0]);
+        // each vertex in polar form about that origin, its angle unwrapped about the piece's
+        const pol2 = pts.map(([x, y]) => {
+          const t = Math.atan2(y - o[1], x - o[0]);
+          return [Math.hypot(x - o[0], y - o[1]), tc + Math.atan2(Math.sin(t - tc), Math.cos(t - tc))];
+        });
         out.push({
-          pts, cx, cy, am,
-          dist: U.lerp(60, 180, r()) * (0.55 + (r0 + r1) * 0.3),
-          dir: am + U.lerp(-0.3, 0.3, r()),
-          stretch: U.lerp(1.2, 1.8, r()),
-          kira: r(),
+          pol: pol2, rc, tc, o,
+          travel: U.lerp(r0 === 0 ? 0.9 : 0.2, 2.4, Math.pow(r(), 1.3)),   // how far out (disc radii) it rides (the core's wedges all go: they open into arcs)
+          swirl: U.lerp(-0.7, 0.7, r()),                  // how far round (rad) it is carried
+          stretch: U.lerp(1.15, 1.9, r()),                // along its circle
+          thin: U.lerp(0.35, 0.65, r()),                  // across it
+          out: U.lerp(0.8, 1.7, r()),                     // seconds to fly out
+          dim: U.lerp(0.25, 0.85, r()), dimW: U.lerp(2.2, 5.5, r()), ph: r() * TAU,
+          kira: Math.pow(r(), 1.5), kiraW: U.lerp(5, 11, r()), kph: r() * TAU,
         });
       }
     }
     return out;
   })();
 
-  /** 0 = whole … 1 = fully scattered; the regather lands exactly at 71.8. */
-  function scatter(T) {
-    if (T < BT.shatter || T >= BT.whole) return 0;
-    const out = E.outCubic(U.clamp((T - BT.shatter) / 1.4));
-    if (T < BT.calm) return out;
-    const e0 = Math.exp(-3.6);
-    return out * Math.max(0, (Math.exp(-(T - BT.calm) / 0.5) - e0) / (1 - e0));
+  const DOCK = 71.4;                                    // every gap closed
+  /** The regather (0 = docked … 1 = flown): τ 0.5 from 70.0, landing softly by DOCK. */
+  function gather(T) {
+    if (T < BT.calm) return 1;
+    if (T >= DOCK) return 0;
+    const e1 = Math.exp(-(DOCK - BT.calm) / 0.5);
+    return ((Math.exp(-(T - BT.calm) / 0.5) - e1) / (1 - e1)) * (1 - U.smoothstep(71.0, DOCK, T));
   }
+  /** 0 = whole … 1 = fully scattered (piece s, or the whole field when s is omitted). */
+  function scatter(T, s) {
+    if (T < BT.shatter || T >= DOCK) return 0;
+    const out = E.outCubic(U.clamp((T - BT.shatter) / (s ? s.out : 1.4)));
+    return out * gather(T);
+  }
+  /** The water's wobble of the reflection (the same transform SC.reflection applies). */
+  const wobXf = (T, wob) => ({ x: wob * 3 * Math.sin(T * 9.1), sx: 1 + wob * 0.06 * Math.sin(T * 7.3), sy: 1 - wob * 0.05 * Math.sin(T * 6.1 + 1) });
 
-  /* the reflected disc, drawn once per frame into a small buffer, then cut into shards */
-  let discCv = null;
-  function discBuffer(ctx, T) {
-    const R = TSUKI.SHOTS.C.G.refl;
-    const k = ctx.getTransform().a;
-    const n = Math.ceil((R.rx * 2 + 8) * k);
-    if (!discCv || discCv.width !== n) discCv = B.canvas(n, n);
-    const d = discCv.getContext('2d');
-    d.setTransform(1, 0, 0, 1, 0, 0);
-    d.clearRect(0, 0, n, n);
-    d.setTransform(k, 0, 0, k, n / 2, n / 2);
-    MOON.draw(d, 0, 0, R.rx, T, { fringe: false, halo: 0 });
-    return { cv: discCv, half: n / 2 / k };
-  }
-  function drawShards(ctx, T, alpha) {
-    const sc = scatter(T);
+  function drawShards(ctx, T, alpha, wob) {
     if (alpha <= 0.003) return;
     const R = TSUKI.SHOTS.C.G.refl;
     const persp = R.ry / R.rx;
-    const disc = discBuffer(ctx, T);
+    const gz = MOON.glaze(T);
+    const xf = wobXf(T, wob);
     ctx.save();
     TSUKI.SHOTS.C.waterClip(ctx);
     ctx.clip();
-    ctx.translate(REFL.x, REFL.y);
-    ctx.scale(1, persp);
+    ctx.translate(REFL.x + xf.x, REFL.y);
+    ctx.scale(R.rx * xf.sx, R.rx * persp * xf.sy);
     ctx.globalAlpha *= alpha;
-    for (const s of SHARDS) {
-      // each shard flies straight out along its own ray, thinning across its
-      // ring and stretching along it as it goes (a flake of mica)
-      const dx = Math.cos(s.dir) * s.dist * sc, dy = Math.sin(s.dir) * s.dist * sc;
-      const ur = [Math.cos(s.am), Math.sin(s.am)], ut = [-ur[1], ur[0]];
-      const kr = 1 - 0.5 * sc, kt = 1 + (s.stretch - 1) * sc;
-      const cx = s.cx * R.rx, cy = s.cy * R.rx;
+    const glints = [];
+    for (let i = 0; i < SHARDS.length; i++) {
+      const s = SHARDS[i];
+      const sc = scatter(T, s);
+      // the piece's centre rides out on its circle and is carried round a little
+      const rc = s.rc + sc * s.travel + sc * 0.05 * Math.sin(T * 7 + i);
+      const tc = s.tc + sc * s.swirl;
+      const kS = 1 + (s.stretch - 1) * sc, kT = 1 - s.thin * sc;
+      const arcK = (Math.max(s.rc, 0.2) / Math.max(rc, 0.2)) * kS;   // keep (and stretch) its arc length
       const p = new Path2D();
-      s.pts.forEach((q, j) => {
-        const vx = q[0] * R.rx - cx, vy = q[1] * R.rx - cy;
-        const a = (vx * ur[0] + vy * ur[1]) * kr, b = (vx * ut[0] + vy * ut[1]) * kt;
-        const X = cx + ur[0] * a + ut[0] * b + dx, Y = cy + ur[1] * a + ut[1] * b + dy;
+      s.pol.forEach(([rr, t], j) => {
+        const r2 = Math.max(0, rc + (rr - s.rc) * kT), t2 = tc + (t - s.tc) * arcK;
+        const X = s.o[0] + Math.cos(t2) * r2, Y = s.o[1] + Math.sin(t2) * r2;
         if (j) p.lineTo(X, Y); else p.moveTo(X, Y);
       });
       p.closePath();
+      // each dims on its own clock while it is out
+      const a = 1 - sc * s.dim * (0.5 + 0.5 * Math.sin(T * s.dimW + s.ph));
       ctx.save();
-      ctx.clip(p);
-      ctx.drawImage(disc.cv, dx - disc.half, dy - disc.half, disc.half * 2, disc.half * 2);
+      ctx.globalAlpha *= a;
+      ctx.fillStyle = C.kinari;
+      ctx.fill(p);
+      if (gz.alpha > 0) { ctx.fillStyle = U.rgba(gz.color, gz.alpha); ctx.fill(p); }
       ctx.restore();
-      // mica: the shards glitter as they fly
-      const k = sc * (0.3 + 0.7 * Math.pow(Math.max(0, Math.sin(T * 11 + s.kira * 40)), 3));
-      if (k > 0.02) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.fillStyle = `rgba(255,250,236,${0.4 * k})`;
+      const k = sc * s.kira * Math.pow(Math.max(0, Math.sin(T * s.kiraW + s.kph)), 3);
+      if (k > 0.02) glints.push([p, k * a]);
+    }
+    // mica: some pieces flash, unevenly
+    if (glints.length) {
+      ctx.globalCompositeOperation = 'lighter';
+      for (const [p, k] of glints) {
+        ctx.fillStyle = `rgba(255,250,236,${0.55 * k})`;
         ctx.fill(p);
-        ctx.restore();
       }
     }
     ctx.restore();
@@ -229,66 +246,105 @@
   }
 
   /* ---------------- 小夜's kasuri sleeves ------------------------------- */
+  /*
+   * 紺絣: ragged 十字 and 井桁 marks at uneven spacing on 紺. A kasuri mark is
+   * dyed into the threads before weaving, so its edges break into the weft:
+   * each bar is built of short weft dashes that slip a little sideways, with
+   * a 1 px bleed of paler ink round them. One 100 px tile per night glaze.
+   */
   const kasuriTiles = new Map();
   function kasuri(a) {
     const key = a.toFixed(2);
     if (kasuriTiles.has(key)) return kasuriTiles.get(key);
-    const S = 64;
+    const S = 100;
     const t = B.canvas(S, S);
     const c = t.getContext('2d');
     c.fillStyle = U.mix(C.kon, NIGHT, a);
     c.fillRect(0, 0, S, S);
     const r = U.rng(1212);
     const fg = U.mix(C.gofun, NIGHT, a);
-    // 十字絣: small crosses with feathered (bled) edges, plus a few dashes
-    const cross = (x, y) => {
-      for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
-        for (let k = 0; k < 3; k++) {
-          c.fillStyle = U.rgba(fg, [0.2, 0.36, 0.7][k]);
-          const w = [9, 7.5, 6][k], h = [2.6, 2.1, 1.6][k];
-          c.fillRect(x + ox - w / 2 + U.lerp(-0.6, 0.6, r()), y + oy - h / 2, w, h);
-          c.fillRect(x + ox - h / 2, y + oy - w / 2 + U.lerp(-0.6, 0.6, r()), h, w);
-        }
+    // one weft dash (wrapped round the tile so the pattern repeats seamlessly)
+    const dash = (x, y, w, h, al) => {
+      c.fillStyle = U.rgba(fg, al);
+      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) c.fillRect(x + ox, y + oy, w, h);
+    };
+    /** a bar of the mark: `n` weft rows from (x, y), each `w` wide, slipping sideways */
+    const bar = (x, y, w, n) => {
+      for (let q = 0; q < n; q++) {
+        const sl = U.lerp(-1.6, 1.6, r()), ww = w * U.lerp(0.75, 1.15, r());
+        dash(x + sl - 1, y + q * 1.5 - 0.6, ww + 2, 2.4, 0.22);   // the bleed
+        if (r() > 0.1) dash(x + sl, y + q * 1.5, ww, 1.25, U.lerp(0.62, 0.9, r()));
       }
     };
-    cross(16, 16); cross(48, 48);
-    c.fillStyle = U.rgba(fg, 0.4);
-    c.fillRect(40, 14, 8, 1.6); c.fillRect(8, 44, 7, 1.6);
+    // marks on a jittered 3 × 3 lattice, two cells left plain
+    const skip = new Set([Math.floor(r() * 9), Math.floor(r() * 9)]);
+    for (let gy = 0; gy < 3; gy++) for (let gx = 0; gx < 3; gx++) {
+      if (skip.has(gy * 3 + gx)) continue;
+      const cx = (gx + 0.5) * (S / 3) + ((gy % 2) * S / 6) + U.lerp(-7, 7, r()), cy = (gy + 0.5) * (S / 3) + U.lerp(-6, 6, r());
+      if (r() < 0.72) {
+        // 十字: a vertical of short weft rows, and a two-row horizontal
+        const hl = U.lerp(9, 12, r()), vl = Math.round(U.lerp(6, 8, r()));
+        bar(cx - 1.4, cy - vl * 0.75, 2.8, vl);
+        bar(cx - hl / 2, cy - 1.2, hl, 2);
+      } else {
+        // 井桁: two short verticals crossed by two horizontals
+        for (const ox of [-2.6, 2.6]) bar(cx + ox - 1.1, cy - 5.5, 2.2, 7);
+        for (const oy of [-2.6, 2.6]) bar(cx - 6, cy + oy - 0.6, 12, 1);
+      }
+    }
     kasuriTiles.set(key, t);
     return t;
   }
   /**
-   * A kimono sleeve from the wrist (wx, wy) back toward the body along (dx, dy),
-   * widening from w0 to w1 over len px; a soft fold, the shadowed underside and
-   * the cuff hem over the wrist.
+   * A kimono sleeve from the wrist (wx, wy) back toward the body along
+   * (dx, dy), `len` px. Foreshortened: the shoulder is nearer the eye than
+   * the hand, so the sleeve opens quickly from w0 at the cuff toward w1; on
+   * its outer side (`side` ±1, away from the other arm) the 袂 hangs from a
+   * third of the way back, a rounded bag in shadow under a crease. Cuff hem,
+   * shadowed underside, 墨 key line.
    */
-  function sleeve(c, wx, wy, dx, dy, w0, w1, len, k, night = 0.24) {
-    const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+  function sleeve(c, wx, wy, dx, dy, w0, w1, len, k, side = 1, night = 0.24) {
+    const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * side, ny = ux * side;
     const p = (a, b) => [wx + ux * a + nx * b, wy + uy * a + ny * b];
+    const hw = (u) => (w0 + (w1 - w0) * Math.pow(u, 0.72)) / 2;
+    const bag = (u) => w1 * 0.36 * U.smoothstep(0.3, 0.62, u);
+    const N = 18, inner = [], outer = [], crease = [];
+    for (let q = 0; q <= N; q++) {
+      const u = q / N;
+      inner.push(p(len * u, -hw(u)));
+      outer.push(p(len * u, hw(u) + bag(u)));
+      if (u >= 0.3) crease.push(p(len * u, hw(u) * 0.94));
+    }
     const path = new Path2D();
-    const a0 = p(0, -w0 / 2), a1 = p(0, w0 / 2);
-    path.moveTo(...a0);
-    path.bezierCurveTo(...p(len * 0.25, -w0 * 0.6), ...p(len * 0.55, -w1 * 0.48), ...p(len, -w1 / 2));
-    path.lineTo(...p(len, w1 / 2));
-    path.bezierCurveTo(...p(len * 0.55, w1 * 0.5), ...p(len * 0.25, w0 * 0.62), ...a1);
-    path.quadraticCurveTo(...p(-7, 0), ...a0);
+    path.moveTo(...inner[0]);
+    for (let q = 1; q <= N; q++) path.lineTo(...inner[q]);
+    for (let q = N; q >= 0; q--) path.lineTo(...outer[q]);
+    path.quadraticCurveTo(...p(-7, 0), ...inner[0]);
     path.closePath();
     const pat = c.createPattern(kasuri(night), 'repeat');
     const ang = Math.atan2(uy, ux) - Math.PI / 2;
-    pat.setTransform(new DOMMatrix().translate(wx, wy).rotate((ang * 180) / Math.PI).scale(k * 0.55));
+    pat.setTransform(new DOMMatrix().translate(wx, wy).rotate((ang * 180) / Math.PI).scale(k * 0.74));
     c.save();
     c.fillStyle = pat;
     c.fill(path);
     c.clip(path);
-    // the shadowed underside (the far side from the moon)
-    const g = c.createLinearGradient(...p(0, -w1 / 2), ...p(0, w1 / 2));
-    g.addColorStop(0, U.rgba(C.sumi, 0));
-    g.addColorStop(0.62, U.rgba(C.sumi, 0));
-    g.addColorStop(1, U.rgba(C.sumi, 0.4));
+    // the shadowed underside (the far side from the moon) and the 袂 hanging in shadow
+    const g = c.createLinearGradient(...p(0, -w1 / 2), ...p(0, w1 / 2 + w1 * 0.3));
+    g.addColorStop(0, U.rgba(C.sumi, 0.12));
+    g.addColorStop(0.4, U.rgba(C.sumi, 0));
+    g.addColorStop(0.62, U.rgba(C.sumi, 0.1));
+    g.addColorStop(1, U.rgba(C.sumi, 0.42));
     c.fillStyle = g;
     c.fill(path);
-    // a single fold along the sleeve
-    B.taper(c, [p(len * 0.22, w0 * 0.12), p(len * 0.5, w1 * 0.1), p(len, w1 * 0.06)], 2.2 * k, 0.6 * k, U.rgba(C.sumi, 0.45), 0.2);
+    // past the elbow the sleeve sinks into the child's own shadow: a 墨
+    // bokashi along it, so the lit forearm reads short and the rest recedes
+    const gl = c.createLinearGradient(...p(len * 0.42, 0), ...p(len * 0.95, 0));
+    gl.addColorStop(0, U.rgba(C.sumi, 0));
+    gl.addColorStop(1, U.rgba(C.sumi, 0.5));
+    c.fillStyle = gl;
+    c.fill(path);
+    // the crease where the 袂 falls away from the arm
+    B.taper(c, crease, 0.6 * k, 3 * k, U.rgba(C.sumi, 0.7), 0.1);
     c.restore();
     c.save();
     c.strokeStyle = U.rgba(C.sumi, 0.85);
@@ -347,8 +403,8 @@
     for (const sd of [-1, 1]) {
       const th = sd * 0.16;
       const w = rot([(sd * 66 - 30 * Math.sin(th) - 5 * sd) * s, (40 + 30 * Math.cos(th) - 8) * s]);
-      const d = rot([-sd * 0.06, 1]);
-      sleeve(ctx, x + w[0], y + w[1], d[0], d[1], 44 * s, 104 * s, 620, s / 1.75);
+      const d = rot([sd * 0.1, 1]);                       // the arms part toward the shoulders
+      sleeve(ctx, x + w[0], y + w[1], d[0], d[1], 44 * s, 150 * s, 640, s / 1.75, sd);
     }
     // bright beads falling from the fingertips as they come up empty
     if (geo && T > BT.up && T < BT.up + 1.2) {
@@ -456,7 +512,7 @@
   // baked once: 'moon' (lit from the moon above), 'lit' (and from within, by
   // the moon in the palms), 'dark' (fallen into night, a 胡粉 rim of moonlight)
   let cupSpr = null;
-  const CUP_BOX = [-218, -125, 218, 640];         // arm-frame local box (sleeves run off the frame)
+  const CUP_BOX = [-340, -125, 340, 660];         // arm-frame local box (sleeves run off the frame)
   function bakeCup(k) {
     if (cupSpr && Math.abs(cupSpr.k - k) / k < 0.1) return cupSpr;
     const corners = [[CUP_BOX[0], CUP_BOX[1]], [CUP_BOX[2], CUP_BOX[1]], [CUP_BOX[0], CUP_BOX[3]], [CUP_BOX[2], CUP_BOX[3]]].map(rot);
@@ -474,8 +530,8 @@
     const sleeves = (c) => {
       for (const sd of [-1, 1]) {
         const w = rot([sd * 30 * CUP.s, 56 * CUP.s]);
-        const d = rot([sd * 0.22, 1]);
-        sleeve(c, w[0], w[1], d[0], d[1], 42 * CUP.s, 104 * CUP.s, 560, CUP.s / 1.75);
+        const d = rot([sd * 0.24, 1]);
+        sleeve(c, w[0], w[1], d[0], d[1], 42 * CUP.s, 150 * CUP.s, 580, CUP.s / 1.75, sd);
       }
     };
     // moonlit
@@ -644,8 +700,9 @@
    * have lost (the rhyme 六 pays off, sixty years later, with the same hands).
    * たけ holds it up to the child's eye from her side of the basin, so we see
    * it from the far side: CAST's anatomical window turned over (180°), her
-   * forearms leaving the top of the frame, one 波兎 sleeve edge at the top
-   * right. The hands are the same old hands that held the ladle, lit by the
+   * forearms rising into her 波兎 sleeves (藍 青海波, a 胡粉 rabbit on each
+   * cuff) and a 薄墨 bokashi toward the frame edge, so the arms recede and
+   * the hands come forward. The hands are the same old hands that held the ladle, lit by the
    * same moon but nearer the eye and more in shadow: moonlit skin glazed
    * toward 藍, a 墨 key line round the whole pose, 墨 creases and knuckles,
    * and a 2 px 胡粉 rim of moonlight on the upper-left (moon-side) edges.
@@ -654,7 +711,8 @@
    * through which Shot D is seen.
    */
   const WIN_INK = U.mix(C.sumi, C.ai, 0.2);
-  const WIN_SKIN = U.mix(HANDS.skinOld, NIGHT, 0.38);        // the ladle hand's skin (NIGHT .24), deeper in shadow
+  // the ladle hand's skin (NIGHT .24) a little deeper in shadow — skin, not stone
+  const WIN_SKIN = U.mix(U.mix(HANDS.skinOld, NIGHT, 0.38), NIGHT_PAL.skinOld, 0.45);
   const WIN_PAL = {
     skin: WIN_SKIN, skinOld: WIN_SKIN, spot: U.mix(WIN_SKIN, C.kitsune, 0.3), vein: U.mix(C.ai, WIN_SKIN, 0.45),
     nail: U.mix(C.gofun, NIGHT, 0.3), crease: C.sumi,
@@ -662,8 +720,11 @@
   const WIN_OPTS = { pose: 'fox-window', age: 1, interlace: 1, sleeve: false, palette: WIN_PAL, ink: C.sumi, outline: 0.9 };
   // forearms (world orientation, scale-1 px from the diamond's centre): wrist → off the top
   const ARMS = [
-    { pts: [[284, -60], [336, -150], [398, -258], [470, -382], [556, -522], [660, -690]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.52 },
-    { pts: [[-284, -60], [-282, -160], [-270, -278], [-248, -408], [-218, -550], [-180, -710]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.9 },
+    // cuff: where her 波兎 sleeve begins (0 wrist … 1 the end of the arm); the
+    // near-vertical left arm is raised higher, so its sleeve has fallen
+    // further back — it covers the upper half of what we see of the forearm
+    { pts: [[284, -60], [336, -150], [398, -258], [470, -382], [556, -522], [660, -690]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.5, flip: 1, rabbit: [46, 8], facing: 1 },
+    { pts: [[-284, -60], [-282, -160], [-270, -278], [-248, -408], [-218, -550], [-180, -710]], ws: [84, 88, 94, 102, 110, 118], cuff: 0.3, flip: -1, rabbit: [118, -14], facing: -1 },
   ];
   const lerpPts = (pts, u) => {
     const f = u * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), t = f - i;
@@ -674,11 +735,10 @@
     for (const a of ARMS) MOON.maria.ribbon(p, a.pts, a.ws, false);
     return p;
   })();
-  /** The sleeve of the right arm from its cuff to beyond the frame (藍), and its cuff line. */
-  const sleeveGeo = (() => {
-    const a = ARMS[0];
+  /** Each arm's sleeve from its cuff to beyond the frame (藍 波兎), its cuff line and one rabbit. */
+  const sleeveGeo = ARMS.map((a) => {
     const c0 = lerpPts(a.pts, a.cuff), c1 = lerpPts(a.pts, a.cuff + 0.06);
-    const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    const dx = c1[0] - c0[0], dy = c1[1] - c0[1], L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, nx = -uy * a.flip, ny = ux * a.flip;
     const P = (t, o) => [c0[0] + ux * t + nx * o, c0[1] + uy * t + ny * o];
     const p = new Path2D();
     const q = [P(4, -84), P(-12, -30), P(-12, 30), P(4, 88)];
@@ -687,8 +747,12 @@
     p.lineTo(...P(700, 150));
     p.lineTo(...P(700, -150));
     p.closePath();
-    return { path: p, cuff: [P(6, -80), P(-8, 0), P(6, 84)], rabbit: P(46, 8), ang: Math.atan2(uy, ux) };
-  })();
+    const cuff = new Path2D();
+    cuff.moveTo(...q[0]);
+    cuff.bezierCurveTo(...q[1], ...q[2], ...q[3]);
+    return { path: p, cuff, hem: [P(6, -80), P(-8, 0), P(6, 84)], rabbit: P(a.rabbit[0], a.rabbit[1]), facing: a.facing, ang: Math.atan2(uy, ux), c0, ux, uy };
+  });
+  const sleevesPath = (() => { const p = new Path2D(); for (const g of sleeveGeo) p.addPath(g.path); return p; })();
 
   function foxState(T) {
     if (T < BT.window) return null;
@@ -744,7 +808,7 @@
     blitScratch(ctx);
   }
 
-  /** The window pose in ctx at (0,0), scale sc: the hands (CAST, turned over), the forearms, the sleeve. */
+  /** The window pose in ctx at (0,0), scale sc: the hands (CAST, turned over), the forearms, the sleeves. */
   function paintWindow(c, sc, T, mask, withSleeve) {
     c.save();
     c.scale(sc, sc);
@@ -755,25 +819,60 @@
     // the forearms, filled over the hands' wrist lines so the pose reads as one shape
     c.fillStyle = mask || WIN_SKIN;
     c.fill(armPath);
+    if (!mask) {
+      // a 薄墨 bokashi down the forearms: darker toward the frame edge, so the
+      // arms recede into the night and the lit hands come forward
+      c.save();
+      c.clip(armPath);
+      const g = c.createLinearGradient(0, -80, 0, -470);
+      g.addColorStop(0, U.rgba(C.sumi, 0));
+      g.addColorStop(0.55, U.rgba(C.sumi, 0.25));
+      g.addColorStop(1, U.rgba(C.sumi, 0.32));
+      c.fillStyle = g;
+      c.fillRect(-460, -760, 1240, 640);
+      c.restore();
+    }
     if (withSleeve) {
-      // the sleeve's edge: 藍, with one 胡粉 rabbit leaping on it
-      c.fillStyle = U.mix(C.ai, C.koiai, 0.45);
-      c.fill(sleeveGeo.path);
-      c.save();
-      c.clip(sleeveGeo.path);
-      c.save();
-      c.translate(sleeveGeo.rabbit[0], sleeveGeo.rabbit[1]);
-      c.rotate(sleeveGeo.ang + Math.PI / 2);
-      CAST.rabbit(c, 0, 0, 0.8, { pose: 'leap', phase: 0.45, facing: 1, silhouette: U.mix(C.gofun, C.ai, 0.12), t: 0 });
-      c.restore();
-      const q = sleeveGeo.cuff;
-      c.strokeStyle = U.rgba(C.gofun, 0.3);
-      c.lineWidth = 2;
-      c.beginPath();
-      c.moveTo(...q[0]);
-      c.quadraticCurveTo(...q[1], ...q[2]);
-      c.stroke();
-      c.restore();
+      // the sleeves: 藍 with a faint 青海波 woven in and one 胡粉 rabbit leaping on each (波兎)
+      const ai = U.mix(C.ai, C.koiai, 0.45);
+      for (const sg of sleeveGeo) {
+        c.fillStyle = mask || ai;
+        c.fill(sg.path);
+        if (mask) continue;
+        c.save();
+        c.clip(sg.path);
+        const pat = B.pattern(c, 'seigaiha', U.mix(ai, C.gofun, 0.13), ai, 26);
+        pat.setTransform(new DOMMatrix().translate(sg.c0[0], sg.c0[1]).rotate((sg.ang * 180) / Math.PI + 90));
+        c.save();
+        c.globalAlpha *= 0.55;
+        c.fillStyle = pat;
+        c.fill(sg.path);
+        c.restore();
+        // the fold falls into shadow toward the frame edge, as the forearms do
+        const g = c.createLinearGradient(0, -120, 0, -470);
+        g.addColorStop(0, U.rgba(C.sumi, 0));
+        g.addColorStop(1, U.rgba(C.sumi, 0.22));
+        c.fillStyle = g;
+        c.fillRect(-460, -760, 1240, 640);
+        c.save();
+        c.translate(sg.rabbit[0], sg.rabbit[1]);
+        c.rotate(sg.ang + Math.PI / 2);
+        CAST.rabbit(c, 0, 0, 0.8, { pose: 'leap', phase: 0.45, facing: sg.facing, silhouette: U.mix(C.gofun, C.ai, 0.12), t: 0 });
+        c.restore();
+        const q = sg.hem;
+        c.strokeStyle = U.rgba(C.gofun, 0.3);
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(...q[0]);
+        c.quadraticCurveTo(...q[1], ...q[2]);
+        c.stroke();
+        c.restore();
+        // the cuff's key line, where the sleeve lies over the forearm
+        c.strokeStyle = U.rgba(C.sumi, 0.8);
+        c.lineWidth = 1.6;
+        c.lineCap = 'round';
+        c.stroke(sg.cuff);
+      }
     }
     c.restore();
   }
@@ -808,12 +907,15 @@
     }
     detail.c.restore();
     paintWindow(detail.c, 1, 0, null, true);
-    // the rim: the hands and forearms (not the sleeve) minus themselves moved down-right
+    // the rim: the hands and forearms (not the sleeves) minus themselves moved
+    // down-right — and never across a sleeve that lies over a forearm
     const rim = mk();
     paintWindow(rim.c, 1, 0, C.gofun, false);
     rim.c.setTransform(1, 0, 0, 1, 0, 0);
     rim.c.globalCompositeOperation = 'destination-out';
     rim.c.drawImage(rim.cv, Math.round(WIN_RIM * 0.75 * q), Math.round(WIN_RIM * q));
+    rim.c.setTransform(q, 0, 0, q, -WIN_BOX[0] * q, -WIN_BOX[1] * q);
+    rim.c.fill(sleevesPath);
     // the same pose in the near dark (the opening), for the cross-fade into the vectors
     const ink = mk();
     paintWindow(ink.c, 1, 0, WIN_INK, true);
@@ -880,12 +982,17 @@
           // …until たけ's window comes over the basin: her hands and sleeve shade
           // the water and the moon leaves it for the diamond (one moon per frame)
           const shade = 1 - U.smoothstep(86.5, BT.reveal, T);
-          if (!shattered) SC.reflection(c2, T, { wobble: wob, alpha: (1 - 0.92 * held) * shade });
+          // its glow and glint were broken with it: they come back only after
+          // the disc is whole (71.6 → 72.3), not with it
+          const glow = T >= BT.shatter && T < 72.3 ? E.outSine(U.seg(T, 71.6, 72.3)) : 1;
+          if (!shattered) SC.reflection(c2, T, { wobble: wob, alpha: (1 - 0.92 * held) * shade, glow });
           else {
-            // the shards regather; the whole disc returns over 71.55–71.8
-            const whole = U.smoothstep(BT.whole - 0.25, BT.whole, T);
-            drawShards(c2, T, 1 - whole);
-            if (whole > 0) SC.reflection(c2, T, { alpha: whole, wobble: wob });
+            // an 'over' dissolve, never a grey disc between two states: as the
+            // last gaps close (71.0–71.3) the whole disc comes up UNDER the
+            // shards and heals every seam; they dock (71.4) and melt into it
+            const under = U.smoothstep(71.0, 71.3, T);
+            if (under > 0) SC.reflection(c2, T, { alpha: under, wobble: wob, glow });
+            drawShards(c2, T, 1 - U.smoothstep(BT.whole - 0.45, BT.whole, T), wob);
           }
         });
         PRINT.with(c, 'P7', T, (c2) => SC.rings(c2, T, rings, { refl: sc < 0.05 ? SC.G.refl : null }));

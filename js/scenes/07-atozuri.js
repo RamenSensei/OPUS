@@ -7,15 +7,18 @@
                   path (old 小夜): fifteen dango, one per (partly silent) pluck.
                   (TSUKI.SHOTS.A.drawLate — a cached, aged snapshot after 160.62.)
      169.0–171.0  A′ insert: old hands pour two cups — the far one first (169.0),
-                  then the near one (169.62), which steams; the pot is set down
-                  (170.34); the push ends on the untouched cup, a tiny moon
-                  floating in its tea, held 170.5–171.0.
+                  then the near one (169.62), which steams; on the tick of the pot
+                  set down (170.34) a hard cut to the untouched cup, a tiny moon
+                  floating in its tea, held (a 2 % drift) to 171.0.
      171.0–173.0  A′ insert: the jug's susuki tied with a strip of the faded red
                   heko-obi — 退紅, hand-applied, overrunning its key line. It is 小夜.
-     173.0–182.0  月に雁: yellowed margins close to a tall 640 × 1080 kakemono;
-                  flat pale 藍, the fresh moon (960,330) r 120, three geese
-                  descending across it, the third lagging; 白居易's couplet is the
-                  DOM 画賛 in the left margin (173.6–181.6). Margins open 181.4–182.
+     173.0–182.0  月に雁: yellowed margins close to a tall 640 × 930 print over a 地
+                  of paper (the subtitle sits there); flat pale 藍, the fresh moon
+                  in its upper third, three geese descending steeply on bowed
+                  paths toward a stand of reeds in the mist — the lead large and
+                  low, the second across the moon's rim, the third small, high,
+                  late and falling behind; 白居易's couplet is the DOM 画賛 in the
+                  left margin (173.6–181.6). Margins open 181.4–182.
      182.0–190.0  A′: her old hands rise already joined in the fox window (墨
                   silhouettes against the moonlit paper, a 銀鼠 rim on the
                   moon side, pale knuckle creases; the 波兎 sleeves rising from
@@ -198,9 +201,11 @@
   /* A′ inserts: the offerings of the late night, at A′ scale            */
   /* ------------------------------------------------------------------ */
   const OS = { x: 1066, y: 950, s: 1.65 };     // old 小夜 on たけ's exact spot in A′ (cf. 五)
-  const JUG = { x: 410, y: 948 };
-  const SANBO = { x: 520, y: 950 };
-  const BOX = { x: 296, y: 950 };
+  // the still life of the late night, laid out on a diagonal (a surimono): the lacquer box low
+  // and near on the left, the jug in the middle, the 三方 to the right and further back
+  const JUG = { x: 424, y: 954 };
+  const SANBO = { x: 536, y: 912 };
+  const BOX = { x: 318, y: 994 };
   const POT_DOWN = { x: 986, y: 958 };         // where the pot is set down, beside her knee
 
   function cupPath(x, y, w, h) {
@@ -211,6 +216,24 @@
     p.bezierCurveTo(x + w * 0.42, y - 1, x + w / 2 + 1, y - h * 0.4, x + w / 2, y - h);
     // left open: fills close it, but the key line must not cut across the mouth (the rim does)
     return p;
+  }
+  /** three threads of steam rising from a cup's rim (P7 胡粉); col lets a pre-aged frame keep its ink */
+  function cupSteam(pen, T, x, top, steam, col) {
+    pen('P7', (c) => {
+      c.lineCap = 'round';
+      for (let j = 0; j < 3; j++) {
+        c.strokeStyle = U.rgba(col, 0.3 * Math.min(1, steam * 2) * (1 - j * 0.15));
+        c.lineWidth = 2.2 - j * 0.4;
+        c.beginPath();
+        for (let i = 0; i <= 14; i++) {
+          const s = i / 14;
+          const px = x - 5 + j * 5 + Math.sin(s * 6 + T * 1.4 + j * 2.2) * 4 * s + s * 6;
+          const py = top - 4 - s * (46 + j * 10) * steam;
+          i ? c.lineTo(px, py) : c.moveTo(px, py);
+        }
+        c.stroke();
+      }
+    });
   }
   /** a yunomi on the boards; tea level, optional steam; returns the tea surface */
   function drawCup(ctx, T, x, y, o) {
@@ -240,57 +263,72 @@
       c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [bodyC, rim], 1.1 * lw, x);
       c.fillStyle = U.rgba(C.sumi, 0.6); c.fillRect(x - w * 0.3, y - 1.2 * lw, w * 0.6, 1.4 * lw);
     });
-    if (o.steam > 0) {
-      pen('P7', (c) => {
-        c.lineCap = 'round';
-        for (let j = 0; j < 3; j++) {
-          c.strokeStyle = U.rgba(C.gofun, 0.3 * Math.min(1, o.steam * 2) * (1 - j * 0.15));
-          c.lineWidth = 2.2 - j * 0.4;
-          c.beginPath();
-          for (let i = 0; i <= 14; i++) {
-            const s = i / 14;
-            const px = x - 5 + j * 5 + Math.sin(s * 6 + T * 1.4 + j * 2.2) * 4 * s + s * 6;
-            const py = y - h - 4 - s * (46 + j * 10) * o.steam;
-            i ? c.lineTo(px, py) : c.moveTo(px, py);
-          }
-          c.stroke();
-        }
-      });
-    }
+    if (o.steam > 0) cupSteam(pen, T, x, y - h, o.steam, C.gofun);
     pen.flush();
     return { teaX: x, teaY: y - h + 0.8 * k, rx: w / 2 - 1.6 * k, ry: 3.0 * k };
   }
-  /** the 土瓶 set down on the boards: a round earthen pot, a spout, a cane handle */
-  function drawPot(ctx, T, x, y, lw = 1) {
+  /**
+   * The 横手急須 (a side-handled teapot for two cups): a squat earthen body, a
+   * tapering spout (−x), a low domed lid with its bud, and the side handle
+   * turned toward us — held like a knife's haft, in line with the forearm,
+   * when she pours. Drawn in its own frame (base centre at 0,0); the same pot
+   * is poured from (169.0–170.3) and set down beside her knee (170.34).
+   */
+  const KYUSU = { lip: [-30.1, -19.5], root: [8, -10.2], end: [30, -3.8], grip: [24.2, -5.5] };   // the spout's lip; the handle's axis; where her fist closes on it
+  function kyusu(ctx, T, lw) {
     const pen = shotA().livePen(ctx, T);
     const bodyC = carvePath();
-    bodyC.moveTo(x - 22, y - 4);
-    bodyC.bezierCurveTo(x - 26, y - 24, x - 14, y - 34, x, y - 34);
-    bodyC.bezierCurveTo(x + 14, y - 34, x + 26, y - 24, x + 22, y - 4);
-    bodyC.quadraticCurveTo(x, y + 2, x - 22, y - 4);
+    bodyC.moveTo(-11, 0); bodyC.lineTo(11, 0);
+    bodyC.bezierCurveTo(18.5, -0.4, 21.6, -5.4, 21.1, -9.6);
+    bodyC.bezierCurveTo(20.6, -14.6, 15.6, -18.1, 11, -18.6);
+    bodyC.lineTo(-11, -18.6);
+    bodyC.bezierCurveTo(-15.6, -18.1, -20.6, -14.6, -21.1, -9.6);
+    bodyC.bezierCurveTo(-21.6, -5.4, -18.5, -0.4, -11, 0);
     bodyC.closePath();
     const spoutC = carvePath();
-    spoutC.moveTo(x - 20, y - 16); spoutC.quadraticCurveTo(x - 32, y - 20, x - 38, y - 32); spoutC.lineTo(x - 34, y - 34);
-    spoutC.quadraticCurveTo(x - 28, y - 25, x - 19, y - 24); spoutC.closePath();
+    spoutC.moveTo(-19.6, -4.6);
+    spoutC.bezierCurveTo(-24.6, -7.2, -28.6, -12.6, -31.3, -18.5);
+    spoutC.lineTo(-29.0, -20.5);
+    spoutC.bezierCurveTo(-26.8, -15.9, -23.2, -12.7, -18.9, -12.3);
+    spoutC.closePath();
     const lidC = carvePath();
-    lidC.ellipse(x, y - 34, 10, 2.6, 0, 0, TAU);
-    lidC.moveTo(x + 3, y - 38); lidC.ellipse(x, y - 38, 3, 2.2, 0, 0, TAU);
-    const handleC = carvePath();
-    handleC.moveTo(x - 17, y - 28); handleC.bezierCurveTo(x - 18, y - 58, x + 18, y - 58, x + 17, y - 28);
-    const body = bodyC.path, spout = spoutC.path, lid = lidC.path, handle = handleC.path;
+    lidC.moveTo(-11, -18.6); lidC.bezierCurveTo(-8.6, -23.1, 8.6, -23.1, 11, -18.6); lidC.closePath();
+    const knobC = carvePath();
+    knobC.ellipse(0, -23.4, 2.5, 1.9, 0, 0, TAU);
+    // the side handle, foreshortened toward us: a tapered haft and its cut end
+    const handleC = carvePath(), capC = carvePath();
+    {
+      const [r0, e0] = [KYUSU.root, KYUSU.end];
+      const dx = e0[0] - r0[0], dy = e0[1] - r0[1], l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l;
+      handleC.moveTo(r0[0] + nx * 2.6, r0[1] + ny * 2.6); handleC.lineTo(e0[0] + nx * 1.9, e0[1] + ny * 1.9);
+      handleC.lineTo(e0[0] - nx * 1.9, e0[1] - ny * 1.9); handleC.lineTo(r0[0] - nx * 2.6, r0[1] - ny * 2.6); handleC.closePath();
+      capC.ellipse(e0[0], e0[1], 1.1, 1.9, Math.atan2(dy, dx), 0, TAU);
+    }
     const pc = U.mix(C.odo, C.sumi, 0.5);
     pen('P1', (c) => {
-      c.fillStyle = pc; c.fill(body); c.fill(spout);
-      c.fillStyle = U.mix(pc, C.kinari, 0.25); c.fill(lid);
-      c.save(); c.clip(body); c.fillStyle = U.mix(pc, C.sumi, 0.3); c.fillRect(x + 6, y - 40, 30, 44); c.restore();
-      c.strokeStyle = U.mix(C.kuchiba, C.odo, 0.4); c.lineWidth = 2.4; c.lineCap = 'round'; c.stroke(handle);
+      c.fillStyle = pc; c.fill(bodyC.path); c.fill(spoutC.path);
+      // the glaze pooled darker on the side away from the moon, a paler lip of unglazed clay at the foot
+      c.save(); c.clip(bodyC.path);
+      c.fillStyle = U.mix(pc, C.sumi, 0.3); c.fillRect(4, -26, 30, 30);
+      c.fillStyle = U.mix(pc, C.kinari, 0.3); c.fillRect(-24, -2.6, 48, 3);
+      c.restore();
+      c.fillStyle = U.mix(pc, C.kinari, 0.22); c.fill(lidC.path); c.fill(knobC.path);
+      c.fillStyle = U.mix(pc, C.sumi, 0.2); c.fill(handleC.path);
+      c.fillStyle = U.mix(pc, C.kinari, 0.15); c.fill(capC.path);
     });
     pen('K', (c) => {
       c.fillStyle = U.rgba(C.sumi, 0.85);
-      carveLine(c, [bodyC, spoutC, lidC], 1.1 * lw, x + 3);
-      carveLine(c, handleC, 0.8 * lw, x + 5);
+      carveLine(c, [bodyC, spoutC, lidC, knobC], 1.1 * lw, 31);
+      carveLine(c, [handleC, capC], 0.9 * lw, 37);
     });
     pen.flush();
+  }
+  /** the pot set down on the boards (upright) */
+  function drawPot(ctx, T, x, y, lw = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+    kyusu(ctx, T, lw);
+    ctx.restore();
   }
 
   /** the jug of susuki (grey in the late print), the 三方 with fifteen dango, the lacquer box, the paper cut-out */
@@ -333,6 +371,7 @@
     // the susuki in the jug (grey plumes: the warm and fresh blocks are gone)
     const r = U.rng(606);
     const stems = new Path2D(), hairs = new Path2D(), hairsHi = new Path2D(), key = new Path2D(), leaves = new Path2D();
+    const kiraPts = [];
     const sway = Math.sin(T * 0.8) * 0.012;
     for (let i = 0; i < 6; i++) {
       const a = U.lerp(-0.42, 0.36, i / 5) + U.lerp(-0.05, 0.05, r()) + sway;
@@ -351,6 +390,7 @@
         const ex = p[0] + Math.sin(th + side * 0.5) * hl, ey = p[1] - Math.cos(th + side * 0.5) * hl;
         const mx = p[0] + Math.sin(th) * hl * 0.55, my = p[1] - Math.cos(th) * hl * 0.55;
         const tgt = v < 0.4 && r() < 0.5 ? hairsHi : hairs;
+        if (k % 3 === 1) kiraPts.push([U.lerp(p[0], ex, 0.6), U.lerp(p[1], ey, 0.6)]);
         const dx = ex - p[0], dy = ey - p[1], ll = Math.hypot(dx, dy) || 1, nx = (-dy / ll) * 1.4, ny = (dx / ll) * 1.4;
         tgt.moveTo(p[0], p[1]); tgt.quadraticCurveTo(mx + nx, my + ny, ex, ey); tgt.quadraticCurveTo(mx - nx, my - ny, p[0], p[1]);
         if (k % 2 === 0) { key.moveTo(p[0], p[1]); key.quadraticCurveTo(mx, my, ex, ey); }
@@ -365,45 +405,74 @@
     pen('P4', (c) => { c.fillStyle = U.mix(C.nezumi, C.rikyu, 0.45); c.fill(stems); c.fillStyle = C.ginnezu; c.fill(hairs); });
     pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.ginnezu, 0.35); c.fill(hairsHi); });
     pen('K', (c) => { c.strokeStyle = U.rgba(C.sumi, 0.75); c.lineWidth = 0.9 * lw; c.stroke(key); });
-    // the 三方 with fifteen dango stacked 9 · 4 · 2, seen from the front:
-    // three on the tray (the row behind peeping between), two in the hollows, one on top
+    // kira-zuri: mica dusted on the plumes (a few fixed flecks, catching the moon a little as it moves)
+    pen('P8', (c) => {
+      const kr = U.rng(6061), mica = new Path2D();
+      for (const p of kiraPts) { if (kr() < 0.55) { const r2 = U.lerp(0.5, 1.2, kr()) * lw; mica.moveTo(p[0] + r2, p[1]); mica.arc(p[0], p[1], r2, 0, TAU); } }
+      c.fillStyle = `rgba(255,253,244,${(0.26 + 0.08 * Math.sin(T * 1.7)).toFixed(3)})`;
+      c.fill(mica);
+    });
+    // the 三方 with fifteen dango stacked 9 · 4 · 2, seen from the front: an 折敷 tray with its
+    // raised rim (隅切り: the cut corners show as two narrow faces) on a stand whose front is
+    // pierced by one horizontal pointed-oval 刳形; three dango on the tray (the row behind
+    // peeping between), two in the hollows, one on top
     const { x: sx, y: sy } = SANBO;
-    const trayC = carvePath(), tray = trayC;
-    tray.moveTo(sx - 46, sy - 58); tray.lineTo(sx + 46, sy - 58); tray.lineTo(sx + 42, sy - 44); tray.lineTo(sx - 42, sy - 44); tray.closePath();
-    const rimT = carvePath();
-    rimT.moveTo(sx - 46, sy - 58); rimT.lineTo(sx - 42, sy - 62); rimT.lineTo(sx + 42, sy - 62); rimT.lineTo(sx + 46, sy - 58);
-    const standC = carvePath(), stand = standC;
-    stand.moveTo(sx - 32, sy - 44); stand.lineTo(sx + 32, sy - 44); stand.lineTo(sx + 36, sy); stand.lineTo(sx - 36, sy); stand.closePath();
-    const holeC = carvePath(), hole = holeC;
-    hole.moveTo(sx - 9, sy - 8); hole.lineTo(sx - 9, sy - 26); hole.quadraticCurveTo(sx, sy - 36, sx + 9, sy - 26); hole.lineTo(sx + 9, sy - 8); hole.closePath();
+    const rimC = carvePath();                                   // the rim's front face
+    rimC.moveTo(sx - 40, sy - 60); rimC.lineTo(sx + 40, sy - 60); rimC.lineTo(sx + 40, sy - 47); rimC.lineTo(sx - 40, sy - 47); rimC.closePath();
+    const cornC = carvePath();                                  // the two cut corners
+    cornC.moveTo(sx - 40, sy - 60); cornC.lineTo(sx - 47, sy - 63); cornC.lineTo(sx - 47, sy - 50); cornC.lineTo(sx - 40, sy - 47); cornC.closePath();
+    cornC.moveTo(sx + 40, sy - 60); cornC.lineTo(sx + 47, sy - 63); cornC.lineTo(sx + 47, sy - 50); cornC.lineTo(sx + 40, sy - 47); cornC.closePath();
+    const floorC = carvePath();                                 // the tray's floor inside the far rim, seen from a little above
+    floorC.moveTo(sx - 47, sy - 63); floorC.lineTo(sx - 40, sy - 66); floorC.lineTo(sx + 40, sy - 66); floorC.lineTo(sx + 47, sy - 63); floorC.lineTo(sx + 40, sy - 60); floorC.lineTo(sx - 40, sy - 60); floorC.closePath();
+    const standC = carvePath();
+    standC.moveTo(sx - 29, sy - 47); standC.lineTo(sx + 29, sy - 47); standC.lineTo(sx + 33, sy); standC.lineTo(sx - 33, sy); standC.closePath();
+    const holeC = carvePath();                                  // 刳形: a horizontal pointed oval (猪目-like)
+    holeC.moveTo(sx - 15, sy - 23);
+    holeC.bezierCurveTo(sx - 7, sy - 31, sx + 7, sy - 31, sx + 15, sy - 23);
+    holeC.bezierCurveTo(sx + 7, sy - 15.5, sx - 7, sy - 15.5, sx - 15, sy - 23);
+    holeC.closePath();
     const back = carvePath(), front = carvePath();
-    const rr = 9.2, base = sy - 60 - rr + 1;
-    const ball = (p, x, y, s) => { p.moveTo(x + rr * s, y); p.ellipse(x, y, rr * s, rr * s * 0.95, 0, 0, TAU); };
+    const rr = 9.2, base = sy - 62 - rr + 1;
+    const balls = [];
+    const ball = (p, x, y, sc) => { p.moveTo(x + rr * sc, y); p.ellipse(x, y, rr * sc, rr * sc * 0.95, 0, 0, TAU); balls.push([x, y, rr * sc]); };
     ball(back, sx - 9.2, base - 5, 0.96); ball(back, sx + 9.2, base - 5, 0.96);
     for (const dx of [-18.4, 0, 18.4]) ball(front, sx + dx, base, 1);
     for (const dx of [-9.2, 9.2]) ball(front, sx + dx, base - 16, 1);
     ball(front, sx, base - 32, 1);
+    const wood = U.mix(C.kinari, C.odo, 0.3);
     pen('P1', (c) => {
-      c.fillStyle = U.mix(C.kinari, C.odo, 0.35); c.fill(standC.path);
-      c.fillStyle = U.mix(C.kinari, C.odo, 0.22); c.fill(trayC.path);
-      c.fillStyle = U.mix(C.odo, C.sumi, 0.45); c.fill(holeC.path);
+      c.fillStyle = wood; c.fill(standC.path);
+      c.fillStyle = U.mix(C.kinari, C.odo, 0.2); c.fill(rimC.path);
+      c.fillStyle = U.mix(wood, C.sumi, 0.12); c.fill(cornC.path);
+      c.fillStyle = U.mix(C.kinari, C.odo, 0.14); c.fill(floorC.path);
+      c.fillStyle = U.mix(C.odo, C.sumi, 0.55); c.fill(holeC.path);
     });
-    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [trayC, rimT, standC, holeC], 1.2 * lw, sx); });
-    // the row behind first (it peeps between the front three), then the front of the stack
-    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.45); c.fill(back.path); });
+    pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, [rimC, cornC, floorC, standC, holeC], 1.2 * lw, sx); });
+    // the row behind first (it peeps between the front three), then the front of the stack; each
+    // dango carries a karazuri — a blind-embossed rim: a hair of light above-left, of shade below-right
+    const emboss = (c, list) => {
+      c.lineCap = 'round';
+      for (const [x, y, r] of list) {
+        c.strokeStyle = U.rgba(C.gofun, 0.85); c.lineWidth = 1.0 * lw;
+        c.beginPath(); c.arc(x - 0.35 * lw, y - 0.35 * lw, r - 1.1 * lw, Math.PI * 1.05, Math.PI * 1.6); c.stroke();
+        c.strokeStyle = U.rgba(C.sumi, 0.16); c.lineWidth = 1.0 * lw;
+        c.beginPath(); c.arc(x + 0.35 * lw, y + 0.35 * lw, r - 1.1 * lw, Math.PI * 0.08, Math.PI * 0.62); c.stroke();
+      }
+    };
+    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.45); c.fill(back.path); emboss(c, balls.slice(0, 2)); });
     pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, back, 0.9 * lw, sx + 1); });
     pen.flush();
-    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.22); c.fill(front.path); });
+    pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.torinoko, 0.22); c.fill(front.path); emboss(c, balls.slice(2)); });
     pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.85); carveLine(c, front, 0.9 * lw, sx + 2); });
-    // the black-lacquer box of old paper cut-outs (no 朱: 墨 with 銀鼠 highlights)
+    // the black-lacquer box of old paper cut-outs (no 朱, no gloss: flat 墨-lacquer, its lid a shade apart)
     const { x: bx0, y: by0 } = BOX;
     const box = carvePath();
     box.rect(bx0 - 44, by0 - 30, 88, 30);
     const lid = carvePath();
     lid.rect(bx0 - 47, by0 - 38, 94, 9);
     pen('P4', (c) => {
-      c.fillStyle = U.mix(C.sumi, C.enji, 0.12); c.fill(box.path); c.fill(lid.path);
-      c.fillStyle = U.rgba(C.ginnezu, 0.8); c.fillRect(bx0 - 42, by0 - 36.5, 60, 1.6); c.fillRect(bx0 - 40, by0 - 26, 1.4, 20);
+      c.fillStyle = U.mix(C.sumi, C.enji, 0.12); c.fill(box.path);
+      c.fillStyle = U.mix(C.sumi, C.enji, 0.2); c.fill(lid.path);
     });
     pen('K', (c) => { c.fillStyle = U.rgba(C.sumi, 0.9); carveLine(c, [box, lid], 1 * lw, bx0); });
     pen.flush();
@@ -463,9 +532,81 @@
     ctx.restore();
   }
 
-  /** old 小夜 at A′ scale — carved once per pose at the insert's closest zoom (she holds still) */
-  const figCache = {};
+  /* ------------------------------------------------------------------ */
+  /* old 小夜 at A′ scale                                                */
+  /* ------------------------------------------------------------------ */
+  /**
+   * She holds still through the insert, so each pose is carved once into a
+   * sprite at the insert's closest zoom. CAST cuts its key line ≈2.5 px wide
+   * at the figure's own scale; under the 2.3–4.7× insert camera that printed
+   * 6–12 px lines beside the cups' 2 px ones. So each pose is carved m times
+   * larger on a canvas scaled 1/m (the same figure, its line m× finer), m
+   * being the camera the pose is seen through — the lines land ≈2–3 px on
+   * screen, like the props'.
+   * CAST's own pot and its round stand-in hand are cut out of the sprite:
+   * the 急須 is drawn live and tips as she pours, and the hand is drawn live
+   * (oldHand) — closed round the pot's handle, then open as she lets it go.
+   */
   const FIG_ZOOM = 4.8;
+  const FIG_LINE = { pour: 3.0, seiza: 4.6 };       // m: the camera scale each pose's key line is cut for
+  const FOREARM = { pour: 1.72, seiza: 1.25 };      // CAST's forearm angle for the pose (grandmaPose armN[1], from straight down)
+  const DISC = { pour: 9, seiza: 10 };              // CAST's stand-in hand (handPath len; always the closed grip)
+  const FIG_PAL = () => ({ obijime: U.mix(C.kon, C.ginnezu, 0.3) });
+  const figCache = {};
+  /** CAST at m× on a canvas scaled 1/m; the near hand back in stage px */
+  function castFig(g, pose, m, extra) {
+    g.save();
+    g.scale(1 / m, 1 / m);
+    const r = TSUKI.CAST.oldSayo(g, OS.x * m, OS.y * m, OS.s * m, Object.assign({ pose, facing: -1, t: 0, stream: false, palette: FIG_PAL() }, extra || {}));
+    g.restore();
+    return r && r.hand ? [r.hand[0] / m, r.hand[1] / m] : null;
+  }
+  /** the near wrist: h at the cuff's centre, u out of the cuff along the forearm, v toward the palm */
+  function wristFrame(h, pose) {
+    const a = FOREARM[pose];
+    const u = [-Math.sin(a), Math.cos(a)];            // facing −1 mirrors CAST's forearm
+    let v = [-u[1], u[0]];
+    if (v[1] < 0) v = [-v[0], -v[1]];
+    return { h, u, v };
+  }
+  const inFrame = (c, F) => c.transform(F.u[0], F.u[1], F.v[0], F.v[1], F.h[0], F.h[1]);
+  /** a closed Catmull-Rom path through pts (as cast.js draws its shapes) */
+  function crPath(pts) {
+    const p = new Path2D(), n = pts.length, k = 1 / 6, get = (i) => pts[(i + n) % n];
+    p.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 0; i < n; i++) {
+      const p0 = get(i - 1), p1 = get(i), p2 = get(i + 1), p3 = get(i + 2);
+      p.bezierCurveTo(p1[0] + (p2[0] - p0[0]) * k, p1[1] + (p2[1] - p0[1]) * k, p2[0] - (p3[0] - p1[0]) * k, p2[1] - (p3[1] - p1[1]) * k, p2[0], p2[1]);
+    }
+    p.closePath();
+    return p;
+  }
+  /** a band over the key lines of CAST's 'pour' pot (body, spout, bail), in its own frame at the hand */
+  function castPotBand(g, hand) {
+    const hl = [(OS.x - hand[0]) / OS.s, (hand[1] - OS.y) / OS.s];
+    g.save();
+    g.translate(OS.x, OS.y);
+    g.scale(-OS.s, OS.s);
+    g.translate(hl[0] + 6, hl[1] - 2);
+    g.rotate(0.55);
+    g.strokeStyle = '#000';
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    // the body's outline crosses the sleeve: a band only as wide as the line (and its
+    // anti-aliasing), so the sleeve's own key line keeps all but the crossing points
+    g.lineWidth = 0.95;
+    g.stroke(crPath([[-12, -8], [12, -8], [15, 2], [11, 12], [-11, 12], [-15, 2]]));
+    // the bail and the spout hang over the bare boards: generous bands
+    g.lineWidth = 2.2;
+    const bail = new Path2D();
+    bail.moveTo(-10, -8); bail.bezierCurveTo(-10, -22, 10, -22, 10, -8);
+    g.stroke(bail);
+    const spout = new Path2D();
+    spout.moveTo(11, 0); spout.lineTo(20, -4); spout.lineTo(25.4, -7.3);
+    g.lineWidth = 7.2;
+    g.stroke(spout);
+    g.restore();
+  }
   function figSprite(c, pose) {
     const cw = c.canvas.width, key = pose + '|' + cw;
     if (figCache[key]) return figCache[key];
@@ -473,136 +614,426 @@
     const bb = CAST.bounds('oldSayo', pose, {});
     const x0 = OS.x - (bb[0] + bb[2]) * OS.s - 6, y0 = OS.y + bb[1] * OS.s - 6;   // facing −1 mirrors the box
     const w = bb[2] * OS.s + 12, h = bb[3] * OS.s + 12;
-    const k = (cw / W) * FIG_ZOOM;
-    const cv = B.canvas(Math.ceil(w * k), Math.ceil(h * k)), g = cv.getContext('2d');
-    g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
-    CAST.oldSayo(g, OS.x, OS.y, OS.s, { pose, facing: -1, t: 0, stream: false, palette: { obijime: U.mix(C.kon, C.ginnezu, 0.3) } });
-    return (figCache[key] = { cv, x0, y0, w, h });
+    const k = (cw / W) * FIG_ZOOM, pw = Math.ceil(w * k), ph = Math.ceil(h * k);
+    const mk = () => { const cv = B.canvas(pw, ph), g = cv.getContext('2d'); g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); return [cv, g]; };
+    const put = (dst, src, op) => { dst.save(); dst.setTransform(1, 0, 0, 1, 0, 0); dst.globalCompositeOperation = op; dst.drawImage(src, 0, 0); dst.restore(); };
+    const m = FIG_LINE[pose];
+    const [cv, g] = mk();
+    let hand;
+    if (pose === 'pour') {
+      // her pot is not CAST's: print it unfilled, and lift its key lines out
+      // with a band of the unlined impression, so the sleeve runs on beneath
+      const pal = Object.assign(FIG_PAL(), { pot: 'rgba(0,0,0,0)' });
+      hand = castFig(g, pose, m, { palette: pal });
+      const [cvB, gB] = mk(), [cvM, gM] = mk();
+      castFig(gB, pose, m, { palette: pal, outline: 0 });
+      castPotBand(gM, hand);
+      put(gB, cvM, 'destination-in');
+      put(g, cvM, 'destination-out');
+      put(g, cvB, 'lighter');
+      cvB.width = cvB.height = cvM.width = cvM.height = 0;
+    } else hand = castFig(g, pose, m);
+    // CAST's round stand-in hand, cut away beyond the cuff
+    const F = wristFrame(hand, pose), L = DISC[pose] * 0.62;
+    g.save();
+    inFrame(g, F);
+    g.beginPath(); g.rect(0.1, -40, 60, 80); g.clip();
+    g.globalCompositeOperation = 'destination-out';
+    g.beginPath(); g.ellipse(L * 0.42 * OS.s, 0, L * 0.52 * OS.s + 1.9, DISC[pose] * 0.27 * OS.s + 1.9, 0, 0, TAU); g.fill();
+    g.restore();
+    return (figCache[key] = { cv, x0, y0, w, h, hand, m });
   }
-  function drawOldSayoA(c, T, pose) {
+
+  /**
+   * Her old hand, from the cuff: 'pour' closed round the pot's side handle
+   * like a knife's haft, the thumb laid along it toward the lid; 'seiza' open
+   * and loose, fingers falling, the moment after she lets the pot go.
+   * In the wrist frame (x out of the cuff, y toward the palm), key line kw.
+   */
+  const HAND = {
+    // the knife-haft grip seen from the little-finger side: the back of the hand, the knuckle
+    // row, four fingers wrapped under the handle (four bumps and their creases), the thumb
+    // laid forward along the top of the handle
+    pour: {
+      shape: [[-5, -4.3], [[0, -4.9], [5, -5.3], [9, -5.0]], [[11, -4.8], [12.8, -4.0], [13.4, -2.4]], [[13.7, -1.4], [13.6, 1.4], [13.3, 2.4]],
+        [[13.0, 3.9], [12.3, 5.2], [11.0, 5.4]], [[10.2, 5.5], [9.8, 5.0], [9.4, 5.2]], [[8.8, 5.7], [7.6, 5.8], [6.9, 5.2]],
+        [[6.5, 4.8], [6.1, 5.0], [5.6, 5.1]], [[4.9, 5.4], [3.9, 5.3], [3.4, 4.8]], [[3.1, 4.5], [2.6, 4.6], [2.2, 4.6]],
+        [[1.3, 4.6], [-1, 4.2], [-5, 4.2]]],
+      thumb: [[5.4, -4.9], [[8.6, -6.0], [13.4, -5.2], [16.8, -3.4]], [[18.0, -2.8], [17.8, -1.5], [16.6, -1.4]], [[14.6, -1.4], [12.2, -2.4], [9.6, -2.5]]],
+      lines: [[[9.6, 5.1], [9.7, 4.4], [9.8, 3.8], [9.9, 3.1]], [[6.1, 4.9], [6.2, 4.3], [6.2, 3.8], [6.3, 3.3]], [[2.8, 4.6], [2.9, 4.1], [2.9, 3.8], [3.0, 3.4]],
+        [[13.0, -2.4], [11.9, -1.2], [11.5, 1.0], [11.8, 2.9]]],
+      knuckles: [[9.0, -4.9], [6.8, -5.1]],
+      spot: [3.2, -2.8],
+    },
+    // loose, the moment after she lets the pot go: palm down, the fingers together
+    // and falling a little, their tips staggered, the thumb's tip just under the palm
+    seiza: {
+      shape: [[-5, -3.6], [[0, -4.1], [4.4, -4.3], [7.2, -3.8]], [[10.2, -3.3], [13.2, -2.2], [15.4, -0.9]],
+        [[16.7, -0.2], [17.9, 0.4], [17.6, 1.2]], [[17.3, 1.9], [16.5, 1.9], [15.9, 1.7]],
+        [[16.8, 2.2], [17.6, 2.9], [17.2, 3.7]], [[16.8, 4.3], [16.0, 4.0], [15.4, 3.9]],
+        [[16.1, 4.4], [16.6, 5.1], [16.1, 5.6]], [[15.6, 6.1], [14.6, 5.7], [13.6, 5.3]],
+        [[12.2, 4.8], [11.0, 4.6], [10.0, 4.6]], [[9.2, 4.7], [8.8, 5.5], [8.0, 5.7]],
+        [[7.1, 5.9], [6.3, 5.3], [5.8, 4.6]], [[5.0, 3.9], [1, 3.6], [-5, 3.6]]],
+      thumb: null,
+      lines: [[[15.9, 1.7], [14.4, 1.2], [12.8, 0.5], [11.2, -0.3]], [[15.4, 3.9], [14.0, 3.3], [12.6, 2.6], [11.0, 2.0]],
+        [[13.1, -2.2], [13.3, -1.6], [13.3, -1.0], [13.1, -0.5]]],
+      knuckles: [[7.2, -3.8], [5.4, -4.1]],
+      spot: [3.8, -2.3],
+    },
+  };
+  const HAND_K = 1.15;                              // the hand drawings' size (old hands, at the figure's scale)
+  const bez = (p, spec) => {
+    p.moveTo(spec[0][0], spec[0][1]);
+    for (let i = 1; i < spec.length; i++) { const [a, b, e] = spec[i]; p.bezierCurveTo(a[0], a[1], b[0], b[1], e[0], e[1]); }
+    p.closePath();
+    return p;
+  };
+  function oldHand(c, T, F, pose, kw, bend) {
+    const H0 = HAND[pose];
+    const skin = (TSUKI.CAST.palettes && TSUKI.CAST.palettes.oldSayo && TSUKI.CAST.palettes.oldSayo.skin) || U.mix(C.gofun, C.kitsune, 0.22);
+    const hand = bez(new Path2D(), H0.shape), thumb = H0.thumb ? bez(new Path2D(), H0.thumb) : null;
+    const inner = new Path2D();
+    for (const [a, b, d, e] of H0.lines) { inner.moveTo(a[0], a[1]); inner.bezierCurveTo(b[0], b[1], d[0], d[1], e[0], e[1]); }
+    for (const [x, y] of H0.knuckles) { inner.moveTo(x - 0.8, y + 0.5); inner.quadraticCurveTo(x, y - 0.5, x + 0.8, y + 0.6); }
+    // the creases where the wrist leaves the cuff
+    inner.moveTo(1.4, -3.6); inner.quadraticCurveTo(1.9, -2.8, 1.8, -1.9);
+    PRINT.with(c, 'K', T, (k) => {
+      k.save();
+      inFrame(k, F);
+      // nothing of the hand inside the sleeve
+      k.beginPath(); k.rect(0, -30, 60, 60); k.clip();
+      if (bend) { k.translate(1.5, 0); k.rotate(bend); k.translate(-1.5, 0); }
+      k.scale(HAND_K, HAND_K);
+      k.lineJoin = 'round'; k.lineCap = 'round';
+      k.fillStyle = skin;
+      k.fill(hand);
+      if (thumb) k.fill(thumb);
+      k.fillStyle = U.mix(skin, C.odo, 0.45);
+      k.beginPath(); k.ellipse(H0.spot[0], H0.spot[1], 0.7, 0.5, 0.3, 0, TAU); k.fill();
+      k.strokeStyle = U.rgba(C.sumi, 0.85);
+      k.lineWidth = kw / HAND_K;
+      k.stroke(hand);
+      if (thumb) k.stroke(thumb);
+      k.strokeStyle = U.rgba(C.sumi, 0.7);
+      k.lineWidth = (kw * 0.55) / HAND_K;
+      k.stroke(inner);
+      k.restore();
+      // the cuff's edge again, across the wrist (the stand-in hand had covered it)
+      k.save();
+      inFrame(k, F);
+      k.strokeStyle = U.rgba(C.sumi, 0.85);
+      k.lineWidth = kw;
+      k.lineCap = 'round';
+      k.beginPath(); k.moveTo(0, -4.4); k.lineTo(0, 4.4); k.stroke();
+      k.restore();
+    });
+  }
+  /** the pot's tilt (rad, − = the spout dips): tipped for each pour, eased back up between and after */
+  function potTilt(T, tea) {
+    const s = E.inOutSine;
+    const a = Math.max(U.env(T, tea[0] - 0.3, tea[0] + 0.06, tea[0] + 0.44, tea[0] + 0.6, s), U.env(T, tea[1] - 0.1, tea[1] + 0.06, tea[1] + 0.44, tea[1] + 0.62, s));
+    return -0.3 + (TILT_POUR + 0.3) * a;
+  }
+  /**
+   * old 小夜 in the insert: the carved sprite, then (pouring) the 急須 turning
+   * in her fist about the wrist, and the live hand. Returns the spout's lip.
+   */
+  function drawOldSayoA(c, T, pose, lw, tilt) {
     const f = figSprite(c, pose);
     PRINT.with(c, 'K', T, (k) => {
       k.imageSmoothingEnabled = true;
       k.imageSmoothingQuality = 'low';
       k.drawImage(f.cv, f.x0, f.y0, f.w, f.h);
     });
+    const F = wristFrame(f.hand, pose), kw = 2.5 / f.m;
+    if (pose !== 'pour') { oldHand(c, T, F, pose, kw, 0); return null; }
+    const P = potPose(F, tilt);
+    c.save();
+    c.translate(P.O[0], P.O[1]);
+    c.rotate(tilt);
+    kyusu(c, T, lw);
+    c.restore();
+    // the bend is a rotation in stage space: in the (mirrored) wrist frame it turns the other way
+    oldHand(c, T, F, pose, kw, P.bend * (F.u[0] * F.v[1] - F.u[1] * F.v[0]));
+    return P.lip;
+  }
+  /**
+   * The 急須 in her fist at a tilt (rad, − = the spout dips): the fist turns
+   * about the wrist with the pot, its grip on the handle's axis; the pot hangs
+   * from the fist. → { O (the pot's base centre), bend, lip }.
+   */
+  function potPose(F, tilt) {
+    const hd = [KYUSU.end[0] - KYUSU.root[0], KYUSU.end[1] - KYUSU.root[1]];
+    const bend = tilt + Math.atan2(hd[1], hd[0]) - Math.atan2(-F.u[1], -F.u[0]);
+    const piv = [F.h[0] + F.u[0] * 1.5, F.h[1] + F.u[1] * 1.5];
+    const gx = 7 * HAND_K - 1.5, g0 = [F.u[0] * gx, F.u[1] * gx];   // the grip: x 7 of the fist
+    const cb = Math.cos(bend), sb = Math.sin(bend), ct = Math.cos(tilt), st = Math.sin(tilt);
+    const G = [piv[0] + g0[0] * cb - g0[1] * sb, piv[1] + g0[0] * sb + g0[1] * cb];
+    const R = (p) => [p[0] * ct - p[1] * st, p[0] * st + p[1] * ct];
+    const gp = R(KYUSU.grip), O = [G[0] - gp[0], G[1] - gp[1]], lp = R(KYUSU.lip);
+    return { O, bend, lip: [O[0] + lp[0], O[1] + lp[1]] };
   }
   /** flat, hard-edged 藍鼠 floor shadows to the lower left (the moon is off-frame upper right) */
-  function castLateShadows(c, T, cam, pose, withFigure, withPot, withOfferings) {
+  function castLateShadows(c, T, res, pose, withFigure, withPot, withOfferings) {
     const SA = TSUKI.SHOTS.A_prime;
     if (!SA || !SA.castShadow) return;
     const CAST = TSUKI.CAST;
-    const res = U.clamp(cam.scale, 1, 2.2);        // crisp at the insert's scale: no airbrushed penumbra
     if (withFigure) SA.castShadow(c, T, (s2) => CAST.oldSayo(s2, OS.x, OS.y, OS.s, { pose, facing: -1, t: T, silhouette: '#000', noBuffer: true, stream: false }), { baseY: OS.y, alpha: 0.45, len: 1.3, bbox: [860, 640, 1180, 960], res });
-    if (withPot) SA.castShadow(c, T, (s2) => { s2.fillStyle = '#000'; s2.beginPath(); s2.ellipse(POT_DOWN.x, POT_DOWN.y - 17, 22, 17, 0, 0, TAU); s2.fill(); }, { baseY: POT_DOWN.y, alpha: 0.45, len: 1.2, bbox: [960, 900, 1012, 960], res });
-    if (withOfferings) {
-      SA.castShadow(c, T, (s2) => {
-        s2.fillStyle = '#000';
-        s2.beginPath();
-        s2.moveTo(JUG.x - 14, JUG.y - 86); s2.bezierCurveTo(JUG.x - 10, JUG.y - 70, JUG.x - 42, JUG.y - 40, JUG.x - 22, JUG.y);
-        s2.lineTo(JUG.x + 22, JUG.y); s2.bezierCurveTo(JUG.x + 42, JUG.y - 40, JUG.x + 10, JUG.y - 70, JUG.x + 14, JUG.y - 86); s2.closePath(); s2.fill();
-        s2.fillRect(SANBO.x - 36, SANBO.y - 62, 72, 62);
-        s2.beginPath(); s2.moveTo(SANBO.x - 28, SANBO.y - 60); s2.lineTo(SANBO.x, SANBO.y - 112); s2.lineTo(SANBO.x + 28, SANBO.y - 60); s2.closePath(); s2.fill();
-        s2.fillRect(BOX.x - 47, BOX.y - 38, 94, 38);
-      }, { baseY: 948, alpha: 0.45, len: 1.1, bbox: [250, 820, 580, 950], res });
-    }
+    if (withPot) SA.castShadow(c, T, (s2) => { s2.fillStyle = '#000'; s2.beginPath(); s2.ellipse(POT_DOWN.x, POT_DOWN.y - 11, 21.5, 12.5, 0, 0, TAU); s2.fill(); }, { baseY: POT_DOWN.y, alpha: 0.45, len: 1.2, bbox: [960, 930, 1012, 960], res });
+    if (withOfferings) offeringShadows(c);
   }
 
+
+  /* ------------------------------------------------------------------ */
+  /* the inserts' still print, carved once                               */
+  /* ------------------------------------------------------------------ */
+  /**
+   * The print table is still from 160.62 until the unprinting, and the
+   * figure holds each pose: so the A′ plates are flattened once, and for
+   * each held pose the part of the engawa the camera will see is printed once
+   * with its floor shadows into one buffer at twice the stage's resolution
+   * (the shadows stay crisp under the push). A moving insert frame is then
+   * one resampled blit — not five layer blits, a multiply pass and a live
+   * CAST silhouette under the camera — and the hold on the cup (170.5–171.0,
+   * the camera still) is one plain blit of the finished frame.
+   */
+  const STILL_T = 170, STILL_Q = 2;
+  let flatA = null;
+  /** the A′ plates flattened into one stage-size impression (unaged) */
+  function flatAprime(ctx) {
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    if (flatA && flatA.width === cw && flatA.height === ch) return flatA;
+    const cv = B.canvas(cw, ch), c = cv.getContext('2d'), k = cw / W;
+    c.setTransform(k, 0, 0, k, 0, 0);
+    c.fillStyle = C.kinari;
+    c.fillRect(0, 0, W, H);
+    drawAprime(c, STILL_T, { age: false });
+    return (flatA = cv);
+  }
+  /** the stage rect a camera sees */
+  const camRect = (cam) => {
+    const x0 = cam.about[0] - cam.to[0] / cam.scale, y0 = cam.about[1] - cam.to[1] / cam.scale;
+    return [x0, y0, x0 + W / cam.scale, y0 + H / cam.scale];
+  };
+  /** the union of what a camera sees over [t0, t1] (a few px of margin), inside the stage */
+  function camSpan(camAt, t0, t1) {
+    const R = [W, H, 0, 0];
+    for (let i = 0; i <= 60; i++) {
+      const r = camRect(camAt(U.lerp(t0, t1, i / 60)));
+      R[0] = Math.min(R[0], r[0]); R[1] = Math.min(R[1], r[1]); R[2] = Math.max(R[2], r[2]); R[3] = Math.max(R[3], r[3]);
+    }
+    return [Math.max(0, Math.floor(R[0]) - 8), Math.max(0, Math.floor(R[1]) - 8), Math.min(W, Math.ceil(R[2]) + 8), Math.min(H, Math.ceil(R[3]) + 8)];
+  }
+  const stillBufs = {};
+  /** plates + floor shadows over region R, at STILL_Q × the stage */
+  function stillPrint(ctx, key, R, shadows) {
+    const cw = ctx.canvas.width, k = cw / W, q = STILL_Q * k, id = key + '|' + cw;
+    const hit = stillBufs[id];
+    if (hit && hit.R.join() === R.join()) return hit;
+    const bw = Math.ceil((R[2] - R[0]) * q), bh = Math.ceil((R[3] - R[1]) * q);
+    const cv = B.canvas(bw, bh), c = cv.getContext('2d');
+    c.setTransform(q, 0, 0, q, -R[0] * q, -R[1] * q);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'low';
+    c.drawImage(flatAprime(ctx), R[0] * k, R[1] * k, (R[2] - R[0]) * k, (R[3] - R[1]) * k, R[0], R[1], R[2] - R[0], R[3] - R[1]);
+    shadows(c, q / (bw / W));                   // castShadow sizes its own buffer from its canvas' width
+    if (hit) hit.cv.width = hit.cv.height = 0;
+    return (stillBufs[id] = { cv, R, q });
+  }
+  /** print the still under the camera: one resample of the region it sees (false if the camera looks past it) */
+  function printStill(ctx, S, cam) {
+    const r = camRect(cam), R = S.R;
+    if (r[0] < R[0] - 0.5 || r[1] < R[1] - 0.5 || r[2] > R[2] + 0.5 || r[3] > R[3] + 0.5) return false;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'low';
+    ctx.drawImage(S.cv, (r[0] - R[0]) * S.q, (r[1] - R[1]) * S.q, (r[2] - r[0]) * S.q, (r[3] - r[1]) * S.q, 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+    return true;
+  }
+  /** insert 1's still for a pose: what the camera sees while she holds it */
+  function cupsStill(ctx, pose) {
+    const CU = CUES(), tick = (CU.teaTick || [170.34])[0];
+    const R = pose === 'pour' ? camSpan(CAM1, 169, tick) : camSpan(CAM1, Math.min(tick, 171), 171);
+    return stillPrint(ctx, 'cups-' + pose, R, (c, res) => castLateShadows(c, STILL_T, res, pose, true, pose === 'seiza', false));
+  }
+  const stripStill = (ctx) => stillPrint(ctx, 'strip', camSpan(CAM2, 171, 173), (c, res) => castLateShadows(c, STILL_T, res, 'seiza', false, false, true));
+  /** fallback if a still does not cover the camera: the flat plates and the shadows, printed live */
+  function printLive(ctx, cam, shadows) {
+    const r = camRect(cam), k = ctx.canvas.width / W;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'low';
+    ctx.drawImage(flatAprime(ctx), r[0] * k, r[1] * k, (r[2] - r[0]) * k, (r[3] - r[1]) * k, 0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
+    ctx.save();
+    camApply(ctx, cam);
+    shadows(ctx, U.clamp(cam.scale, 1, 2.2));
+    ctx.restore();
+  }
+
+  const TILT_POUR = -0.62;
   let SPOUT = null;
-  /** the spout of the pot in the 'pour' pose (CAST's own point) */
+  /** where the tea leaves the spout at the pour's full tip (CAST's pour pose, her near hand): the cups are set under it */
   function spoutAt() {
     if (SPOUT) return SPOUT;
-    const CAST = TSUKI.CAST;
     const cv = B.canvas(4, 4);
-    const ret = CAST.oldSayo(cv.getContext('2d'), OS.x, OS.y, OS.s, { pose: 'pour', facing: -1, t: 0, stream: false });
-    SPOUT = ret && ret.spout ? ret.spout.slice() : [904, 875];
+    const ret = TSUKI.CAST.oldSayo(cv.getContext('2d'), OS.x, OS.y, OS.s, { pose: 'pour', facing: -1, t: 0, stream: false });
+    const hand = ret && ret.hand ? ret.hand : [921.2, 841];
+    SPOUT = potPose(wristFrame(hand, 'pour'), TILT_POUR).lip;
     return SPOUT;
   }
-  /** the two cups: the far one (poured first, left untouched) a little behind and to the left */
-  const cups = () => { const s = spoutAt(); return { near: { x: s[0] + 2, y: 952, k: 1 }, far: { x: s[0] - 25, y: 939, k: 0.93 } }; };
-  // insert 1 camera: the hands, the pot, the two cups — then the push to the untouched cup (held from 170.5)
+  /** the two cups: the far one (poured first, left untouched) a little behind and to the left; the tea arcs out a few px */
+  const cups = () => { const s = spoutAt(); return { near: { x: s[0] - 4, y: 952, k: 1 }, far: { x: s[0] - 29, y: 939, k: 0.93 } }; };
+  // insert 1 camera: the two-shot of the hands, the pot and the two cups, held through the
+  // pouring; then, on the ceramic tick of the pot set down (170.34), a hard cut to the
+  // untouched cup alone — still, but for a breath of drift (1.00 → 1.02) to 171.0
+  const TEA_TICK = () => (CUES().teaTick || [170.34])[0];
   const CAM1 = (T) => {
-    const u = U.seg(T, 169.85, 170.5, E.inOutSine);
     const f = cups().far;
-    const drift = U.seg(T, 169, 171);
-    // the hold frames the cup and her sleeve and hand; her face leaves the frame at the top
-    return { scale: U.lerp(2.3 + 0.06 * drift, 4.7, u), about: [U.lerp(972, f.x + 2, u), U.lerp(884, f.y + 6, u)], to: [960, U.lerp(640, 600, u)] };
+    if (T < TEA_TICK()) return { scale: 2.3 + 0.06 * U.seg(T, 169, 171), about: [972, 884], to: [960, 640] };
+    return { scale: 4.7 * camDrift(T), about: [f.x + 2, f.y + 6], to: [960, 600] };
   };
-  function drawInsertCups(ctx, T) {
+  const camDrift = (T) => 1 + 0.02 * E.inOutSine(U.seg(T, TEA_TICK(), 171));
+  const HOLD = 170.34;                                 // the cut lands on the untouched cup; the camera holds
+  /** insert 1, whole: the still print, the pot set down, old 小夜 and her hand, the cups, the tea, the paper's age, the moon in the cup */
+  function paintInsertCups(ctx, T, o) {
     const cam = CAM1(T);
     const CU = CUES();
     const tea = CU.tea || [169.0, 169.62], tick = (CU.teaTick || [170.34])[0];
     const down = T >= tick;
     const pose = down ? 'seiza' : 'pour';
     const cp = cups();
-    const sp = spoutAt();
     const lw = keyScale(cam);
-    let far = null;
-    drawAprime(ctx, T, {
-      camera: cam,
-      age: false,
-      between: {
-        post: (c) => castLateShadows(c, T, cam, pose, true, down, false),
-        eave: (c) => {
-          if (down) drawPot(c, T, POT_DOWN.x, POT_DOWN.y, lw);
-          drawOldSayoA(c, T, pose);
-          const fillFar = U.seg(T, tea[0] + 0.08, tea[0] + 0.5), fillNear = U.seg(T, tea[1] + 0.08, tea[1] + 0.5);
-          far = drawCup(c, T, cp.far.x, cp.far.y, { fill: fillFar, steam: 0, scale: cp.far.k, lw });
-          drawCup(c, T, cp.near.x, cp.near.y, { fill: fillNear, steam: U.seg(T, tea[1] + 0.3, tea[1] + 1.3), scale: cp.near.k, lw });
-          // the streams: short falls from the spout, the first bending a little toward the far cup
-          const pour = (tx, ty, a) => {
-            if (a <= 0) return;
-            PRINT.with(c, 'P3', T, (k) => {
-              k.strokeStyle = U.rgba(TEA, 0.9 * a);
-              k.lineCap = 'round';
-              k.lineWidth = 2.2;
-              k.beginPath();
-              k.moveTo(sp[0], sp[1]);
-              k.bezierCurveTo(sp[0] - 3, sp[1] + 6, tx + (sp[0] - tx) * 0.15, ty - (ty - sp[1]) * 0.45, tx, ty);
-              k.stroke();
-              k.fillStyle = U.rgba(C.gofun, 0.5 * a);
-              k.beginPath(); k.ellipse(tx, ty + 0.5, 3.2, 0.9, 0, 0, TAU); k.fill();
-            });
-          };
-          pour(cp.far.x + 1, cp.far.y - 30 * cp.far.k + 1, U.env(T, tea[0], tea[0] + 0.06, tea[0] + 0.44, tea[0] + 0.52, E.linear));
-          pour(cp.near.x, cp.near.y - 30 + 1, U.env(T, tea[1], tea[1] + 0.06, tea[1] + 0.44, tea[1] + 0.52, E.linear));
-        },
-      },
-    });
-    if (!far) return;
-    // the one untouched cup holds a tiny moon — the moon is never old: a hole in the age
+    if (!printStill(ctx, cupsStill(ctx, pose), cam)) printLive(ctx, cam, (c, res) => castLateShadows(c, STILL_T, res, pose, true, down, false));
+    ctx.save();
+    camApply(ctx, cam);
+    if (down) drawPot(ctx, T, POT_DOWN.x, POT_DOWN.y, lw);
+    const lip = drawOldSayoA(ctx, T, pose, lw, potTilt(T, tea)) || spoutAt();
+    const fillFar = U.seg(T, tea[0] + 0.08, tea[0] + 0.5), fillNear = U.seg(T, tea[1] + 0.08, tea[1] + 0.5);
+    const far = drawCup(ctx, T, cp.far.x, cp.far.y, { fill: fillFar, steam: 0, scale: cp.far.k, lw });
+    drawCup(ctx, T, cp.near.x, cp.near.y, { fill: fillNear, steam: o.steam ? nearSteam(T, tea) : 0, scale: cp.near.k, lw });
+    // the streams: from the lip, falling away from the spout and bending into each cup
+    const pour = (tx, ty, a) => {
+      if (a <= 0 || down) return;
+      PRINT.with(ctx, 'P3', T, (k) => {
+        k.strokeStyle = U.rgba(TEA, 0.9 * a);
+        k.lineCap = 'round';
+        k.lineWidth = 2.2;
+        k.beginPath();
+        k.moveTo(lip[0], lip[1]);
+        k.bezierCurveTo(lip[0] - 4, lip[1] + 5, tx + (lip[0] - tx) * 0.15, ty - (ty - lip[1]) * 0.45, tx, ty);
+        k.stroke();
+        k.fillStyle = U.rgba(C.gofun, 0.5 * a);
+        k.beginPath(); k.ellipse(tx, ty + 0.5, 3.2, 0.9, 0, 0, TAU); k.fill();
+      });
+    };
+    pour(cp.far.x + 1, cp.far.y - 30 * cp.far.k + 1, U.env(T, tea[0], tea[0] + 0.06, tea[0] + 0.44, tea[0] + 0.52, E.linear));
+    pour(cp.near.x, cp.near.y - 30 + 1, U.env(T, tea[1], tea[1] + 0.06, tea[1] + 0.44, tea[1] + 0.52, E.linear));
+    ctx.restore();
+    // the one untouched cup will hold a tiny moon — the moon is never old: a hole in the age
+    const [mx, my] = camPoint(cam, far.teaX, far.teaY + 0.2);
+    ageInsert(ctx, cam, [[mx, my, far.rx * cam.scale, far.ry * cam.scale]]);
+    if (o.moon) cupMoon(ctx, T, cam, far, tea);
+    return far;
+  }
+  const nearSteam = (T, tea) => U.seg(T, tea[1] + 0.3, tea[1] + 1.3);
+  /** the tiny moon floating in the untouched cup's tea (drawn after the age: it is never old) */
+  function cupMoon(ctx, T, cam, far, tea) {
+    const ma = U.seg(T, tea[0] + 0.7, tea[0] + 1.3, E.inOutSine);
+    if (ma <= 0.001) return;
     const [mx, my] = camPoint(cam, far.teaX, far.teaY + 0.2);
     const mr = 5.2 * cam.scale;
-    ageInsert(ctx, cam, [[mx, my, far.rx * cam.scale, far.ry * cam.scale]]);
-    const ma = U.seg(T, tea[0] + 0.7, tea[0] + 1.3, E.inOutSine);
-    if (ma > 0.001) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(mx, my, far.rx * cam.scale, far.ry * cam.scale, 0, 0, TAU);
-      ctx.clip();
-      ctx.translate(mx, my);
-      ctx.scale(1, 0.3);
-      ctx.globalAlpha *= ma;
-      MOON.draw(ctx, 0, 0, mr, T, { halo: 0.35, haloR: mr * 1.6, fringe: false });
-      ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(mx, my, far.rx * cam.scale, far.ry * cam.scale, 0, 0, TAU);
+    ctx.clip();
+    ctx.translate(mx, my);
+    ctx.scale(1, 0.3);
+    ctx.globalAlpha *= ma;
+    MOON.draw(ctx, 0, 0, mr, T, { halo: 0.35, haloR: mr * 1.6, fringe: false });
+    ctx.restore();
+  }
+  /** 胡粉 as it prints after ageInsert's 鳥の子 multiply (α 0.5): the hold frame's steam is drawn over the aged frame */
+  const AGED_GOFUN = (() => {
+    const g = U.hexToRgb(C.gofun), t = U.hexToRgb(C.torinoko);
+    return U.rgbToHex(...g.map((v, i) => v * (0.5 + 0.5 * (t[i] / 255))));
+  })();
+  let hold = null;
+  function drawInsertCups(ctx, T) {
+    const CU = CUES();
+    const tea = CU.tea || [169.0, 169.62], tick = (CU.teaTick || [170.34])[0];
+    const still = T >= HOLD && T >= tick && T >= tea[1] + 0.6 && T >= tea[0] + 0.6;
+    if (!still) { paintInsertCups(ctx, T, { steam: true, moon: true }); return; }
+    // the hold on the cup: everything under the camera is still but the steam and the moon's
+    // kira — the finished frame (at the cut's framing) is printed once, then laid in with the
+    // camera's breath of drift, and only those are drawn over it
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    const Th = Math.max(HOLD, tick, tea[1] + 0.6, tea[0] + 0.6);
+    if (!hold || hold.cv.width !== cw || hold.cv.height !== ch) {
+      const cv = B.canvas(cw, ch), c = cv.getContext('2d'), k = cw / W;
+      c.setTransform(k, 0, 0, k, 0, 0);
+      c.fillStyle = C.kinari;
+      c.fillRect(0, 0, W, H);
+      hold = { cv, far: paintInsertCups(c, Th, { steam: false, moon: false }), d0: camDrift(Th) };
     }
+    const d = camDrift(T) / hold.d0, to = CAM1(T).to, k = cw / W;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (Math.abs(d - 1) < 1e-4) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(hold.cv, 0, 0);
+    } else {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'low';
+      ctx.drawImage(hold.cv, to[0] * k * (1 - d), to[1] * k * (1 - d), cw * d, ch * d);
+    }
+    ctx.restore();
+    const cam = CAM1(T), cp = cups();
+    ctx.save();
+    camApply(ctx, cam);
+    const pen = shotA().livePen(ctx, T);
+    cupSteam(pen, T, cp.near.x, cp.near.y - 30 * cp.near.k, nearSteam(T, tea), AGED_GOFUN);
+    pen.flush();
+    ctx.restore();
+    cupMoon(ctx, T, cam, hold.far, tea);
   }
 
-  // insert 2 camera: the jug and its strip
+  /**
+   * The still life's shadows, as a print gives them: flat, hard-edged 藍鼠 shapes
+   * cast to the lower left (the moon is off-frame, upper right) — each object's
+   * outline laid down on the boards from its foot — no penumbra, no blur.
+   */
+  function offeringShadows(c) {
+    const cast = (bx, by, pts) => {
+      const p = new Path2D();
+      pts.forEach(([dx, dy], i) => { const h = -dy, x = bx + dx - 0.7 * h, y = by + 0.14 * h; i ? p.lineTo(x, y) : p.moveTo(x, y); });
+      p.closePath();
+      return p;
+    };
+    c.save();
+    c.globalCompositeOperation = 'multiply';
+    c.fillStyle = U.rgba(U.mix(C.nezumi, C.ai, 0.45), 0.5);
+    c.fill(cast(BOX.x, BOX.y, [[-47, 0], [-47, -38], [47, -38], [47, 0]]));
+    c.fill(cast(JUG.x, JUG.y, [[-22, 0], [-38, -10], [-40, -36], [-22, -58], [-14, -86], [14, -86], [22, -58], [40, -36], [38, -10], [22, 0]]));
+    c.fill(cast(SANBO.x, SANBO.y, [[-33, 0], [-29, -47], [-47, -50], [-47, -63], [-28, -63], [0, -110], [28, -63], [47, -63], [47, -50], [29, -47], [33, 0]]));
+    c.restore();
+  }
+  // insert 2 camera: close on the jug's neck, where the faded strip is the one warm thing in the print;
+  // the box below-left, the 三方 above-right — the still life's diagonal — a slow 3.1 → 3.3 lean in
   const CAM2 = (T) => {
     const u = U.seg(T, 171, 173, E.inOutSine);
-    return { scale: U.lerp(2.75, 3.0, u), about: [U.lerp(452, 440, u), U.lerp(872, 866, u)], to: [960, 560] };
+    return { scale: U.lerp(3.1, 3.3, u), about: [JUG.x + 12, JUG.y - 104], to: [U.lerp(826, 820, u), 440] };
   };
   function drawInsertStrip(ctx, T) {
     const cam = CAM2(T);
-    drawAprime(ctx, T, {
-      camera: cam,
-      age: false,
-      between: {
-        post: (c) => castLateShadows(c, T, cam, 'seiza', false, false, true),
-        eave: (c) => drawLateOfferings(c, T, keyScale(cam)),
-      },
-    });
+    if (!printStill(ctx, stripStill(ctx), cam)) printLive(ctx, cam, (c, res) => castLateShadows(c, STILL_T, res, 'seiza', false, false, true));
+    ctx.save();
+    camApply(ctx, cam);
+    drawLateOfferings(ctx, T, keyScale(cam));
+    ctx.restore();
     ageInsert(ctx, cam);
     // hand-applied after the print (and after the years)
     ctx.save();
@@ -614,47 +1045,147 @@
   /* ------------------------------------------------------------------ */
   /* 173–182: 月に雁                                                      */
   /* ------------------------------------------------------------------ */
-  const PANEL = { x0: 640, x1: 1280 };
-  const KMOON = { x: 960, y: 330, r: 120 };
+  // the print: 640 × 930, x 640–1280, with a 地 of yellowed washi below it (the subtitle sits on paper)
+  const PANEL = { x0: 640, x1: 1280, y1: 930 };
+  const KMOON = { x: 1000, y: 262, r: 118 };          // in the print's upper third
   const PANEL_INK = U.mix(U.mix(C.ai, C.bero, 0.35), C.gunjo, 0.45);
+  // the descent, from upper right to lower left, and the side its path bows toward (a landing
+  // approach: steep at first, flattening as they come down toward the reeds — 落雁)
+  const DIR = [-0.588, 0.809], PERP = [0.809, 0.588];
   const GEESE = [
-    { t0: 174.0, speed: 1.0, span: 210, off: [0, 0], ph: 0.0 },
-    { t0: 174.35, speed: 1.0, span: 170, off: [-128, -34], ph: 0.33 },
-    // the third, left behind (小夜): upper right of the disc at the hero time, crossing its upper half ≈178.6
-    { t0: 174.9, speed: 0.95, span: 140, off: [40, -60], ph: 0.52 },
+    // the lead: large and low, nearest, wings spread, head down-left
+    { at: [812, 622], v: 210, span: 250, glide: true, ph: 0.0, rate: 1.2, bow: 60 },
+    // the second: at mid-height, crossing the moon's lower rim at the hero time
+    { at: [1010, 360], v: 160, span: 175, glide: true, ph: 0.45, rate: 1.2, bow: 50 },
+    // the third (小夜): small, high on the right, late — beating faster, never gliding, falling
+    // behind (40 px by the end); it crosses the moon alone as the print dissolves
+    { at: [1190, 110], v: 115, span: 122, glide: false, ph: 0.7, rate: 1.62, bow: 40, lag: 40 },
   ];
-  const FLY = { p0: [1402, -150], p1: [470, 820], dur: 7.0 };
-  // the two caches of the crop: the aged 藍 field of the panel, and the aged margin paper
+  /**
+   * The late paper of the crop, printed by this scene (not the generic one): 鳥の
+   * 子 multiplied in, foxing dots, and — on the margins only — two or three
+   * old tide-lines of damp: irregular, broken, uneven in width and ink, never
+   * a drawn circle.
+   */
+  function kakeAge(c, amount, tide, seed) {
+    c.save();
+    c.globalCompositeOperation = 'multiply';
+    c.globalAlpha = 0.5 * amount;
+    c.fillStyle = C.torinoko;
+    c.fillRect(0, 0, W, H);
+    c.restore();
+    const r = U.rng(seed), ink = U.mix(C.odo, C.sumi, 0.45);
+    c.save();
+    for (let i = 0; i < 60; i++) {
+      const x = r() * W, y = r() * H, rr = U.lerp(1, 6, Math.pow(r(), 2)), a = U.lerp(0.12, 0.25, r()) * amount;
+      const g = c.createRadialGradient(x, y, 0, x, y, rr);
+      g.addColorStop(0, U.rgba(ink, a)); g.addColorStop(0.6, U.rgba(ink, a * 0.55)); g.addColorStop(1, U.rgba(ink, 0));
+      c.fillStyle = g;
+      c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+    }
+    if (tide) {
+      c.lineCap = 'round';
+      for (const [cx, cy, R, sd, a0, a1] of [[210, 820, 160, 3, 0.4, 4.9], [1690, 360, 120, 7, 2.2, 7.4]]) {
+        // the edge a drying stain leaves: a wandering, lobed line — only part of a loop, heavier
+        // where the water stood longest, broken where it thinned out
+        const n = 120;
+        let prev = null;
+        for (let j = 0; j <= n; j++) {
+          const th = U.lerp(a0, a1, j / n);
+          const rad = R * (1 + 0.55 * (U.fbm2(Math.cos(th) * 1.6 + sd, Math.sin(th) * 1.6, 3, 40 + sd) - 0.5) + 0.2 * Math.sin(th * 3 + sd));
+          const pt = [cx + Math.cos(th) * rad * 1.3, cy + Math.sin(th) * rad * 0.7];
+          if (prev) {
+            const wv = U.noise1(j * 0.17 + sd, 50 + sd);
+            if (wv > 0.34) {
+              c.strokeStyle = U.rgba(ink, (0.02 + 0.05 * wv) * amount);
+              c.lineWidth = U.lerp(0.6, 2.6, wv);
+              c.beginPath(); c.moveTo(prev[0], prev[1]); c.lineTo(pt[0], pt[1]); c.stroke();
+            }
+          }
+          prev = pt;
+        }
+      }
+    }
+    c.restore();
+  }
+  // the two caches of the crop: the aged print (藍 field, the mist and reeds at its foot), and the aged margin paper
   let kake = null;
   function kakeCaches(ctx) {
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
     if (kake && kake.cw === cw && kake.ch === ch) return kake;
     const k = cw / W;
-    const mk = (paint, amount) => {
+    const mk = (paint, amount, tide, seed) => {
       const cv = B.canvas(cw, ch), c = cv.getContext('2d');
       c.setTransform(k, 0, 0, k, 0, 0);
       c.fillStyle = C.kinari;
       c.fillRect(0, 0, W, H);
       paint(c);
-      c.imageSmoothingQuality = 'low';
-      PRINT.age(c, 175, { amount });
+      kakeAge(c, amount, tide, seed);
       return cv;
     };
     const field = mk((c) => {
-      // flat pale 藍 from the worn sky block (P6 α 0.55) — no bokashi but one low band of mist (P7)
+      // flat pale 藍 from the worn sky block (P6 α 0.55), no bokashi
       c.fillStyle = U.rgba(PANEL_INK, 0.58);
       c.fillRect(0, 0, W, H);
-      const g = c.createLinearGradient(0, 780, 0, 900);
-      g.addColorStop(0, U.rgba(C.gofun, 0));
-      g.addColorStop(0.55, U.rgba(C.gofun, 0.34));
-      g.addColorStop(0.62, U.rgba(C.gofun, 0.34));
-      g.addColorStop(1, U.rgba(C.gofun, 0));
-      c.fillStyle = g;
-      c.fillRect(0, 780, W, 120);
-    }, 0.42);
-    const margin = mk(() => {}, 1);
+      // near its foot a すやり霞 — two flat 胡粉 bars with carved (hard) edges and
+      // rounded, stepped ends, floating over the water — and reeds rising through them
+      const bar = (x0, x1, y0, h, capL, capR) => {
+        const p = new Path2D(), n = y0 + h * 0.44;
+        p.moveTo(x0 + capL, y0);
+        for (let x = x0 + capL; x <= x1 - capR; x += 8) p.lineTo(x, y0 + (U.noise1(x * 0.013, 71) - 0.5) * 3);
+        p.bezierCurveTo(x1 - capR * 0.45, y0, x1, n - h * 0.3, x1, n);
+        p.bezierCurveTo(x1, n + h * 0.35, x1 - capR * 0.5, y0 + h, x1 - capR, y0 + h);
+        p.lineTo(x0 + capL, y0 + h);
+        p.bezierCurveTo(x0 + capL * 0.5, y0 + h, x0, n + h * 0.35, x0, n);
+        p.bezierCurveTo(x0, n - h * 0.3, x0 + capL * 0.45, y0, x0 + capL, y0);
+        p.closePath();
+        return p;
+      };
+      const mist = new Path2D();
+      mist.addPath(bar(560, 1150, 790, 40, 30, 58));
+      mist.addPath(bar(990, 1360, 832, 26, 44, 30));
+      c.fillStyle = U.rgba(U.mix(C.gofun, C.geppaku, 0.35), 0.66);
+      c.fill(mist, 'nonzero');
+      reeds(c);
+    }, 0.42, false, 175);
+    const margin = mk(() => {}, 1, true, 176);
     kake = { cw, ch, field, margin };
     return kake;
+  }
+  /** 葦: a stand of reeds at the print's lower left, in 墨 — where the geese are coming down */
+  function reeds(c) {
+    const r = U.rng(4242);
+    const stems = new Path2D(), leaves = new Path2D(), heads = new Path2D();
+    for (let i = 0; i < 17; i++) {
+      const bx = U.lerp(652, 900, Math.pow(r(), 1.3)), L = U.lerp(70, 205, r()) * (bx < 760 ? 1 : 0.8);
+      const lean = U.lerp(-0.08, 0.2, r());
+      const pts = [];
+      for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([bx + Math.sin(lean) * L * t * t, 934 - L * t]); }
+      const tip = pts[8];
+      // a thin tapered culm
+      for (let k = 0; k < 8; k++) {
+        const w = U.lerp(1.8, 0.6, k / 8);
+        stems.moveTo(pts[k][0] - w, pts[k][1]); stems.lineTo(pts[k + 1][0] - w * 0.8, pts[k + 1][1]);
+        stems.lineTo(pts[k + 1][0] + w * 0.8, pts[k + 1][1]); stems.lineTo(pts[k][0] + w, pts[k][1]); stems.closePath();
+      }
+      // one or two long blades peeling off, bending down
+      for (let j = 0; j < 1 + (r() < 0.5 ? 1 : 0); j++) {
+        const at = pts[3 + Math.floor(r() * 3)], side = r() < 0.5 ? -1 : 1, bl = U.lerp(40, 80, r());
+        leaves.moveTo(at[0], at[1]);
+        leaves.quadraticCurveTo(at[0] + side * bl * 0.6, at[1] - bl * 0.45, at[0] + side * bl, at[1] + bl * 0.05);
+        leaves.quadraticCurveTo(at[0] + side * bl * 0.55, at[1] - bl * 0.32, at[0], at[1] + 3);
+        leaves.closePath();
+      }
+      // the plume of the tallest, drooping
+      if (L > 150) {
+        heads.moveTo(tip[0], tip[1]);
+        heads.quadraticCurveTo(tip[0] + 12, tip[1] - 6, tip[0] + 18, tip[1] + 16);
+        heads.quadraticCurveTo(tip[0] + 8, tip[1] + 4, tip[0], tip[1] + 3);
+        heads.closePath();
+      }
+    }
+    c.fillStyle = U.rgba(C.sumi, 0.82); c.fill(stems); c.fill(leaves);
+    c.fillStyle = U.rgba(U.mix(C.sumi, C.nezumi, 0.4), 0.8); c.fill(heads);
   }
 
   /**
@@ -718,8 +1249,8 @@
     lead.lineTo(hd[0], hd[1]);
     return { cov, sec, prim, lead };
   }
-  function goose(c, frame, ink) {
-    const [lk, sw, fk, curl] = BEATS[frame];
+  function goose(c, params, ink) {
+    const [lk, sw, fk, curl] = params;
     const L = 92;
     const far = wing(-1, L * fk, sw + 0.06, curl);
     c.fillStyle = ink.farCov; c.fill(far.cov);
@@ -754,25 +1285,56 @@
     c.strokeStyle = ink.sumi; c.lineWidth = 1.5; c.lineCap = 'round'; c.stroke(nw.lead);
     c.strokeStyle = ink.edge; c.lineWidth = 0.7; c.stroke(nw.cov);
   }
+  /** a periodic Catmull-Rom through the four beat keys at key-phase f (continuous: no held frames) */
+  function beatAt(f) {
+    const i = Math.floor(f), u = f - i, K = (j) => BEATS[((j % 4) + 4) % 4];
+    const a = K(i - 1), b = K(i), c2 = K(i + 1), d = K(i + 2), u2 = u * u, u3 = u2 * u;
+    return b.map((_, k) => 0.5 * (2 * b[k] + (-a[k] + c2[k]) * u + (2 * a[k] - 5 * b[k] + 4 * c2[k] - d[k]) * u2 + (-a[k] + 3 * b[k] - 3 * c2[k] + d[k]) * u3));
+  }
+  /**
+   * A goose's wings at T: key-phase f (4 keys per beat). The two ahead beat
+   * three times from the gliding key (1) and hold it for a second (a 3.5 s
+   * rhythm, the beats easing out of and into the glide); the third never
+   * glides and beats 1.35× faster, trying to keep up.
+   */
+  function wingPhase(T, g) {
+    if (!g.glide) return (T * g.rate + g.ph) * 4;
+    const cyc = 3.5, flap = 2.5, t = U.fract(T / cyc + g.ph) * cyc;
+    if (t >= flap) return 13;
+    const x = t / flap;
+    return 1 + 12 * (x - (0.6 * Math.sin(TAU * x)) / TAU);
+  }
+  /** where a goose is at T, and its heading (the tangent of its bowed descent) */
+  function goosePath(T, g) {
+    const lag = (tt) => (g.lag ? g.lag * U.smoothstep(176, 182, tt) : 0);
+    const S = 700;
+    const at = (tt) => {
+      const s2 = g.v * (tt - 178) - (lag(tt) - lag(178));
+      const b = g.bow * (1 - (s2 / S) * (s2 / S));
+      return [g.at[0] + DIR[0] * s2 + PERP[0] * b, g.at[1] + DIR[1] * s2 + PERP[1] * b];
+    };
+    const p = at(T), q = at(T + 0.02);
+    return { x: p[0], y: p[1], ang: Math.atan2(q[1] - p[1], q[0] - p[0]) };
+  }
   function drawGeese(ctx, T) {
     const ink = {
       sumi: C.sumi, body: aged(U.mix(C.nezumi, C.sumi, 0.25)), cov: aged(U.mix(C.nezumi, C.ginnezu, 0.2)),
       farCov: aged(U.mix(C.nezumi, C.sumi, 0.45)), belly: aged(U.mix(C.gofun, C.ginnezu, 0.15)), edge: U.rgba(C.sumi, 0.55),
       bar: U.rgba(C.sumi, 0.4),
     };
-    const a = Math.atan2(FLY.p1[1] - FLY.p0[1], FLY.p1[0] - FLY.p0[0]) - Math.PI;
     PRINT.with(ctx, 'K', T, (c) => {
       for (const g of GEESE) {
-        const u = (T - g.t0) * g.speed / FLY.dur;
-        if (u < -0.02 || u > 1.05) continue;
-        const x = U.lerp(FLY.p0[0], FLY.p1[0], u) + g.off[0], y = U.lerp(FLY.p0[1], FLY.p1[1], u) + g.off[1];
-        const frame = Math.floor(U.fract(T * 1.2 + g.ph) * 4) % 4;
+        const P = goosePath(T, g), s = g.span / 210;
+        if (P.x < PANEL.x0 - 160 * s || P.x > PANEL.x1 + 160 * s || P.y < -140 * s || P.y > PANEL.y1 + 140 * s) continue;
+        const f = wingPhase(T, g);
+        // the body rides a little against each downstroke
+        const bob = 2.5 * s * Math.sin(TAU * (f / 4));
         c.save();
-        c.translate(x, y);
-        c.rotate(a * 0.78);
-        const s = g.span / 210;
+        c.translate(P.x, P.y - bob);
+        // heading down-left along the descent, the body a little flatter than the path
+        c.rotate((P.ang - Math.PI) * 0.82);
         c.scale(s * 1.08, s * 1.08);
-        goose(c, frame, ink);
+        goose(c, beatAt(f), ink);
         c.restore();
       }
     });
@@ -791,18 +1353,15 @@
     // the geese, descending steeply from upper right to lower left across the disc
     drawGeese(ctx, T);
   }
-  /** the yellowed washi margins at `close` (1 = shut to the 640 px kakemono), with its mounting line */
+  /** the yellowed washi margins at `close` (1 = shut to the 640 × 930 print and its 地), with its border line */
   function kakemonoMargins(ctx, K, close) {
     if (close <= 0.001) return;
-    const lw = PANEL.x0 * close, rx = W - (W - PANEL.x1) * close;
-    margins(ctx, K, lw, rx);
+    const lw = PANEL.x0 * close, rx = W - (W - PANEL.x1) * close, by = H - (H - PANEL.y1) * close;
+    margins(ctx, K, lw, rx, by);
     ctx.save();
     ctx.strokeStyle = U.rgba(C.sumi, 0.85);
     ctx.lineWidth = 1;
-    ctx.strokeRect(lw + 0.5, 0.5, rx - lw - 1, H - 1);
-    ctx.strokeStyle = U.rgba(C.sumi, 0.1);
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(lw - 3, 0); ctx.lineTo(lw - 3, H); ctx.moveTo(rx + 3, 0); ctx.lineTo(rx + 3, H); ctx.stroke();
+    ctx.strokeRect(lw + 0.5, -2, rx - lw - 1, by + 1.5);
     ctx.restore();
   }
   const kakeClose = (T) => U.seg(T, 173.0, 173.8, E.outCubic) * (1 - U.seg(T, 181.4, 182.0, E.inOutSine));
@@ -824,7 +1383,7 @@
     if (outU < 0.999) {
       ctx.save();
       ctx.beginPath();
-      ctx.rect(PANEL.x0, 0, PANEL.x1 - PANEL.x0, H);
+      ctx.rect(PANEL.x0, 0, PANEL.x1 - PANEL.x0, PANEL.y1);
       ctx.clip();
       ctx.globalAlpha = 1 - outU;
       kakemonoPrint(ctx, T, K);
@@ -832,13 +1391,14 @@
     }
     kakemonoMargins(ctx, K, kakeClose(T));
   }
-  function margins(ctx, K, lw, rx) {
+  function margins(ctx, K, lw, rx, by) {
     const k = ctx.canvas.width / W;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const L = Math.ceil(lw * k), R = Math.floor(rx * k);
+    const L = Math.ceil(lw * k), R = Math.floor(rx * k), Bm = Math.floor((by == null ? H : by) * k);
     if (L > 0) ctx.drawImage(K.margin, 0, 0, L, K.ch, 0, 0, L, K.ch);
     if (R < K.cw) ctx.drawImage(K.margin, R, 0, K.cw - R, K.ch, R, 0, K.cw - R, K.ch);
+    if (Bm < K.ch && R > L) ctx.drawImage(K.margin, L, Bm, R - L, K.ch - Bm, L, Bm, R - L, K.ch - Bm);
     ctx.restore();
   }
 
@@ -849,10 +1409,12 @@
   // the frame early (≤ 45 % of it) and the window, not the arms, is the picture
   const FW = { x: 960, y: 592, s: 1.27 };
   function handsAt(T) {
-    const rise = 1 - E.outCubic(U.seg(T, 182.0, 183.0));
+    // they rise from just below the frame, unhurried and settling (≈ 950 px/s at entry,
+    // slowing; nearly home as the theft plays inside at 183.0)
+    const rise = 1 - E.outSine(U.seg(T, 182.0, 183.3));
     const fall = E.inOutSine(U.seg(T, 189.1, 190.6));
     const tremble = U.seg(T, 188.0, 188.25) * 0.67;
-    return { x: FW.x, y: FW.y + 920 * rise + 820 * fall, s: FW.s, tremble };
+    return { x: FW.x, y: FW.y + 780 * rise + 820 * fall, s: FW.s, tremble };
   }
   // the geometry of CAST's fox-window hand (cast.js foxHand), for the sleeves and the creases
   const FWG = (() => {
@@ -959,12 +1521,10 @@
     const cw = ctx.canvas.width, ch = ctx.canvas.height;
     if (emptyA && emptyA.width === cw && emptyA.height === ch) return emptyA;
     const cv = B.canvas(cw, ch), c = cv.getContext('2d'), k = cw / W;
+    // the inserts' flattened plates (the table is the same still one), then the old paper
+    c.drawImage(flatAprime(ctx), 0, 0);
     c.setTransform(k, 0, 0, k, 0, 0);
-    c.fillStyle = C.kinari;
-    c.fillRect(0, 0, W, H);
-    const Tr = 185;
-    drawAprime(c, Tr, { age: false });
-    shotA().ageFrame(c, Tr, { amount: 1 });
+    shotA().ageFrame(c, 185, { amount: 1 });
     emptyA = cv;
     return cv;
   }
@@ -1001,7 +1561,9 @@
     ctx.fillStyle = C.kinari;
     ctx.fillRect(win.cx - win.w, win.cy - win.h, win.w * 2, win.h * 2);
     A.cropTransform(ctx, Object.assign(innerCrop(T), { to: [win.cx, win.cy] }));
-    A.drawGarden(ctx, Tp, { camera: false, gazeOut: U.seg(Tp, 36.0, 37.0) });
+    // she turns on the 186.0 beat: back view to 185.75, profile to 186.0, then the
+    // three-quarter look straight out, held through the andon going out (187.0)
+    A.drawGarden(ctx, Tp, { camera: false, gazeOut: U.seg(Tp, 35.56, 36.28) });
     ctx.restore();
     // her forearms in the 波兎 sleeves rising from below the frame, and the old
     // hands — carved once at rest, then printed where the arms are (the rise,
@@ -1036,14 +1598,56 @@
       cw, y0,
       sleeves: mk((c) => sleeves(c, T, h, 0)),
       // the same authored window as in 三, old: moonlit skin in one flat pale
-      // block, carved 墨 key lines, knuckles, creases, a few age spots; a 胡粉
-      // rim where the moon (upper right) catches the edges
+      // block, carved 墨 key lines, knuckles, creases, a few age spots; where the
+      // moon (upper right) catches them, a narrow 胡粉 bokashi printed INSIDE the
+      // contour (no light rim outside the key line)
       hands: mk((c) => PRINT.with(c, 'K', T, (cc) => {
-        CAST.hands(cc, h.x + 2.6, h.y - 2.6, h.s, Object.assign({}, hopts, { silhouette: U.rgba(C.gofun, 0.55) }));
         CAST.hands(cc, h.x, h.y, h.s, Object.assign({}, hopts, { palette: winPal(), ink: C.sumi, outline: 0.9 }));
       })),
     };
+    moonlitEdge(rest.hands, k, y0, (c) => TSUKI.CAST.hands(c, h.x, h.y, h.s, Object.assign({}, hopts, { silhouette: '#fff' })));
     return rest;
+  }
+  /**
+   * The moon's touch on the old hands: a narrow bokashi of 胡粉 laid inside the
+   * hands' contour along the edges that face the moon (upper right) — the hand
+   * silhouette minus itself shifted a few px toward the lower left, softened,
+   * kept inside the silhouette — printed on the skin only (never on the key
+   * lines, which stay whole and dark). Build time only.
+   */
+  function moonlitEdge(cv, k, y0, silhouette) {
+    const w = cv.width, h = cv.height;
+    const mk = () => { const m = B.canvas(w, h), c = m.getContext('2d'); c.setTransform(k, 0, 0, k, 0, -y0 * k); return [m, c]; };
+    const [sil, sc] = mk();
+    silhouette(sc);
+    const [soft, fc] = mk();
+    fc.setTransform(1, 0, 0, 1, 0, 0);
+    // what the moon sees: the silhouette minus itself pushed toward the lower left …
+    const [rim, rc] = mk();
+    rc.setTransform(1, 0, 0, 1, 0, 0);
+    const d = Math.max(2, Math.round(9 * k));
+    rc.drawImage(sil, 0, 0);
+    rc.globalCompositeOperation = 'destination-out';
+    rc.drawImage(sil, -d, d);
+    // … softened into a bokashi and kept inside the hands
+    fc.filter = `blur(${Math.max(1, 3.2 * k).toFixed(1)}px)`;
+    fc.drawImage(rim, 0, 0);
+    fc.filter = 'none';
+    fc.globalCompositeOperation = 'destination-in';
+    fc.drawImage(sil, 0, 0);
+    const c = cv.getContext('2d');
+    const img = c.getImageData(0, 0, w, h), px = img.data;
+    const S = fc.getImageData(0, 0, w, h).data;
+    const g = U.hexToRgb(aged(U.mix(C.gofun, C.geppaku, 0.3)));
+    for (let i = 0; i < px.length; i += 4) {
+      if (!px[i + 3] || !S[i + 3]) continue;
+      const lum = (0.3 * px[i] + 0.59 * px[i + 1] + 0.11 * px[i + 2]) / 255;
+      const a = Math.min(0.8, (S[i + 3] / 255) * 1.1) * U.clamp((lum - 0.32) / 0.22);   // the skin, not the key line
+      if (a <= 0) continue;
+      px[i] += (g[0] - px[i]) * a; px[i + 1] += (g[1] - px[i + 1]) * a; px[i + 2] += (g[2] - px[i + 2]) * a;
+    }
+    c.putImageData(img, 0, 0);
+    sil.width = sil.height = rim.width = rim.height = soft.width = soft.height = 0;
   }
   // old skin under the moon: the flesh block (胡粉 + 狐色) pulled toward 藍, on the late paper
   let WIN_PAL = null;
@@ -1066,6 +1670,7 @@
       try {
         const A = shotA();
         if (A.warmLate) A.warmLate(k);
+        if (A.warmJolt) A.warmJolt(k);           // the jolt's two impressions (160.0–160.62)
         const cv = B.canvas(Math.round(W * k), Math.round(H * k)), c = cv.getContext('2d');
         c.setTransform(k, 0, 0, k, 0, 0);
         kakeCaches(c);
@@ -1074,6 +1679,12 @@
         namiPattern(c);
         spoutAt();
         figSprite(c, 'pour'); figSprite(c, 'seiza');
+        flatAprime(c);
+        cupsStill(c, 'pour'); cupsStill(c, 'seiza'); stripStill(c);
+        drawInsertCups(c, 170.75);                      // carves the hold's finished frame
+        drawFoxWindow(c, 182.5);                        // the inset's first frame (its crop's glow, sprites)
+        // every still is carved from the flat plates now: let them go (flatAprime re-carves on demand)
+        if (flatA) { flatA.width = flatA.height = 0; flatA = null; }
         // the moon's printed rabbit at the crop's size, before the first frame needs it
         MOON.draw(c, KMOON.x, KMOON.y, KMOON.r, 178, {});
       } catch (e) { /* warming is only an optimisation */ }

@@ -7,15 +7,16 @@
 
    Plates (PRINT shot 'C', layers back → front):
      ground  P3 flat 松葉 moss with a sparse 点苔 stipple · P1 黄土 dots ·
-             P4 the gravel bed — one flat 鼠 with a bokashi edge into the moss,
-             a few hundred 墨 dots — the basin's cast shadow and the side
-             stones · P7 moonlit pebble tops · K side-stone key lines
+             P4 the gravel bed — one flat 鼠 with a bokashi edge into the moss —
+             the basin's cast shadow and the side stones · K 砂紋: the gravel
+             raked in rings round the basin (P7 a hair of light on each
+             crest) · K side-stone key lines · K the flat dark-moss foot
      basin   P4 stone · P1 lichen · P3 rim moss · P7 月白 far-rim light · K
      water   P5 藍 · P6 ベロ藍 far-edge bokashi · P8 a few mica points
      spout   P3 bamboo · P1 煤竹 stakes · P7 wet light · K nodes, rope; the
              萩 spray (top right: P3 leaves, P2 flowers, K); ferns in the corners
-     veil    K the 墨 bokashi vignette at every edge (α 0.5), deepening over
-             the subtitle band (y 940–1080, α .65)
+     veil    K straight bands only (no vignette): a 墨 一文字 at the top, a
+             thin 墨 bokashi over the foot (the subtitle band stays calm)
 
    TSUKI.SHOTS.C
      G                       geometry (basin, opening, water, refl, spout, drop,
@@ -25,7 +26,7 @@
                              water goes after 'water', hands after 'spout')
      warm(T, w, h)           build the flattened caches now (scene init)
      waterClip(ctx)          add the visible-water region to ctx's path
-     reflection(ctx, T, o)   the reflected moon (o.alpha, o.wobble, o.sx/sy, o.x/y)
+     reflection(ctx, T, o)   the reflected moon (o.alpha, o.wobble, o.sx/sy, o.x/y, o.glow)
      rings(ctx, T, list, o)  seigaiha ripple rings: list of
                              {x, y, t0, speed, life, amp, n, gap, r0, w};
                              o.refl → rings read dark across the reflection
@@ -177,7 +178,8 @@
   const MOSS = U.mix(U.mix(C.matsuba, C.sumi, 0.3), C.ai, 0.12);
   const MOSS_DK = U.mix(C.matsuba, C.sumi, 0.62);
   const MOSS_LT = U.mix(C.koke, C.matsuba, 0.45);
-  const GRAVEL = U.mix(U.mix(C.nezumi, C.ai, 0.3), C.sumi, 0.56);
+  const MOSS_FOOT = U.mix(U.mix(C.matsuba, C.sumi, 0.7), C.ai, 0.1);
+  const GRAVEL = U.mix(U.mix(C.nezumi, C.ai, 0.3), C.sumi, 0.42);
   const STONE = U.mix(C.nezumi, C.ai, 0.1);
   const STONE_DK = U.mix(C.nezumi, C.sumi, 0.42);
   const STONE_LT = U.mix(C.nezumi, C.ginnezu, 0.55);
@@ -216,83 +218,16 @@
       m.fill();
     }
 
-    /* ---- P4: the gravel — one flat 鼠 ink with a soft edge, sparse dots -- */
+    /* ---- P4: the gravel — one flat 鼠 ink, its edge cut where the moss begins */
     const g = P('ground', 'P4');
-    g.save();
-    g.translate(gv.x, gv.y);
-    g.scale(1, gv.ry / gv.rx);
-    const gg = g.createRadialGradient(0, 0, gv.rx * 0.86, 0, 0, gv.rx * 1.05);
-    gg.addColorStop(0, GRAVEL);
-    gg.addColorStop(1, U.rgba(GRAVEL, 0));
-    g.restore();
-    g.save();
-    B.smoothPath(g, gravelPts.map(([x, y]) => [gv.x + (x - gv.x) * 1.05, gv.y + (y - gv.y) * 1.05]), true, 0.5);
-    g.clip();
-    g.translate(gv.x, gv.y);
-    g.scale(1, gv.ry / gv.rx);
-    g.fillStyle = gg;
-    g.fillRect(-gv.rx * 1.2, -gv.rx * 1.2, gv.rx * 2.4, gv.rx * 2.4);
-    g.restore();
-    // pebbles: a few hundred small 墨 dots and fewer 銀鼠 ones, never in the subtitle band
-    const dot = (x, y, rr, col) => { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rr, rr * 0.7, 0, 0, TAU); g.fill(); };
-    let nd = 0;
-    for (let i = 0; i < 4000 && nd < 300; i++) {
-      const x = gv.x + (r() * 2 - 1) * gv.rx, y = gv.y + (r() * 2 - 1) * gv.ry;
-      if (y > 945 || inGravel(x, y) > 0.9) continue;
-      if (inEll(x, y, G.basin, 12) < 1 && y < G.basin.y + G.side + 14) continue;
-      dot(x, y, U.lerp(1.6, 3.2, r()), U.rgba(C.sumi, U.lerp(0.4, 0.7, r())));
-      nd++;
-    }
-    // and moonlit pebble tops: fewer, paler, printed from the 胡粉 block
-    const hl = P('ground', 'P7');
-    let nl = 0;
-    for (let i = 0; i < 4000 && nl < 220; i++) {
-      const x = gv.x + (r() * 2 - 1) * gv.rx, y = gv.y + (r() * 2 - 1) * gv.ry;
-      if (y > 930 || inGravel(x, y) > 0.85) continue;
-      if (inEll(x, y, G.basin, 12) < 1 && y < G.basin.y + G.side + 14) continue;
-      hl.fillStyle = U.rgba(C.ginnezu, U.lerp(0.2, 0.42, r()));
-      hl.beginPath();
-      hl.ellipse(x, y, U.lerp(1.2, 2.4, r()), U.lerp(0.8, 1.4, r()), 0, 0, TAU);
-      hl.fill();
-      nl++;
-    }
+    g.fillStyle = GRAVEL;
+    B.smoothPath(g, gravelPts, true, 0.5);
+    g.fill();
     // the basin's cast shadow on the gravel (the moon high, a little left)
     g.fillStyle = U.rgba(U.mix(GRAVEL, C.sumi, 0.6), 0.55);
     g.beginPath();
     g.ellipse(G.basin.x + 26, G.basin.y + G.side + 8, G.basin.rx + 8, G.basin.ry * 0.96, 0, 0, TAU);
     g.fill();
-    // the two side stones: 手燭石 (left, under the spout) and 湯桶石 (right)
-    const stones = [
-      { x: 150, y: 790, rx: 262, ry: 118, rot: -0.1, seed: 11, h: 36 },
-      { x: 1872, y: 610, rx: 200, ry: 112, rot: 0.22, seed: 23, h: 30 },
-    ];
-    for (const s of stones) {
-      s.pts = stoneOutline(s);
-      // side (shadowed), then top
-      g.fillStyle = U.mix(STONE_DK, C.sumi, 0.3);
-      g.beginPath();
-      subSmooth(g, s.pts.map((p) => [p[0], p[1] + s.h]));
-      g.fill();
-      const lo = s.pts.filter((p) => p[1] > s.y - s.ry * 0.2);
-      for (const p of lo) g.fillRect(p[0] - 3, p[1] - 2, 6, s.h + 2);
-      g.fillStyle = U.mix(STONE, C.sumi, 0.4);
-      g.beginPath();
-      subSmooth(g, s.pts);
-      g.fill();
-      g.save();
-      g.beginPath();
-      subSmooth(g, s.pts);
-      g.clip();
-      // bokashi: light crown, darker near edge
-      const sg = g.createLinearGradient(0, s.y - s.ry, 0, s.y + s.ry);
-      sg.addColorStop(0, U.rgba(STONE_LT, 0.26));
-      sg.addColorStop(0.55, U.rgba(STONE_LT, 0));
-      sg.addColorStop(1, U.rgba(STONE_DK, 0.4));
-      g.fillStyle = sg;
-      g.fillRect(s.x - s.rx * 1.2, s.y - s.ry * 1.3, s.rx * 2.4, s.ry * 2.6);
-      g.restore();
-    }
-
     /* ---- P1: 黄土 — earth dots in the moss, lichen on the side stones -- */
     const o = P('ground', 'P1');
     for (let i = 0; i < 420; i++) {
@@ -305,71 +240,242 @@
       o.arc(x, y, U.lerp(0.9, 2, r()), 0, TAU);
       o.fill();
     }
-    for (const s of stones) {
-      for (let i = 0; i < 90; i++) {
-        const a = r() * TAU, d = Math.sqrt(r()) * 0.85;
-        const x = s.x + Math.cos(a) * s.rx * d, y = s.y + Math.sin(a) * s.ry * d;
-        if (U.fbm2(x / 40, y / 40, 2, s.seed + 5) < 0.55) continue;
-        o.fillStyle = U.rgba(U.mix(C.odo, C.kuchiba, 0.4), U.lerp(0.4, 0.75, r()));
-        o.beginPath();
-        o.arc(x, y, U.lerp(1.2, 3, r()), 0, TAU);
-        o.fill();
-      }
-    }
+    carveStones(P);
+  }
 
-    /* ---- P3 again: moss creeping onto the side stones ----------------- */
-    for (const s of stones) {
-      m.save();
-      m.beginPath();
-      subSmooth(m, s.pts);
-      m.clip();
+  /**
+   * The two side stones — 手燭石 (left, under the spout) and 湯桶石 (right) —
+   * cut as Hiroshige cuts a rock, not as rounded blobs: a faceted outline
+   * (a dozen corners, only a little rounded), a flat top in one grey, one
+   * flat lighter plane where the moon falls on it bounded by a carved ridge,
+   * a darker flat side, 斧劈皴 — short parallel axe-cut strokes in clusters —
+   * and moss and lichen that show through holes cut in the stone block (the
+   * way a printer lets an earlier colour through), never under it.
+   */
+  const STONES = [
+    { x: 150, y: 790, rx: 262, ry: 118, rot: -0.1, seed: 11, h: 36, lit: [2.55, 4.55] },
+    { x: 1872, y: 610, rx: 200, ry: 112, rot: 0.22, seed: 23, h: 30, lit: [2.7, 4.4] },
+  ];
+  const stoneXY = (s, a, k) => {
+    const px = Math.cos(a) * s.rx * k, py = Math.sin(a) * s.ry * k;
+    return [s.x + px * Math.cos(s.rot) - py * Math.sin(s.rot), s.y + px * Math.sin(s.rot) + py * Math.cos(s.rot)];
+  };
+  /** A natural flat stone: an irregular, faceted outline (angles, radius factors). */
+  function stoneOutline(s) {
+    const r = U.rng(s.seed * 7 + 1), pts = [];
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const a = ((i + U.lerp(-0.3, 0.3, r())) / n) * TAU;
+      const k = 1 + U.lerp(-0.1, 0.07, r());
+      pts.push(stoneXY(s, a, k));
+    }
+    return pts;
+  }
+  function carveStones(P) {
+    const g = P('ground', 'P4'), m = P('ground', 'P3'), o = P('ground', 'P1'), w = P('ground', 'P7'), k = P('ground', 'K');
+    const TOP = U.mix(STONE, C.sumi, 0.34), SIDE = U.mix(STONE_DK, C.sumi, 0.34);
+    const path = (c, pts, dy = 0) => { c.beginPath(); subSmooth(c, pts.map((q) => [q[0], q[1] + dy]), 0.22); };
+    for (const s of STONES) {
+      const r = U.rng(s.seed * 13 + 5);
+      const pts = (s.pts = stoneOutline(s));
+      // side, then the flat top
+      g.fillStyle = SIDE;
+      path(g, pts, s.h);
+      g.fill();
+      for (const q of pts.filter((q) => q[1] > s.y - s.ry * 0.2)) g.fillRect(q[0] - 4, q[1] - 2, 8, s.h + 2);
+      g.fillStyle = TOP;
+      path(g, pts);
+      g.fill();
+      // the lit plane: the outline's moon side, closed by a ridge across the stone
+      const [a0, a1] = s.lit;
+      const ridge = [stoneXY(s, a1, 0.72), stoneXY(s, (a0 + a1) / 2 + 0.2, 0.34), stoneXY(s, a0, 0.78)];
+      const lit = new Path2D();
+      lit.moveTo(...stoneXY(s, a0, 1.3));
+      for (let q = 1; q <= 8; q++) lit.lineTo(...stoneXY(s, U.lerp(a0, a1, q / 8), 1.3));
+      for (const q of ridge) lit.lineTo(...q);
+      lit.closePath();
+      g.save();
+      path(g, pts);
+      g.clip();
+      g.fillStyle = U.rgba(STONE_LT, 0.42);
+      g.fill(lit);
+      // the plane turned from the moon, one step darker
+      const shade = new Path2D();
+      shade.moveTo(...stoneXY(s, 0.15, 1.3));
+      for (let q = 1; q <= 6; q++) shade.lineTo(...stoneXY(s, U.lerp(0.15, 1.75, q / 6), 1.3));
+      shade.lineTo(...stoneXY(s, 1.6, 0.55));
+      shade.lineTo(...stoneXY(s, 0.3, 0.6));
+      shade.closePath();
+      g.fillStyle = U.rgba(C.sumi, 0.16);
+      g.fill(shade);
+      g.restore();
+      // moss cushions on the stone (P3) and lichen (P1), through holes in the stone
+      const moss = [];
       for (let i = 0; i < 3; i++) {
-        const a = U.lerp(0.3, 2.8, r()) + (i % 2 ? Math.PI : 0);
-        const x = s.x + Math.cos(a) * s.rx * 0.85, y = s.y + Math.sin(a) * s.ry * 0.85;
-        m.fillStyle = U.rgba(MOSS_LT, 0.6);
-        blob(m, x, y, U.lerp(30, 60, r()), U.lerp(16, 28, r()), 900 + i + s.seed, 0.28);
+        const a = U.lerp(0.3, 2.8, r()) + (i % 2 ? Math.PI : 0), d = U.lerp(0.62, 0.84, r());
+        const [x, y] = stoneXY(s, a, d);
+        moss.push([x, y, U.lerp(26, 52, r()), U.lerp(12, 22, r()), 900 + i + s.seed]);
+      }
+      const lichen = [];
+      for (let i = 0; i < 160 && lichen.length < 38; i++) {
+        const [x, y] = stoneXY(s, r() * TAU, Math.sqrt(r()) * 0.82);
+        if (U.fbm2(x / 40, y / 40, 2, s.seed + 5) < 0.52) continue;
+        lichen.push([x, y, U.lerp(1.4, 3.2, r())]);
+      }
+      g.save();
+      path(g, pts);
+      g.clip();
+      g.globalCompositeOperation = 'destination-out';
+      for (const [x, y, rx, ry, sd] of moss) { blob(g, x, y, rx * 0.96, ry * 0.94, sd, 0.28); g.fill(); }
+      for (const [x, y, rr] of lichen) { g.beginPath(); g.arc(x, y, rr * 0.9, 0, TAU); g.fill(); }
+      g.restore();
+      m.save();
+      path(m, pts);
+      m.clip();
+      for (const [x, y, rx, ry, sd] of moss) {
+        m.fillStyle = U.mix(MOSS_LT, MOSS, 0.45);
+        blob(m, x, y, rx, ry, sd, 0.28);
         m.fill();
+        for (let j = 0; j < 18; j++) {
+          m.fillStyle = U.rgba(MOSS_DK, 0.8);
+          m.beginPath();
+          m.arc(x + U.lerp(-rx, rx, r()) * 0.8, y + U.lerp(-ry, ry, r()) * 0.7, U.lerp(0.9, 2, r()), 0, TAU);
+          m.fill();
+        }
       }
       m.restore();
-    }
-
-    /* ---- P7: a thin moonlit edge along each stone's far side ----------- */
-    const w = P('ground', 'P7');
-    for (const s of stones) {
-      const top = s.pts.filter((p) => p[1] < s.y - s.ry * 0.25);
-      top.sort((a, b) => a[0] - b[0]);
-      B.taper(w, top.map((p) => [p[0], p[1] + 3]), 1, 1, U.rgba(C.geppaku, 0.45), 2.2);
-    }
-
-    /* ---- K: side-stone key lines and 皴 ---------------------------------- */
-    const k = P('ground', 'K');
-    const r4 = U.rng(3304);
-    for (const s of stones) {
-      keyStroke(k, s.pts, true, 2.4, 0.85);
-      const bot = s.pts.filter((p) => p[1] > s.y + s.ry * 0.05).map((p) => [p[0], p[1] + s.h]);
-      bot.sort((a, b) => a[0] - b[0]);
-      keyStroke(k, bot, false, 2.2, 0.8);
-      for (let i = 0; i < 10; i++) {
-        const a = r4() * TAU, d = U.lerp(0.25, 0.8, r4());
-        const x = s.x + Math.cos(a) * s.rx * d, y = s.y + Math.sin(a) * s.ry * d;
-        const t = a + Math.PI / 2 + U.lerp(-0.3, 0.3, r4());
-        const len = U.lerp(18, 60, r4());
-        B.taper(k, [[x, y], [x + Math.cos(t) * len * 0.5, y + Math.sin(t) * len * 0.35 + 2], [x + Math.cos(t) * len, y + Math.sin(t) * len * 0.5]], 1.8, 0.2, U.rgba(C.sumi, U.lerp(0.25, 0.45, r4())), 0.25);
+      for (const [x, y, rr] of lichen) {
+        o.fillStyle = U.mix(C.odo, C.kuchiba, 0.4);
+        o.beginPath();
+        o.arc(x, y, rr, 0, TAU);
+        o.fill();
+      }
+      // P7: moonlight along the lit plane's rim (the outline, inside the stone)
+      w.save();
+      path(w, pts);
+      w.clip();
+      w.clip(lit);
+      w.strokeStyle = U.rgba(C.geppaku, 0.5);
+      w.lineWidth = 5;
+      w.lineJoin = 'round';
+      path(w, pts);
+      w.stroke();
+      w.restore();
+      // K: the key line, the foot of the side, the ridge, and the axe-cut 皴
+      k.save();
+      k.strokeStyle = U.rgba(C.sumi, 0.88);
+      k.lineWidth = 2.5;
+      k.lineJoin = 'round';
+      path(k, pts);
+      k.stroke();
+      const bot = pts.filter((q) => q[1] > s.y + s.ry * 0.05).map((q) => [q[0], q[1] + s.h]).sort((a, b) => a[0] - b[0]);
+      B.smoothPath(k, bot, false, 0.3);
+      k.lineWidth = 2.3;
+      k.stroke();
+      k.restore();
+      B.taper(k, B.qpts(...ridge[0], ...ridge[1], ...ridge[2], 12), 0.4, 1.6, U.rgba(C.sumi, 0.55), 0.6);
+      for (let c = 0; c < 4; c++) {
+        // a cluster: 3–5 short strokes, parallel, falling from the ridge or an edge
+        const [cx, cy] = stoneXY(s, U.lerp(0, TAU, r()), U.lerp(0.35, 0.75, r()));
+        const ang = s.rot + U.lerp(0.9, 1.4, r()) * (r() < 0.5 ? 1 : -1) * 0.8 + Math.PI / 2;
+        const n = 3 + Math.floor(r() * 3), len = U.lerp(16, 34, r());
+        for (let j = 0; j < n; j++) {
+          const ox = cx + j * 7 * Math.cos(ang - Math.PI / 2) + U.lerp(-2, 2, r()), oy = cy + j * 7 * Math.sin(ang - Math.PI / 2) * 0.6;
+          const L = len * U.lerp(0.6, 1.1, r());
+          B.taper(k, [[ox, oy], [ox + Math.cos(ang) * L * 0.5, oy + Math.sin(ang) * L * 0.35], [ox + Math.cos(ang) * L, oy + Math.sin(ang) * L * 0.6]], 2, 0.2, U.rgba(C.sumi, U.lerp(0.35, 0.55, r())), 0.1);
+        }
+      }
+      // chisel strokes down the dark side
+      for (const q of pts.filter((q) => q[1] > s.y)) {
+        if (r() < 0.35) continue;
+        B.taper(k, [[q[0] + 3, q[1] + 6], [q[0] + 4, q[1] + s.h * 0.7]], 1.4, 0.2, U.rgba(C.sumi, 0.45), 0);
       }
     }
   }
 
-  /** A natural flat stone: an irregular, slightly faceted outline. */
-  function stoneOutline(s) {
-    const pts = [];
-    const n = 22;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU;
-      const k = 1 + 0.09 * (U.noise1(i * 0.7, s.seed) * 2 - 1) + 0.04 * (U.noise1(i * 2.3, s.seed + 9) * 2 - 1);
-      const px = Math.cos(a) * s.rx * k, py = Math.sin(a) * s.ry * k;
-      pts.push([s.x + px * Math.cos(s.rot) - py * Math.sin(s.rot), s.y + px * Math.sin(s.rot) + py * Math.cos(s.rot)]);
+  /**
+   * 砂紋: the gravel raked into rings round the basin, as a 枯山水 is raked
+   * round its stones — carved into the key block as fine grooves (0.8–1.4 px
+   * 墨 α .35, 14 px apart) with a hair of moonlight on each crest (P7). The
+   * rings wander a little as a rake does, break where the wood broke, part
+   * round the side stone in rings of their own, fade out where the gravel
+   * thins into the moss, and never enter the subtitle band or the haiku's pocket.
+   */
+  const RAKE = { gap: 14, first: 26, alpha: 0.35, stone: { x: 150, y: 808, rx: 262, ry: 154 } };
+  function carveRaked(P) {
+    const k = P('ground', 'K'), w = P('ground', 'P7');
+    const gv = G.gravel, st = RAKE.stone;
+    const r = U.rng(3377);
+    const cx = G.basin.x, cy = G.basin.y + G.side, ratio = G.basin.ry / G.basin.rx;
+    const stoneZone = (x, y, grow) => {
+      const dx = (x - st.x) / (st.rx + grow), dy = (y - st.y) / (st.ry + grow * 0.6);
+      return dx * dx + dy * dy;
+    };
+    const ZONE = RAKE.first + RAKE.gap * 3 + 6;               // the side stone's own rings
+    const ok = (x, y, lim) => y < 944 && !(x < 480 && y < 470) && inEll(x, y, gv) < lim;
+    /** stroke one ring as runs of carved groove, its crest light beside it */
+    const ring = (pts, keep, seed) => {
+      let run = [];
+      const flush = () => {
+        if (run.length > 2) {
+          for (let a = 0; a < run.length - 1; a += 6) {
+            const seg = run.slice(a, a + 7);
+            if (seg.length < 2) break;
+            const wN = U.noise1(seed * 3.1 + a * 0.11, 93);
+            if (wN < 0.07) continue;                            // where the wood broke
+            k.strokeStyle = U.rgba(C.sumi, RAKE.alpha * U.lerp(0.8, 1.12, U.noise1(a * 0.07 + seed, 94)));
+            k.lineWidth = U.lerp(0.8, 1.4, wN);
+            k.beginPath();
+            seg.forEach((q, j) => (j ? k.lineTo(q[0], q[1]) : k.moveTo(q[0], q[1])));
+            k.stroke();
+            w.strokeStyle = U.rgba(C.geppaku, 0.13);
+            w.lineWidth = 0.9;
+            w.beginPath();
+            seg.forEach((q, j) => (j ? w.lineTo(q[0], q[1] - 4.5) : w.moveTo(q[0], q[1] - 4.5)));
+            w.stroke();
+          }
+        }
+        run = [];
+      };
+      for (const q of pts) { if (keep(q[0], q[1])) run.push(q); else flush(); }
+      flush();
+    };
+    k.save(); w.save();
+    k.lineCap = w.lineCap = 'round';
+    k.lineJoin = w.lineJoin = 'round';
+    // the basin's rings
+    for (let i = 0; i < 20; i++) {
+      const rx = G.basin.rx + RAKE.first + i * RAKE.gap, ry = rx * ratio;
+      const lim = Math.pow(U.lerp(0.92, 0.985, r()), 2);      // where this ring gives out into the moss
+      const n = Math.ceil((TAU * rx) / 4), pts = [];
+      for (let j = 0; j <= n; j++) {
+        const a = (j / n) * TAU;
+        const wob = 1.3 * (U.noise1(a * 7 + i * 0.73, 91) * 2 - 1) + 0.8 * (U.noise1(a * 23 + i, 92) * 2 - 1);
+        pts.push([cx + Math.cos(a) * (rx + wob), cy + Math.sin(a) * (ry + wob * ratio)]);
+      }
+      ring(pts, (x, y) => ok(x, y, lim) && stoneZone(x, y, ZONE) > 1, i + 1);
     }
-    return pts;
+    // the side stone's rings, where it reaches into the gravel
+    for (let i = 0; i < 3; i++) {
+      const grow = RAKE.first + i * RAKE.gap;
+      const n = 260, pts = [];
+      for (let j = 0; j <= n; j++) {
+        const a = (j / n) * TAU;
+        const wob = 1.1 * (U.noise1(a * 6 + i * 0.9, 95) * 2 - 1);
+        pts.push([st.x + Math.cos(a) * (st.rx + grow + wob), st.y + Math.sin(a) * (st.ry + (grow + wob) * 0.6)]);
+      }
+      ring(pts, (x, y) => ok(x, y, 0.9) && inEll(x, y, G.basin, RAKE.first) > 1, 40 + i);
+    }
+    // where the moss cushion rises over the gravel it throws a thin shadow
+    // onto it: a broken 墨 line just inside the edge
+    const gp = [];
+    for (let i = 0; i <= 144; i++) {
+      const a = (i / 144) * TAU;
+      const kk = 1 + 0.035 * (U.noise1(((i / 2) % 72) * 0.3, 71) * 2 - 1) + 0.012 * (U.noise1(((i / 2) % 72) * 1.9, 72) * 2 - 1);
+      gp.push([gv.x + Math.cos(a) * gv.rx * kk * 0.992, gv.y + Math.sin(a) * gv.ry * kk * 0.992]);
+    }
+    ring(gp, (x, y) => y < 944 && !(x < 480 && y < 470) && stoneZone(x, y, 0) > 1, 77);
+    k.restore(); w.restore();
   }
 
   function carveBasin(P) {
@@ -862,33 +968,35 @@
     }
   }
 
+  /**
+   * No airbrushed vignette: the night is printed as straight bands, as a
+   * printer wipes them across the block. At the top an 一文字 of 墨 (flat,
+   * then one bokashi) over the moss — the haiku writes in its dark; at the
+   * foot a flat band of dark moss (the ground layer, under the basin and the
+   * child's arms) with a thin 墨 bokashi over it that lets the sleeves sink,
+   * so the subtitle band is calm.
+   */
   function carveVeil(P) {
-    // the 墨 bokashi vignette at every edge (α 0.5) — an elliptical falloff
+    // the foot: dark moss, flat from y 930, one short bokashi above it (ground layer, K)
+    const f = P('ground', 'K');
+    const fg = f.createLinearGradient(0, 872, 0, 940);
+    fg.addColorStop(0, U.rgba(MOSS_FOOT, 0));
+    fg.addColorStop(0.55, U.rgba(MOSS_FOOT, 0.62));
+    fg.addColorStop(1, U.rgba(MOSS_FOOT, 0.9));
+    f.fillStyle = fg;
+    f.fillRect(0, 872, 1920, 68);
+    f.fillStyle = U.rgba(MOSS_FOOT, 0.9);
+    f.fillRect(0, 940, 1920, 140);
+    // the 一文字 (veil layer, K: over everything)
     const k = P('veil', 'K');
-    k.save();
-    k.translate(960, 600);
-    k.scale(1, 0.7);
-    const g = k.createRadialGradient(0, 0, 440, 0, 0, 1150);
-    g.addColorStop(0, U.rgba(C.sumi, 0));
-    g.addColorStop(0.45, U.rgba(C.sumi, 0.3));
-    g.addColorStop(1, U.rgba(C.sumi, 0.78));
-    k.fillStyle = g;
-    k.fillRect(-1200, -1000, 2400, 2000);
-    k.restore();
-    // and a little more weight in the top-left pocket (the haiku sits on dark moss)
-    const g2 = k.createRadialGradient(250, 220, 40, 250, 220, 420);
-    g2.addColorStop(0, U.rgba(C.sumi, 0.25));
-    g2.addColorStop(1, U.rgba(C.sumi, 0));
-    k.fillStyle = g2;
-    k.fillRect(0, 0, 700, 700);
-    // the subtitle band sinks into shadow (y 940–1080, α .65)
-    const g3 = k.createLinearGradient(0, 880, 0, 1080);
+    B.ichimonji(k, C.sumi, 36, 250, 0.62);
+    // and the foot's 墨 bokashi, over the arms
+    const g3 = k.createLinearGradient(0, 900, 0, 1080);
     g3.addColorStop(0, U.rgba(C.sumi, 0));
-    g3.addColorStop(0.3, U.rgba(C.sumi, 0.45));
-    g3.addColorStop(0.55, U.rgba(C.sumi, 0.65));
-    g3.addColorStop(1, U.rgba(C.sumi, 0.7));
+    g3.addColorStop(0.45, U.rgba(C.sumi, 0.28));
+    g3.addColorStop(1, U.rgba(C.sumi, 0.42));
     k.fillStyle = g3;
-    k.fillRect(0, 880, 1920, 200);
+    k.fillRect(0, 900, 1920, 180);
   }
 
   PRINT.defineShot('C', {
@@ -896,6 +1004,7 @@
     worn: false,
     build(P) {
       carveGround(P);
+      carveRaked(P);
       carveBasin(P);
       carveWater(P);
       carveSpout(P);
@@ -986,13 +1095,15 @@
   /**
    * The moon in the water: MOON.draw squashed into an ellipse (a hole to the
    * paper), a faint 月白 sheen on the water around it, and a kira glint.
-   * o: alpha, wobble (0..1 ripple energy), sx/sy scale, x/y override
+   * o: alpha, wobble (0..1 ripple energy), sx/sy scale, x/y override,
+   *    glow (0..1, default 1: the sheen round it and the kira glint)
    */
   SC.reflection = (ctx, T, o = {}) => {
     const R = G.refl;
     const a = o.alpha == null ? 1 : o.alpha;
     if (a <= 0.001) return;
     const wob = o.wobble || 0;
+    const glow = o.glow == null ? 1 : o.glow;
     const x = (o.x == null ? R.x : o.x) + wob * 3 * Math.sin(T * 9.1);
     const y = o.y == null ? R.y : o.y;
     const sx = (o.sx || 1) * (1 + wob * 0.06 * Math.sin(T * 7.3));
@@ -1001,8 +1112,9 @@
     SC.waterClip(ctx);
     ctx.clip();
     // sheen on the water (the one allowed glow)
+    if (glow > 0.003) {
     ctx.save();
-    ctx.globalAlpha *= a;
+    ctx.globalAlpha *= a * glow;
     ctx.translate(x, y);
     ctx.scale(1, R.ry / R.rx);
     const g = ctx.createRadialGradient(0, 0, R.rx * 0.9, 0, 0, R.rx * 2.6);
@@ -1012,6 +1124,7 @@
     ctx.fillStyle = g;
     ctx.fillRect(-R.rx * 2.7, -R.rx * 2.7, R.rx * 5.4, R.rx * 5.4);
     ctx.restore();
+    }
     // the disc
     ctx.translate(x, y);
     ctx.scale(sx, sy * (R.ry / R.rx));
@@ -1020,7 +1133,7 @@
     const gl = 0.5 + 0.5 * Math.sin(T * 1.7);
     ctx.globalCompositeOperation = 'lighter';
     const kg = ctx.createRadialGradient(-R.rx * 0.38, -R.rx * 0.42, 0, -R.rx * 0.38, -R.rx * 0.42, R.rx * 0.5);
-    kg.addColorStop(0, `rgba(255,252,238,${0.22 * a * (0.6 + 0.4 * gl)})`);
+    kg.addColorStop(0, `rgba(255,252,238,${0.22 * a * glow * (0.6 + 0.4 * gl)})`);
     kg.addColorStop(1, 'rgba(255,252,238,0)');
     ctx.fillStyle = kg;
     ctx.fillRect(-R.rx, -R.rx, R.rx * 2, R.rx * 2);

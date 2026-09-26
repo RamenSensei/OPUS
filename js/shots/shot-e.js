@@ -20,6 +20,7 @@
      fujiPath()                          Path2D of the mountain (for clips)
      moon(T)                             MOON.E(T) + visible flag
      smokeTip(T)                         y of the smoke thread's tip
+     smokeX(y, T)                        x of the thread's centre line at height y (its slow S)
      dawn(T)                             東雲 growth 0..1 (206–220)
      draw(ctx, T, opts)                  the whole dawn picture, printed at T
        opts.dawn   0..1 override of the 東雲 growth
@@ -249,53 +250,6 @@
     c.restore();
   }
 
-  /**
-   * A carved mist band (霞): a straight carved top edge that undulates by at
-   * most ~3 px, a height that varies along its length, ends drawn out into
-   * long spear points (すやり) of their own lengths, and a vertical bokashi —
-   * full at the carved edge, wiped away toward the bottom. Drawn into c at
-   * (x, y) = the left end of the top edge.
-   */
-  function carveBand(c, x, y, w, h, color, alpha, seed, spL, spR, grain, res = 1) {
-    const r = U.rng(seed);
-    const N = Math.max(30, Math.round(w / 10));
-    const ph = r() * 10;
-    const top = [], bot = [];
-    for (let i = 0; i <= N; i++) {
-      const s = i / N, px = x + w * s;
-      const tl = U.clamp((px - x) / spL), tr = U.clamp((x + w - px) / spR);
-      const e = Math.min(U.ease.inOutSine(tl), U.ease.inOutSine(tr));      // 0 at the points
-      const und = 1.3 * Math.sin((px - x) / 170 + ph) + 1.4 * U.wobble((px - x) / 55, seed);
-      const ty = y + und + (1 - e) * (1 - e) * 6;                         // the edge dips into each point
-      const hh = h * (0.3 + 0.7 * U.noise1((px - x) / 150 + 2.3, seed + 7)) * Math.pow(e, 0.7);
-      top.push([px, ty]);
-      bot.push([px, ty + Math.max(0.6, hh)]);
-    }
-    const shape = polyPath(top.concat(bot.reverse()));
-    const cv = B.canvas((w + 40) * res, (h + 40) * res);
-    const k = cv.getContext('2d');
-    k.setTransform(res, 0, 0, res, (20 - x) * res, (20 - y) * res);
-    const g = k.createLinearGradient(0, y - 3, 0, y + h);
-    g.addColorStop(0, U.rgba(color, alpha));
-    g.addColorStop(0.35, U.rgba(color, alpha * 0.86));
-    g.addColorStop(0.75, U.rgba(color, alpha * 0.32));
-    g.addColorStop(1, U.rgba(color, 0));
-    k.fillStyle = g;
-    k.fill(shape);
-    // the points thin out into nothing
-    k.globalCompositeOperation = 'destination-in';
-    const hg = k.createLinearGradient(x, 0, x + w, 0);
-    hg.addColorStop(0, 'rgba(0,0,0,0)');
-    hg.addColorStop(U.clamp((spL * 0.85) / w, 0.01, 0.45), 'rgba(0,0,0,1)');
-    hg.addColorStop(U.clamp(1 - (spR * 0.85) / w, 0.55, 0.99), 'rgba(0,0,0,1)');
-    hg.addColorStop(1, 'rgba(0,0,0,0)');
-    k.fillStyle = hg;
-    k.fillRect(x - 20, y - 20, w + 40, h + 40);
-    k.globalCompositeOperation = 'source-over';
-    if (grain) gomazuri(k, x - 20, y - 20, w + 40, h + 40, grain, seed + 3, null);
-    c.drawImage(cv, x - 20, y - 20, w + 40, h + 40);
-  }
-
   /* ------------------------------------------------------------------ */
   /* susuki: one generator for carved (static) and live (swaying) clumps */
   /* ------------------------------------------------------------------ */
@@ -437,25 +391,31 @@
   }
   let Dplate = null;                                   // set per build: layer → twin context
 
+  /**
+   * The pre-dawn 桔梗 band: a thin stripe of the old sky block (P6 at 0.55 →
+   * α ≈ 0.25) lying just above the 東雲 — carved in the dawn layer so it rides
+   * the pink as it rises. Soft both sides, strongest at the left, gone by the
+   * mountain.
+   */
   function kikyoBand(c) {
-    // the pre-dawn 桔梗 band above the 東雲 (P6 at 0.55 → α ≈ 0.25), carved on
-    // its own sheet so its fade never eats the sky beneath
     const cv = B.canvas(1920, 1080);
     const k = cv.getContext('2d');
-    const g = k.createLinearGradient(0, 420, 0, 640);
+    const g = k.createLinearGradient(0, 452, 0, 548);
     g.addColorStop(0, U.rgba(INK.kikyo, 0));
-    g.addColorStop(0.42, U.rgba(INK.kikyo, 0.42));
-    g.addColorStop(0.7, U.rgba(INK.kikyo, 0.34));
+    g.addColorStop(0.3, U.rgba(INK.kikyo, 0.36));
+    g.addColorStop(0.5, U.rgba(INK.kikyo, 0.46));
+    g.addColorStop(0.72, U.rgba(INK.kikyo, 0.3));
     g.addColorStop(1, U.rgba(INK.kikyo, 0));
     k.fillStyle = g;
-    k.fillRect(0, 420, 1500, 220);
+    k.fillRect(0, 452, 1300, 96);
     k.globalCompositeOperation = 'destination-in';
-    const h = k.createLinearGradient(0, 0, 1500, 0);
+    const h = k.createLinearGradient(0, 0, 1300, 0);
     h.addColorStop(0, 'rgba(0,0,0,1)');
-    h.addColorStop(0.5, 'rgba(0,0,0,0.8)');
+    h.addColorStop(0.45, 'rgba(0,0,0,0.85)');
+    h.addColorStop(0.78, 'rgba(0,0,0,0.3)');
     h.addColorStop(1, 'rgba(0,0,0,0)');
     k.fillStyle = h;
-    k.fillRect(0, 420, 1500, 220);
+    k.fillRect(0, 452, 1300, 96);
     c.drawImage(cv, 0, 0, 1920, 1080);
   }
 
@@ -482,41 +442,56 @@
     w.fillStyle = U.rgba(INK.sky, SKY_A);
     w.fill(shape);
     woodGrain(w, 0, 0, 1920, 850, 71, C.kon, 0.4);
-    kikyoBand(w);
     gomazuri(w, 0, 0, 1920, 850, 2600, 72, null);
   }
 
   function carveDawn(P) {
     // plate D: the fresh 東雲 from the left horizon, in 鴇 — the ink of the
-    // faded heko-obi. α 0 at y ≈ 480 → 0.8 at the horizon; and 横雲, the
-    // trailing clouds of daybreak, cut in the same block: flat bands with a
-    // carved top edge and a bokashi below, never airbrushed.
+    // faded heko-obi. ONE continuous bokashi field, wiped on the block the
+    // way a printer does it: nothing at y ≈ 480, deepening down the sky to
+    // α 0.8 and held firm for the last 60 px to the horizon (the land's edge
+    // and the far hills cut it clean); full over the left third of the
+    // sheet, thinning toward the mountain (x 0–900).
     const d = Dplate('dawn');
-    const x1 = 1180;
+    const x1 = 1200;
+    const ink = U.mix(C.toki, C.gofun, 0.12);             // a fresh, clean 鴇: body enough to sit on the old blue
     const cv = B.canvas(1920, 1080);
     const c = cv.getContext('2d');
-    const g = c.createLinearGradient(0, 470, 0, 846);
-    g.addColorStop(0, U.rgba(INK.toki, 0));
-    g.addColorStop(0.3, U.rgba(INK.toki, 0.16));
-    g.addColorStop(0.62, U.rgba(INK.toki, 0.52));
-    g.addColorStop(0.9, U.rgba(INK.toki, 0.86));
-    g.addColorStop(1, U.rgba(INK.toki, 0.9));
+    const g = c.createLinearGradient(0, 480, 0, 848);
+    const prof = [[0, 0], [0.136, 0.04], [0.272, 0.13], [0.408, 0.29], [0.543, 0.47], [0.652, 0.61], [0.76, 0.73], [0.842, 0.8], [1, 0.84]];
+    for (const [f, a] of prof) g.addColorStop(f, U.rgba(ink, a));
     c.fillStyle = g;
-    c.fillRect(0, 470, x1, 380);
-    carveBand(c, -40, 598, 780, 34, INK.toki, 0.62, 3, 60, 260);
-    carveBand(c, 60, 662, 1040, 44, INK.toki, 0.68, 5, 220, 320);
-    carveBand(c, -20, 730, 660, 26, INK.toki, 0.56, 7, 40, 240);
+    c.fillRect(0, 480, x1, 368);
+    // the wiping cloth leaves the gradation faintly uneven: a few long,
+    // barely lighter strokes across the field
+    const r = U.rng(83);
+    c.save();
+    c.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 9; i++) {
+      const y = U.lerp(560, 800, r()), hh = U.lerp(5, 14, r());
+      const lg = c.createLinearGradient(0, y - hh, 0, y + hh);
+      const a = U.lerp(0.03, 0.07, r());
+      lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.5, `rgba(0,0,0,${a})`); lg.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = lg;
+      c.fillRect(U.lerp(-100, 300, r()), y - hh, U.lerp(500, 1000, r()), hh * 2);
+    }
+    c.restore();
     c.globalCompositeOperation = 'destination-in';
     const h = c.createLinearGradient(0, 0, x1, 0);
     h.addColorStop(0, 'rgba(0,0,0,1)');
-    h.addColorStop(0.35, 'rgba(0,0,0,0.95)');
-    h.addColorStop(0.6, 'rgba(0,0,0,0.7)');
-    h.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+    h.addColorStop(0.42, 'rgba(0,0,0,1)');
+    h.addColorStop(0.62, 'rgba(0,0,0,0.78)');
+    h.addColorStop(0.8, 'rgba(0,0,0,0.36)');
     h.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = h;
-    c.fillRect(0, 440, x1, 420);
+    c.fillRect(0, 470, x1, 400);
     d.drawImage(cv, 0, 0, 1920, 1080);
-    gomazuri(d, 0, 540, x1, 310, 1100, 81, null);
+    gomazuri(d, 0, 560, x1, 290, 1400, 81, null);
+    // the thin 桔梗 band above it, from the old sky block
+    const k6 = P('dawn', 'P6'), k6w = P('dawn', 'P6~worn');
+    kikyoBand(k6);
+    kikyoBand(k6w);
+    gomazuri(k6w, 0, 452, 1300, 96, 900, 84, null);
   }
 
   /* ---- Fuji's snow: tongues along the fall lines (radiating from APEX) --- */
@@ -626,9 +601,10 @@
     const pts = fujiOutline();
     const iS = pts.findIndex((p) => p[0] >= 1140 && p[1] < 430);
     const iE = pts.length - 1 - [...pts].reverse().findIndex((p) => p[0] <= 1250 && p[1] < 430);
-    const left = pts.slice(0, iS + 1).filter((p) => p[1] <= 792).reverse();   // shoulder → foot
+    // the contour stops where the block is wiped away at the foot (FOOT), tapering out
+    const left = pts.slice(0, iS + 1).filter((p) => p[1] <= 752).reverse();   // shoulder → foot
     const top = pts.slice(iS, iE + 1);
-    const right = pts.slice(iE).filter((p) => p[1] <= 792);                    // shoulder → foot
+    const right = pts.slice(iE).filter((p) => p[1] <= 752);                    // shoulder → foot
     const path = new Path2D();
     // worn: irregular breaks (arc-length fractions, gap in px) — more on the right flank
     const gapsL = worn ? [[0.23, 5], [0.58, 11], [0.86, 4]] : [];
@@ -641,7 +617,7 @@
       for (let i = 1; i < list.length; i++) { acc += Math.hypot(list[i][0] - list[i - 1][0], list[i][1] - list[i - 1][1]); lens.push(acc); }
       const tot = acc;
       const wf = (s) => {
-        let w = U.lerp(2.7, 1.1, Math.pow(s, 0.8)) * (1 + 0.12 * U.wobble(s * 9, seed));
+        let w = U.lerp(2.7, 1.1, Math.pow(s, 0.8)) * (1 + 0.12 * U.wobble(s * 9, seed)) * (1 - 0.75 * U.smoothstep(0.82, 1, s));
         for (const th of thins) w *= 1 - 0.42 * Math.exp(-Math.pow((s - th) / 0.025, 2));
         return w;
       };
@@ -685,15 +661,50 @@
     return p;
   }
 
+  /**
+   * The mountain's foot is never printed down to the ground: the block is
+   * wiped from y ≈ 690, so the ベロ藍 pales (toward 月白, half-way by 760)
+   * and gives out into the air by 816 — the massif floats on its kasumi, as
+   * Hokusai's never stands on the field. (Applied to a plate already inked.)
+   */
+  const FOOT = { y0: 690, y1: 760, y2: 816 };
+  function footBokashi(c, ink) {
+    c.save();
+    c.globalCompositeOperation = 'source-atop';
+    const pale = c.createLinearGradient(0, FOOT.y0, 0, FOOT.y2);
+    pale.addColorStop(0, U.rgba(C.geppaku, 0));
+    pale.addColorStop((FOOT.y1 - FOOT.y0) / (FOOT.y2 - FOOT.y0), U.rgba(C.geppaku, 0.5));
+    pale.addColorStop(1, U.rgba(C.geppaku, 0.62));
+    c.fillStyle = pale;
+    c.fillRect(600, FOOT.y0, 1200, 160);
+    c.globalCompositeOperation = 'destination-out';
+    const gone = c.createLinearGradient(0, FOOT.y1 - 30, 0, FOOT.y2);
+    gone.addColorStop(0, 'rgba(0,0,0,0)');
+    gone.addColorStop(0.45, 'rgba(0,0,0,0.35)');
+    gone.addColorStop(0.8, 'rgba(0,0,0,0.82)');
+    gone.addColorStop(1, 'rgba(0,0,0,1)');
+    c.fillStyle = gone;
+    c.fillRect(600, FOOT.y1 - 30, 1200, 400);
+    c.restore();
+  }
+
   function carveFuji(P) {
     const path = E.fujiPath();
-    // ---- far hills on the left horizon, 藍鼠 against the dawn (P4, no outline)
-    const g4 = P('fuji', 'P4');
+    // ---- far hills on the left horizon, 藍鼠 against the dawn (no outline).
+    // Their ink is indigo, so they are cut on the 藍 block (P5) and lift with
+    // the other blues (223.5–225) — never a blue strip left behind under the
+    // bare sky. Like the sky block, this block is wider than the sheet (E.draw
+    // prints it without the 後摺's sideways drift, so no dry strip opens at
+    // the left edge); its upward drift (−3) is carved out here, and its foot
+    // runs a few px under the field's edge (hidden there until the field
+    // lifts, after the hills have gone), so neither the drift nor the lift's
+    // rise opens a seam at the horizon.
+    const g4 = P('fuji', 'P5');
     g4.save();
+    g4.translate(0, 3);
     g4.fillStyle = INK.hills;
-    // both close along the field's own edge (never a straight cut that would
-    // show when the ground lifts), and sink into the field at their ends
-    const under = (x0, x1) => { const u = []; for (let x = x1; x >= x0; x -= 8) u.push([x, fieldTop(x) + 3]); return u; };
+    // both close along (under) the field's own edge, and sink into the field at their ends
+    const under = (x0, x1) => { const u = []; for (let x = x1; x >= x0; x -= 8) u.push([x, fieldTop(x) + 8]); return u; };
     const hill = [];
     for (let x = -10; x <= 880; x += 6) {
       const n = U.fbm2(x * 0.006, 3.7, 4, 12);
@@ -723,6 +734,8 @@
     woodGrain(w6, 680, 400, 1040, 440, 64, C.kon, 1.2);
     w6.restore();
     gomazuri(w6, 690, 410, 1020, 430, 1500, 65, C.kon);
+    footBokashi(g6, C.bero);
+    footBokashi(w6, INK.fuji);
     // ---- snow (P7 胡粉): the cap, tongues along the fall lines, the gully, ribs
     const g7 = P('fuji', 'P7');
     g7.save();
@@ -756,6 +769,14 @@
     fl.addColorStop(1, U.rgba(INK.toki, 0));
     gd.fillStyle = fl;
     gd.fillRect(700, 420, 480, 420);
+    gd.restore();
+    gd.save();
+    gd.globalCompositeOperation = 'destination-out';
+    const df = gd.createLinearGradient(0, FOOT.y0, 0, FOOT.y2);
+    df.addColorStop(0, 'rgba(0,0,0,0)');
+    df.addColorStop(1, 'rgba(0,0,0,1)');
+    gd.fillStyle = df;
+    gd.fillRect(600, FOOT.y0, 1200, 400);
     gd.restore();
     // ---- key block: the contour (carved, tapering); its 後摺 variant has its
     // own irregular breaks and thin places instead of the uniform auto-wear
@@ -1075,21 +1096,63 @@
   /* ------------------------------------------------------------------ */
   /* live parts carved once: kasumi, near susuki, the aged sheet          */
   /* ------------------------------------------------------------------ */
-  // x (left point), y (carved top edge), w, h, drift factor, alpha, seed, spear L, spear R
+  /**
+   * A carved 霞 (すやり霞) as the printers cut it: one flat impression of 胡粉
+   * with a HARD carved top edge (it wavers by ≈1–2 px) and a one-sided
+   * bokashi below — full to half its depth, wiped away beneath. Its ends are
+   * cut, never feathered: the top edge turns down in a quarter-ellipse into a
+   * rounded point (lenL / lenR px long — a long trailing end and a blunt one),
+   * so the band's outline is crisp all round and only its underside is soft.
+   * Drawn into c at (x, y) = the left end of the top edge.
+   */
+  function carveMist(c, x, y, w, h, seed, lenL, lenR, grain) {
+    const ph = U.rng(seed)() * 10;
+    const x1 = x + w;
+    const dipAt = (d, L) => (d >= L ? 0 : 1 - Math.sqrt(1 - Math.pow(1 - d / L, 2)));
+    const topY = (px) => {
+      const und = 1.1 * Math.sin((px - x) / 190 + ph) + 0.8 * U.wobble((px - x) / 70, seed);
+      return y + und + h * 0.9 * Math.max(dipAt(px - x, lenL), dipAt(x1 - px, lenR));
+    };
+    const shape = new Path2D();
+    shape.moveTo(x, y + h + 2);
+    const n = Math.max(24, Math.round(w / 6));
+    for (let i = 0; i <= n; i++) {
+      // denser samples in the ends, where the edge turns
+      const u = i / n, px = x + w * (u < 0.5 ? 0.5 * Math.pow(2 * u, 1.35) : 1 - 0.5 * Math.pow(2 - 2 * u, 1.35));
+      shape.lineTo(px, topY(px));
+    }
+    shape.lineTo(x1, y + h + 2);
+    shape.closePath();
+    const g = c.createLinearGradient(0, y - 3, 0, y + h);
+    g.addColorStop(0, U.rgba(C.gofun, 1));
+    g.addColorStop(0.5, U.rgba(C.gofun, 1));
+    g.addColorStop(0.64, U.rgba(C.gofun, 0.72));
+    g.addColorStop(0.8, U.rgba(C.gofun, 0.34));
+    g.addColorStop(0.92, U.rgba(C.gofun, 0.1));
+    g.addColorStop(1, U.rgba(C.gofun, 0));
+    c.fillStyle = g;
+    c.fill(shape);
+    if (grain) gomazuri(c, x - 4, y - 4, w + 8, h + 8, grain, seed + 3, null);
+  }
+
+  // x (left end), y (carved top edge), w, h, drift factor, alpha, seed, left end length, right end length.
+  // The mountain is ≈ x 957–1437 at y 646, 928–1467 at 674, 811–1587 at 764, 781–1617 at 782:
+  // each band overhangs a flank by a few tens of px at most (it lies IN FRONT of the
+  // mountain, it is not a stripe across the sky), and the ends of a pair stagger.
   const KASUMI = [
-    [1000, 606, 700, 62, 1.0, 0.45, 11, 110, 230],   // rises inside the left flank, trails off into the sky
-    [1560, 682, 470, 30, 1.0, 0.36, 12, 170, 90],    // lower and further right: the ends never stack
-    [430, 762, 720, 58, 1.25, 0.46, 13, 230, 140],   // across the left foot, nearest the sunrise
-    [1236, 776, 640, 48, 1.25, 0.42, 14, 120, 200],  // across the right foot
+    [1040, 646, 414, 36, 1.0, 0.5, 11, 120, 46],    // across the right flank, just under the gully's end
+    [898, 672, 290, 28, 1.0, 0.46, 12, 40, 110],    // lower and left, overlapping it: the ends stagger
+    [580, 760, 620, 46, 1.25, 0.6, 13, 70, 150],    // the left foot, nearest the sunrise (takes the dawn)
+    [1110, 778, 570, 40, 1.25, 0.56, 14, 160, 60],  // the right foot: the massif floats on these two
   ];
   let kSprites = null;
   function buildKasumi(q) {
-    kSprites = KASUMI.map(([x, y, w, h, , , seed, spL, spR]) => {
+    kSprites = KASUMI.map(([x, y, w, h, , , seed, eL, eR]) => {
       const pad = 24, cw = Math.ceil(w + pad * 2), ch = Math.ceil(h + pad * 2);
       const cv = B.canvas(cw * q, ch * q);
       const c = cv.getContext('2d');
       c.setTransform(q, 0, 0, q, (pad - x) * q, (pad - y) * q);
-      carveBand(c, x, y, w, h, C.gofun, 1, seed, spL, spR, 300, q);
+      carveMist(c, x, y, w, h, seed, eL, eR, 300);
       // the same band in 鴇 for plate D: the mist nearest the sunrise takes the dawn
       const tv = B.canvas(cv.width, cv.height);
       const t = tv.getContext('2d');
@@ -1157,6 +1220,21 @@
           const t = trimSprite(cv, spr, q);
           if (t) spr.plates[pid] = t;
         }
+        // the four impressions of this clump composited once, in plate order:
+        // printed in one blit while every plate lies in register at full ink
+        // (all of the shot before the unprinting)
+        const ts = Object.values(spr.plates);
+        if (ts.length) {
+          const mx0 = Math.min(...ts.map((t) => t.x)), my0 = Math.min(...ts.map((t) => t.y));
+          const mx1 = Math.max(...ts.map((t) => t.x + t.w)), my1 = Math.max(...ts.map((t) => t.y + t.h));
+          const mv = B.canvas(Math.round((mx1 - mx0) * q), Math.round((my1 - my0) * q));
+          const mc = mv.getContext('2d');
+          for (const pid of Object.keys(plates)) {
+            const t = spr.plates[pid];
+            if (t) mc.drawImage(t.cv, Math.round((t.x - mx0) * q), Math.round((t.y - my0) * q));
+          }
+          spr.merged = { cv: mv, x: mx0, y: my0, w: mv.width / q, h: mv.height / q };
+        }
         nearSprites.push(spr);
       }
     }
@@ -1220,15 +1298,27 @@
   };
 
   /**
-   * y of the smoke thread's tip. It creeps up 1.75 px/s to meet the moon's
-   * lower rim exactly at 214.0; then keeps creeping (≈2–2.4 px/s) while the
-   * moon, falling 16 px/s, slides down onto it (烟中月) — the tip rests inside
-   * her face; once she has gone behind the summit (222.6) it rises on, easing
-   * up to ≈8 px/s, into an empty sky.
+   * y of the smoke thread's tip. From the 206 match-cut it barely creeps
+   * (0.6 px/s) while the moon comes down; at 212.6 — as the koto's fourth
+   * note waits — it gathers itself and REACHES (a surge peaking ≈10 px/s)
+   * to touch her lower rim exactly at 214.0, arriving at the creep it keeps
+   * after (a C¹ Hermite: no kink at either end). Then it keeps creeping
+   * (≈2–2.4 px/s) while the moon, falling 16 px/s, slides down onto it
+   * (烟中月) — the tip rests inside her face; once she has gone behind the
+   * summit (222.6) it rises on, easing up to ≈8 px/s, into an empty sky.
    */
+  const REACH = { t0: 212.6, t1: 214, v0: 0.6, v1: 1.75 };
   E.smokeTip = (T) => {
     if (T <= 206) return 392;
-    if (T <= 214) return 392 - 1.75 * (T - 206);
+    if (T <= REACH.t0) return 392 - REACH.v0 * (T - 206);
+    if (T <= REACH.t1) {
+      // climb c(s) above 392: c0 at t0 (slope v0) → 14 at t1 (slope v1)
+      const D = REACH.t1 - REACH.t0, s = (T - REACH.t0) / D;
+      const c0 = REACH.v0 * (REACH.t0 - 206), c1 = 14;
+      const s2 = s * s, s3 = s2 * s;
+      const c = (2 * s3 - 3 * s2 + 1) * c0 + (s3 - 2 * s2 + s) * D * REACH.v0 + (-2 * s3 + 3 * s2) * c1 + (s3 - s2) * D * REACH.v1;
+      return 392 - c;
+    }
     if (T <= 222.6) { const s = T - 214; return 378 - 1.75 * s - 0.04 * s * s; }
     const v0 = 1.75 + 0.08 * 8.6, y0 = 378 - 1.75 * 8.6 - 0.04 * 8.6 * 8.6;
     const s = T - 222.6, dv = 8 - v0, tau = 1.6;
@@ -1238,12 +1328,28 @@
   /** Length of the feathered tip (px): short while it creeps to the rim, soft once it is inside her. */
   const smokeFade = (T) => U.lerp(4, 30, U.smoothstep(214.05, 215.8, T)) + 8 * U.smoothstep(222.6, 225, T);
 
-  /** The thread's centre-line x at height y: a slow S — it leans away, comes back — wavering more as it climbs. */
+  /**
+   * The thread's centre-line x at height y. It leaves the crater upright, on
+   * the gully's axis (the 206 match-cut), then bends in a slow S — a wave
+   * that rolls up the thread at about the speed the smoke climbs (≈ 3 px/s),
+   * so even the short thread of the climax (≈ 47 px) is a living line of a
+   * few px either way, never a rod — and the dawn air carries it, higher up,
+   * a little downwind (+x, the way the kasumi drift and the susuki lean).
+   */
   const smokeX = (y, T) => {
     const h = Math.max(0, E.CRATER[1] - y);
-    const lean = 0.0006 * h * h - 0.08 * h;
-    const amp = 0.00008 * h * h + 0.01 * h;
-    return E.AXIS + lean + amp * (0.65 * Math.sin(h / 38 - T * 0.5) + 0.35 * U.wobble(h / 70 - T * 0.1, 17));
+    const env = 1 - Math.exp(-(h * h) / 180);          // vertical out of the crater
+    const amp = env * (2.5 + 0.03 * h);
+    const wave = 0.82 * Math.sin(h / 10.5 - T * 0.29 + 1.9) + 0.18 * U.wobble(h / 36 - T * 0.12, 17);
+    return E.AXIS + amp * wave + 0.0008 * h * h;
+  };
+  E.smokeX = smokeX;
+
+  /** The rim's 胡粉 line at the contact: runs 0.8 s, holds, gone by 215.3 (her rim is still ≥ 19 px above the plateau). */
+  const KIRA = {
+    run: 0.8, hold: 214.75, end: 215.3,
+    // mica points along the rim: [turns from the contact point, arm (±1), size px, radial offset px]
+    points: [[0.035, 1, 1.9, 0.2], [0.075, -1, 1.5, -0.4], [0.16, 1, 1.4, 0.5], [0.215, -1, 2.1, 0], [0.3, 1, 1.6, -0.3], [0.37, -1, 1.4, 0.4], [0.455, 1, 1.8, 0.1]],
   };
 
   let skyClip = null;
@@ -1277,119 +1383,161 @@
         halo: 0.6,                                         // the dawn moon's 月暈 (the one glow allowed)
         haloR: m.r * 1.8,
         glaze: { color: U.mix(C.geppaku, C.ginnezu, U.lerp(0, 0.08, u)), alpha: U.lerp(0.5, 0.56, u) },
-        maria: U.lerp(0.22, 0.15, u),
+        maria: U.lerp(0.2, 0.15, u),                       // continues ariake (0.22 → 0.2 by the 206 cut)
       });
       ctx.restore();
     }
-    // 214.0 — the smoke touches the lower rim: mica light runs round the rim (0.8 s)
-    if (T >= 214 && T < 215.3 && part !== 'under') {
+    // 214.0 — the smoke touches the lower rim. A thin line of 胡粉 runs round
+    // her cut edge from the point of contact, both ways, and closes at the
+    // top (0.8 s); the few hard mica points it passes catch the light once.
+    // A printed rim, lit — no bloom, no flare.
+    if (T >= 214 && T < KIRA.end && part !== 'under') {
+      // where the thread's hairline tip met her rim (fixed on the disc: the light starts there)
+      const m0 = E.moon(214), tx = smokeX(E.smokeTip(214), 214);
+      const a0 = Math.atan2(Math.sqrt(Math.max(0, m0.r * m0.r - (tx - m0.x) * (tx - m0.x))), tx - m0.x);
       PRINT.with(ctx, 'P8', T, (c) => {
-        const p = U.clamp((T - 214) / 0.8);
-        const env = Math.pow(Math.sin(Math.PI * U.clamp((T - 214) / 1.3)), 0.8);
+        const p = U.clamp((T - 214) / KIRA.run);
         const e = U.ease.outSine(p) * 0.5;                   // how far each arm has run (turns)
+        const fade = 1 - U.smoothstep(KIRA.hold, KIRA.end, T);
         c.save();
+        // the line itself: 2 px, straddling the cut edge, crisp; the arms'
+        // heads are the freshest ink (a touch denser over their last 20°)
+        c.lineCap = 'butt';
+        c.lineWidth = 2;
+        const R = m.r + 0.35;
+        const arcs = (x0, x1) => {
+          c.beginPath();
+          if (x1 - x0 >= 0.998) c.arc(m.x, m.y, R, 0, TAU);
+          else if (x1 > x0) {
+            c.arc(m.x, m.y, R, a0 + x0 * TAU, a0 + x1 * TAU);
+            c.moveTo(m.x + Math.cos(a0 - x0 * TAU) * R, m.y + Math.sin(a0 - x0 * TAU) * R);
+            c.arc(m.x, m.y, R, a0 - x0 * TAU, a0 - x1 * TAU, true);
+          }
+          c.stroke();
+        };
+        c.strokeStyle = U.rgba(C.gofun, 0.8 * fade);
+        if (e >= 0.499) arcs(0, 1); else arcs(0, e);
+        // the mica in it: the same line, catching the light (hard-edged — a
+        // line of light, not a glow), brightest where the heads are
         c.globalCompositeOperation = 'lighter';
-        const col = (a) => `rgba(255,248,232,${a})`;
-        // the rim the light has already passed keeps a faint afterglow
-        const ag = c.createConicGradient(Math.PI / 2, m.x, m.y);
-        ag.addColorStop(0, col(0.22 * env));
-        ag.addColorStop(Math.max(0.001, e - 0.02), col(0.1 * env));
-        ag.addColorStop(Math.max(0.002, e), col(0));
-        ag.addColorStop(Math.min(0.998, 1 - e), col(0));
-        ag.addColorStop(Math.min(0.999, 1 - e + 0.02), col(0.1 * env));
-        ag.addColorStop(1, col(0.22 * env));
-        c.strokeStyle = ag;
-        c.lineWidth = 2.2;
-        c.beginPath();
-        c.arc(m.x, m.y, m.r - 0.4, 0, TAU);
-        c.stroke();
-        // the running light (a bright head, a short tail), straddling the rim
-        const g = c.createConicGradient(Math.PI / 2, m.x, m.y);
-        g.addColorStop(0, col(0));
-        g.addColorStop(Math.max(0.001, e - 0.07), col(0));
-        g.addColorStop(Math.max(0.002, e - 0.006), col(0.85 * env));
-        g.addColorStop(Math.min(0.499, e + 0.004), col(0));
-        g.addColorStop(Math.max(0.501, 1 - e - 0.004), col(0));
-        g.addColorStop(Math.min(0.998, 1 - e + 0.006), col(0.85 * env));
-        g.addColorStop(Math.min(0.999, 1 - e + 0.07), col(0));
-        g.addColorStop(1, col(0));
-        c.strokeStyle = g;
-        c.lineWidth = 3.5;
-        c.beginPath();
-        c.arc(m.x, m.y, m.r - 0.4, 0, TAU);
-        c.stroke();
-        // mica glints left behind by the running light, twinkling out
-        for (let i = 0; i < 30; i++) {
-          const f = ((i + U.hash(i * 7 + 2) * 0.8) / 30) * 0.5;   // position along an arm (turns)
-          if (f > e) continue;
-          const side = i % 2 ? 1 : -1;
-          const ang = Math.PI / 2 + side * f * TAU;
-          const age = (e - f) / 0.5;
-          const tw = Math.max(0, Math.sin(Math.PI * U.clamp(age * 2.6 + U.hash(i * 5) * 0.35))) * env;
-          if (tw < 0.03) continue;
-          const rr = m.r - 1 + (U.hash(i * 11) - 0.5) * 2;
-          const gx = m.x + Math.cos(ang) * rr, gy = m.y + Math.sin(ang) * rr;
-          const sz = 1.2 + 1.2 * U.hash(i * 3 + 1);
-          const sg = c.createRadialGradient(gx, gy, 0, gx, gy, sz * 2.2);
-          sg.addColorStop(0, col(0.95 * tw));          // a point of mica, not a bead
-          sg.addColorStop(0.25, col(0.45 * tw));
-          sg.addColorStop(1, col(0));
-          c.fillStyle = sg;
-          c.fillRect(gx - sz * 2.2, gy - sz * 2.2, sz * 4.4, sz * 4.4);
+        c.lineWidth = 1.4;
+        c.strokeStyle = `rgba(255,250,236,${(0.3 * fade).toFixed(3)})`;
+        if (e >= 0.499) arcs(0, 1); else arcs(0, e);
+        if (e < 0.499 && e > 0.015) {
+          c.strokeStyle = `rgba(255,250,236,${(0.4 * fade).toFixed(3)})`;
+          arcs(Math.max(0, e - 0.05), e);
         }
-        // the point of contact glints first
-        const k = env * (1 - U.smoothstep(0, 0.5, p));
-        if (k > 0.01) {
-          const R = 14;
-          const sg = c.createRadialGradient(E.AXIS, m.y + m.r, 0, E.AXIS, m.y + m.r, R);
-          sg.addColorStop(0, col(0.95 * k));
-          sg.addColorStop(0.35, col(0.4 * k));
-          sg.addColorStop(1, col(0));
-          c.fillStyle = sg;
-          c.fillRect(E.AXIS - R, m.y + m.r - R, R * 2, R * 2);
+        // mica points: each lights as a head passes it, once, and goes out
+        for (const [f, side, sz, dr] of KIRA.points) {
+          if (f > e) continue;
+          const at = 214 + KIRA.run * (2 / Math.PI) * Math.asin(Math.min(1, 2 * f));   // when the head passed
+          const age = T - at;
+          const tw = (age < 0.05 ? age / 0.05 : Math.exp(-(age - 0.05) / 0.22)) * fade;
+          if (tw < 0.03) continue;
+          const ang = a0 + side * f * TAU;
+          const gx = m.x + Math.cos(ang) * (m.r + dr), gy = m.y + Math.sin(ang) * (m.r + dr);
+          c.fillStyle = `rgba(255,251,240,${(0.95 * tw).toFixed(3)})`;
+          c.beginPath();                                    // a cut diamond of mica
+          c.moveTo(gx, gy - sz); c.lineTo(gx + sz * 0.62, gy); c.lineTo(gx, gy + sz); c.lineTo(gx - sz * 0.62, gy);
+          c.closePath();
+          c.fill();
         }
         c.restore();
       });
     }
   };
 
-  /** The undying smoke: one 鼠 thread (P4), its root cut in the key block, a few Hokusai curls (K). */
+  /**
+   * The emperor's poem, burned with the elixir, rising: one swell of density
+   * leaves the crater at 211.6, climbs the thread faster than the smoke and
+   * reaches its tip exactly as the tip touches her rim (214.0) — then opens
+   * into the veil across her face and is gone by 215.4.
+   * → { h: height above the crater, amp 0..1, sig: half-length (px) } | null
+   */
+  const SMOKE_INK = U.mix(C.nezumi, C.sumi, 0.18);    // 鼠, a breath of 墨: it must read against the pale 藍 as well as on her face
+  const smokePulse = (T, len) => {
+    if (T <= 211.6 || T >= 215.4) return null;
+    const u = U.clamp((T - 211.6) / 2.4);
+    return {
+      h: len * (0.08 + 0.92 * U.ease.inOutSine(u)),
+      amp: U.smoothstep(211.6, 212.3, T) * (1 - U.smoothstep(214.05, 215.4, T)),
+      sig: 6 + 10 * U.smoothstep(214, 215.2, T),
+    };
+  };
+
+  /**
+   * The undying smoke (P4), 烟中月: a thin dense line out of the crater,
+   * carried by a 薄墨 plume that widens as it climbs and leans downwind; only
+   * the hairline leads the plume to her rim. Once she has come down onto it
+   * the plume lies across her lower face as a pale 鼠 film. Its root is cut
+   * in the key block, with a few Hokusai curls (K).
+   */
   E.drawSmoke = (ctx, T) => {
     const tip = E.smokeTip(T);
     const root = E.CRATER[1];
     const len = root - tip;
     if (len <= 1) return;
-    const n = Math.max(8, Math.round(len / 4));
-    const pts = [];
-    for (let i = 0; i <= n; i++) {
-      const y = root - (len * i) / n;
-      pts.push([smokeX(y, T), y]);
-    }
+    const line = (L) => {
+      const n = Math.max(12, Math.round(L / 2.5));
+      const out = [];
+      for (let i = 0; i <= n; i++) { const y = root - (L * i) / n; out.push([smokeX(y, T), y]); }
+      return out;
+    };
+    const pts = line(len);
     const fade = Math.min(smokeFade(T), len * 0.8);
-    // a breath, not a stick: a thin dark core out of the crater that loosens,
-    // climbing, into a soft veil (three nested passes, no blur)
     const ex = (h, k) => 1 - Math.exp(-h / k);
-    // until it touches her the thread holds together, a thin line reaching up;
-    // once it has, it relaxes into a veil across her face
-    const relax = 0.5 * (1 - U.smoothstep(214.3, 216.2, T));
-    const passes = [
-      [(h) => 3 + 17 * ex(h, 32), 0.1, 0.13],
-      [(h) => 4 + 6 * ex(h, 32), 0.17, 0.18],            // the 薄墨 bokashi that carries the line
-      [(h) => 4.2 - 1.2 * ex(h, 24), 0.55, relax],       // the core: 4 px at the root, 3 px aloft
-    ];
-    const core = U.mix(C.nezumi, C.sumi, 0.22);
+    const pu = smokePulse(T, len);
+    const swell = pu ? (h) => pu.amp * Math.exp(-Math.pow((h - pu.h) / pu.sig, 2)) : () => 0;
+    // the hairline leads: the plume stops short of the tip until she has
+    // come down onto it, then fills in beneath her face
+    const lead = U.lerp(10, 3, U.smoothstep(214, 215.4, T));
+    const Lv = Math.max(1, len - lead);
+    // the plume's top is a soft round billow, not a spear point
+    const cap = (h, top, R) => (h <= top - R ? 1 : h >= top ? 0 : Math.sqrt(1 - Math.pow((h - (top - R)) / R, 2)));
+    const tipW = (h) => U.lerp(0.28, 1, U.smoothstep(len, len - 12, h));   // the hairline draws out fine
+    // the thread loosens as it arrives, and once it has touched her it
+    // relaxes into the veil — a trace of the line stays
+    const relax = U.lerp(1, 0.55, U.smoothstep(213.6, 216.4, T));
+    // the dawn air carries the plume downwind (+x) as it climbs: its thin
+    // outer veil furthest, its dense middle least — so the line runs along
+    // the plume's upwind side
+    const trail = (h, k) => U.lerp(0.05, 0.16, k) * h * ex(h, 20);
+    const center = line(Lv);
+    const veilW = (h) => (4 + 26 * ex(h, 36)) * (1 + 0.5 * swell(h));
+    // the plume is a bokashi across its width as well as along it: six
+    // nested impressions, each narrower, each a little more ink — dense along
+    // the middle, wiped away at the edges — whose edges billow slowly (they
+    // share one wiping, i.e. one gradient along the plume)
+    const PLUME = [1, 0.8, 0.62, 0.45, 0.3, 0.17];
+    const layerA = (A) => 1 - Math.pow(1 - A, 1 / PLUME.length);
+    const passes = PLUME.map((k, i) => {
+      const bil = (h) => 1 + 0.11 * Math.sin(h / 6.5 - T * 0.9 + i * 1.7) * ex(h, 14);
+      const R = Math.min(9, veilW(Lv) * 0.4) * (0.55 + 0.45 * k);
+      const vpts = center.map(([x, y]) => [x + trail(root - y, (k - 0.17) / 0.83), y]);
+      // width(h), alpha at the root, alpha aloft, points, length, top feather (px), ink
+      return [(h) => veilW(h) * k * bil(h) * cap(h, Lv, R), layerA(0.34), layerA(0.5), vpts, Lv, 12, SMOKE_INK, 'plume'];
+    });
+    // the core: 3.4 px out of the crater → a hairline that leads the plume to her rim
+    passes.push([(h) => (3.4 - 1.9 * ex(h, 20)) * (1 + 0.3 * swell(h)) * tipW(h), 0.5, 0.34 * relax, pts, len, fade, U.mix(C.nezumi, C.sumi, 0.22)]);
+    // a faint pulse of density rolling up the thread with the smoke (≈ 3 px/s), and the poem's swell
+    const pulse = (h) => (1 + 0.13 * Math.sin(h / 5.2 - T * 0.58) * ex(h, 10)) * (1 + 0.7 * swell(h));
     PRINT.with(ctx, 'P4', T, (c) => {
-      const f = U.clamp(1 - fade / len, 0.02, 0.999);
-      for (const [wf, a0, a1] of passes) {
-        const ink = wf === passes[2][0] ? core : C.nezumi;
+      const grads = {};
+      for (const [wf, a0, a1, ppts, L, fd, ink, gkey] of passes) {
         const p = new Path2D();
-        strokeVar(p, pts, (s) => wf(s * len));
-        const g = c.createLinearGradient(0, root, 0, tip);
-        const at = (h) => U.lerp(a0, a1, U.ease.inOutSine(U.clamp(h / 34)));
-        g.addColorStop(0, U.rgba(ink, a0));
-        for (const hh of [10, 20, 34]) if (hh < f * len) g.addColorStop(hh / len, U.rgba(ink, at(hh)));
-        g.addColorStop(f, U.rgba(ink, at(f * len)));
-        g.addColorStop(1, U.rgba(ink, 0));
+        strokeVar(p, ppts, (s) => wf(s * L));
+        let g = gkey && grads[gkey];
+        if (!g) {
+          const f = U.clamp(1 - Math.min(fd, L * 0.8) / L, 0.02, 0.999);
+          const rgb = U.hexToRgb(ink), col = (a) => `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a.toFixed(3)})`;
+          g = c.createLinearGradient(0, root, 0, root - L);
+          const at = (h) => Math.min(0.9, U.lerp(a0, a1, U.ease.inOutSine(U.clamp(h / 16))) * pulse(h));
+          g.addColorStop(0, col(a0));
+          for (let hh = 4; hh < f * L; hh += 4) g.addColorStop(hh / L, col(at(hh)));
+          g.addColorStop(f, col(at(f * L)));
+          g.addColorStop(1, col(0));
+          if (gkey) grads[gkey] = g;
+        }
         c.fillStyle = g;
         c.fill(p);
       }
@@ -1407,50 +1555,53 @@
         c.fillStyle = kg;
         c.fill(hl);
       }
-      // 蕨手: fiddlehead curls the thread throws off as it climbs into open sky
-      // (never on her face: the moon keeps only the soft veil)
+      // 蕨手: now and then the thread sheds a wisp that rolls over into a
+      // small fiddlehead and rides up with the smoke (≈ 3 px/s). A curl is
+      // cut clear of the thread's tip (the tip is the hairline that meets
+      // her) and never on her face: the moon keeps only the soft veil.
       const m = E.moon(T);
       const spacing = 28, speed = 3;
       const run = speed * Math.max(0, T - 200);
       const phase = run % spacing;
       const base = Math.floor(run / spacing);
-      c.save();
-      c.lineWidth = 1;
-      c.lineCap = 'round';
-      c.lineJoin = 'round';
       for (let k = 0; ; k++) {
-        const h = 20 + phase + k * spacing;
-        if (h > len - 6) break;
+        const h = 12 + phase + k * spacing;
+        if (h > len - 24) break;
         const id = k - base;                               // stays with its curl as it rises
         if (U.hash(id * 13 + 5) < 0.2) continue;           // a seeded skip: the rhythm is never even
         const side = (((id % 2) + 2) % 2) ? 1 : -1;
         const y = root - h, x = smokeX(y, T);
-        const rr = U.lerp(4.2, 5.4, U.hash(id * 7 + 3));
-        // near her disc a curl fades out (the moon approaches at 16 px/s: a cut would pop)
-        const dm = Math.hypot(x + side * rr - m.x, y - rr * 1.6 - m.y);
-        const near = m.visible ? U.smoothstep(m.r + rr * 2.2, m.r + rr * 2.2 + 18, dm) : 1;
-        const a = near * U.smoothstep(24, 40, h) * (1 - U.smoothstep(len - fade - 4, len - 2, h));
+        const rr = U.lerp(3.4, 4.3, U.hash(id * 7 + 3)) * U.lerp(0.85, 1, U.clamp((h - 12) / 30));
+        // the wisp leaves the thread, arcs out and up, and rolls over into a curl
+        const ex = x + side * rr * 1.9, ey = y - rr * 1.75;
+        const cx = ex, cy = ey + rr * 0.55;                // the curl's eye, under the crest
+        // near her disc a curl fades out (she approaches at 16 px/s: a cut would pop)
+        const dm = Math.hypot(cx - m.x, cy - m.y);
+        const near = m.visible ? U.smoothstep(m.r + 3, m.r + 16, dm) : 1;
+        // (and none in the top 24–34 px: the hairline that leads the plume stays clean)
+        const a = near * U.smoothstep(12, 22, h) * (1 - U.smoothstep(len - 34, len - 24, h));
         if (a <= 0.02) continue;
-        c.strokeStyle = U.rgba(C.sumi, 0.46 * a);
-        c.beginPath();
-        c.moveTo(x, y + 2);
-        const ex = x + side * rr * 1.6, ey = y - rr * 2.2;
-        c.bezierCurveTo(x + side * rr * 0.2, y - rr * 0.8, x + side * rr * 1.4, y - rr * 1.2, ex, ey);
-        const cx = ex - side * rr * 0.8, cy = ey;
-        const th0 = side > 0 ? 0 : Math.PI;
-        for (let i = 1; i <= 14; i++) {
-          const f = i / 14;
-          const th = th0 - side * f * TAU * 0.75;
-          const rad = rr * 0.8 * (1 - f * 0.55);
-          c.lineTo(cx + Math.cos(th) * rad, cy + Math.sin(th) * rad);
+        const pts = [];
+        for (let i = 0; i <= 8; i++) {
+          const f = i / 8, g = 1 - f;
+          pts.push([
+            g * g * g * x + 3 * g * g * f * (x + side * rr * 0.25) + 3 * g * f * f * (x + side * rr * 1.2) + f * f * f * ex,
+            g * g * g * (y + 1.5) + 3 * g * g * f * (y - rr * 0.8) + 3 * g * f * f * (y - rr * 1.7) + f * f * f * ey,
+          ]);
         }
-        c.stroke();
+        for (let i = 1; i <= 16; i++) {
+          const f = i / 16;
+          const th = -Math.PI / 2 + side * f * TAU * 1.05;  // over the crest, outward and down, and in
+          const rad = rr * 0.55 * (1 - f * 0.62);
+          pts.push([cx + Math.cos(th) * rad, cy + Math.sin(th) * rad]);
+        }
+        c.fillStyle = U.rgba(C.sumi, 0.36 * a);
+        c.fill(taperTo(new Path2D(), pts, 1.1, 0.3, 0.1));
       }
-      c.restore();
     });
   };
 
-  /** Kasumi bands at y ≈ 640 and ≈ 780 (胡粉 α 0.45), drifting +2 px/s (P7; the dawn-side one also in D). */
+  /** Kasumi bands at y ≈ 646/674 and ≈ 762/780 (flat 胡粉 α ≈ 0.55), drifting +2 px/s (P7; the dawn-side one also in D). */
   E.drawKasumi = (ctx, T) => {
     ensure();
     const S = kSprites;
@@ -1557,6 +1708,7 @@
     c.restore();
   }
 
+  const NEAR_PLATES = ['P3', 'P4', 'D', 'K'];
   /** Near live susuki, printed from P3 / P4 / D / K: each clump sways as a shear about its base. */
   E.drawNearSusuki = (ctx, T) => {
     ensure();
@@ -1570,20 +1722,40 @@
       const a = cl.sw * 0.05 * gust * (0.6 * Math.sin(T * 0.7 + seed * 0.37 + s.ph) + 0.4 * U.wobble(T * 0.28 + s.ph * 2.1, seed % 97));
       return Math.tan(a) * (s.part === 'plumes' ? 1.25 : 0.8);
     });
-    for (const pid of ['P3', 'P4', 'D', 'K']) {
-      PRINT.with(ctx, pid, T, (c) => {
-        c.imageSmoothingEnabled = false;             // a sheared blit: nearest texels are cheap and read the same
-        nearSprites.forEach((s, i) => {
-          const t = s.plates[pid];
-          if (!t) return;
-          const sh = shear[i];
-          c.save();
+    // every clump is printed whole (its four impressions in plate order)
+    // before the next: while all four plates lie in register at full ink —
+    // the whole shot before the unprinting — as one pre-composited blit
+    const st = PRINT.state(T);
+    const inRegister = NEAR_PLATES.every((id) => st.alpha[id] === 1 && st.off[id][0] === 0 && st.off[id][1] === 0);
+    if (inRegister) {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      nearSprites.forEach((s, i) => {
+        const t = s.merged;
+        if (!t) return;
+        const sh = shear[i];
+        ctx.save();
+        ctx.transform(1, 0, sh, 1, -sh * s.cl.y, 0);
+        ctx.drawImage(t.cv, t.x, t.y, t.w, t.h);
+        ctx.restore();
+      });
+      ctx.restore();
+      return;
+    }
+    // lifting (the unprinting): the same order — clump by clump, each clump's
+    // four impressions in plate order — each at its own plate's register and ink
+    nearSprites.forEach((s, i) => {
+      const sh = shear[i];
+      for (const pid of NEAR_PLATES) {
+        const t = s.plates[pid];
+        if (!t) continue;
+        PRINT.with(ctx, pid, T, (c) => {
+          c.imageSmoothingEnabled = false;           // a sheared blit: nearest texels are cheap and read the same
           c.transform(1, 0, sh, 1, -sh * s.cl.y, 0);
           c.drawImage(t.cv, t.x, t.y, t.w, t.h);
-          c.restore();
         });
-      });
-    }
+      }
+    });
   };
 
   /* ------------------------------------------------------------------ */
@@ -1626,8 +1798,25 @@
     E.drawSmoke(ctx, T);
   };
 
+  /**
+   * 214.0, the touch: the sheet feels it — the colour blocks shiver one
+   * step out of register and settle (≈ two frames each way, ~1 device px),
+   * the CLICK's grammar whispered. The key block and the live parts hold.
+   */
+  const TOUCH = { P5: [1.2, -0.8], P6: [-1.1, 1.0], P7: [0.9, 1.2], D: [-1.3, -0.6], P3: [0.6, -1.1], P4: [-0.8, 0.7], P1: [1.0, 0.5] };
+  const touched = (st, T) => {
+    if (T < 214 || T >= 214.068) return st;
+    const k = T < 214.034 ? 1 : -0.45;
+    const off = Object.assign({}, st.off);
+    for (const id of Object.keys(TOUCH)) {
+      const o = st.off[id] || [0, 0];
+      off[id] = [o[0] + TOUCH[id][0] * k, o[1] + TOUCH[id][1] * k];
+    }
+    return Object.assign({}, st, { off });
+  };
+
   E.draw = (ctx, T, opts = {}) => {
-    const st = PRINT.state(T);
+    const st = touched(PRINT.state(T), T);
     const live = opts.live !== false;                // false: leave the moon and smoke to drawLive
     const g = opts.dawn == null ? E.dawn(T) : opts.dawn;
     if (opts.age !== false) E.age(ctx, T);
@@ -1642,12 +1831,23 @@
     ctx.translate(0, E.HORIZON);
     ctx.scale(1, U.lerp(0.45, 1, g));
     ctx.translate(0, -E.HORIZON);
-    E.layer(ctx, 'dawn', T, { state: st, alpha: { D: U.lerp(0.06, 1, g) } });
+    // (the old 桔梗 band first — its block, like the sky's, is wider than the
+    // sheet and drifts only upward — then the fresh 鴇 over it)
+    ctx.save();
+    ctx.translate(-5 * st.wear, 0);
+    E.layer(ctx, 'dawn', T, { state: st, only: ['P6'], alpha: { P6: U.lerp(0.5, 1, g) } });
+    ctx.restore();
+    E.layer(ctx, 'dawn', T, { state: st, skip: ['P6'], alpha: { D: U.lerp(0.06, 1, g) } });
     ctx.restore();
     // the moon: a hole to the paper, cut by the mountain
     E.drawMoon(ctx, T, live ? undefined : 'under');
+    // the far hills (the 藍 block: wider than the sheet, it drifts only upward)
+    ctx.save();
+    ctx.translate(-5 * st.wear, 0);
+    E.layer(ctx, 'fuji', T, { state: st, only: ['P5'] });
+    ctx.restore();
     // Fuji (its key lines lift a little early near the end, clearing the haiku), smoke, mist
-    E.layer(ctx, 'fuji', T, { state: st, alpha: fujiAlpha(T) });
+    E.layer(ctx, 'fuji', T, { state: st, alpha: fujiAlpha(T), skip: ['P5'] });
     if (live) E.drawSmoke(ctx, T);
     E.drawKasumi(ctx, T);
     // land: field, house, 小夜; her shadow, the fox, the near susuki

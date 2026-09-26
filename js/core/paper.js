@@ -37,11 +37,14 @@
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4;
-        const m = U.fbm2(x / 90, y / 90, 4, 3);          // pulp clouds
+        const m = U.fbm2(x / 90, y / 90, 4, 3);          // pulp clouds (quiet: washi, not Perlin)
+        // the fibre flow: kozo lies mostly one way (the sheet was shaken
+        // along its length), so the pulp thins and thickens in long streaks
+        const fl = U.fbm2(x / 160 + y / 900, y / 6, 2, 8);
         const f = U.hash2(x * 1.7, y * 2.3);              // fine grain
         const nx = x / w - 0.5, ny = y / h - 0.5;
         const edge = Math.pow(Math.min(1, Math.hypot(nx * 1.1, ny * 1.25) * 1.55), 3.2); // 焼け
-        let v = 250 - (m - 0.5) * 22 - f * 10 - edge * 30;
+        let v = 250 - (m - 0.5) * 12 - (fl - 0.5) * 7 - f * 10 - edge * 30;
         // warm tint: multiply layer, so white = no change
         d[i] = U.clamp(v + 2, 0, 255);
         d[i + 1] = U.clamp(v - 3 - edge * 6, 0, 255);
@@ -63,11 +66,14 @@
     g.imageSmoothingQuality = 'high';
     g.drawImage(mottling(), 0, 0, bw, bh);
     g.setTransform(s, 0, 0, s, 0, 0);
-    // kozo fibres: long, thin, faintly darker hairs
+    // kozo fibres: long, thin, faintly darker hairs, lying mostly along the
+    // sheet's flow (FLOW ± a loose spread) — a few stray across it
     const r = U.rng(77);
     g.lineCap = 'round';
+    const FLOW = -0.08;
+    const along = () => FLOW + (r() + r() + r() - 1.5) * 0.7 + (r() < 0.12 ? Math.PI / 2 : 0);
     for (let i = 0; i < 900; i++) {
-      const x = r() * LW, y = r() * LH, len = U.lerp(12, 70, r()), a = r() * Math.PI;
+      const x = r() * LW, y = r() * LH, len = U.lerp(12, 70, r()), a = along();
       const bend = U.lerp(-8, 8, r());
       g.strokeStyle = `rgba(150,128,96,${U.lerp(0.05, 0.16, r())})`;
       g.lineWidth = U.lerp(0.4, 1.1, r());
@@ -94,14 +100,27 @@
       const sz = U.lerp(0.6, 1.8, r());
       l.fillRect(x, y, sz, sz);
     }
-    for (let i = 0; i < 500; i++) {
-      const x = r() * LW, y = r() * LH, len = U.lerp(8, 40, r()), a = r() * Math.PI;
-      l.strokeStyle = `rgba(255,248,230,${U.lerp(0.04, 0.1, r())})`;
-      l.lineWidth = U.lerp(0.4, 1, r());
-      l.beginPath();
-      l.moveTo(x, y);
-      l.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
-      l.stroke();
+    // light fibres: few, faint, long and curved like the dark ones (straight
+    // bright segments read as film scratches on dark inks), loosely clustered
+    // in drifts along the flow — kozo in a sheet is never evenly spread
+    const rl = U.rng(78);
+    l.lineCap = 'round';
+    for (let c = 0; c < 22; c++) {
+      const cx = rl() * LW, cy = rl() * LH;
+      const n = 3 + Math.floor(rl() * 8);
+      for (let i = 0; i < n; i++) {
+        const x = cx + (rl() - 0.5) * 260, y = cy + (rl() - 0.5) * 90;
+        const len = U.lerp(20, 90, Math.pow(rl(), 0.8));
+        const a = FLOW + (rl() + rl() - 1) * 0.45;
+        const bend = U.lerp(-0.22, 0.22, rl()) * len;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        l.strokeStyle = `rgba(255,249,234,${U.lerp(0.02, 0.05, rl())})`;
+        l.lineWidth = U.lerp(0.45, 0.9, rl());
+        l.beginPath();
+        l.moveTo(x, y);
+        l.quadraticCurveTo(x + ca * len * 0.5 - sa * bend, y + sa * len * 0.5 + ca * bend, x + ca * len, y + sa * len);
+        l.stroke();
+      }
     }
   }
 

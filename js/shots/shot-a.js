@@ -63,11 +63,18 @@
                                       printed plate by plate in PRINT.ORDER
    A.drawLate(ctx, T)                 六: the whole 後摺 garden, AGED (鳥の子 + foxing,
                                       the moon exempt) + the hand-applied 退紅 strip.
-                                      Live through the jolt (160.0–160.62, the worn
-                                      blocks replacing the fresh at its first peak,
-                                      160.05); after it, one cached snapshot + the
+                                      Live through the jolt (160.0–160.62: the worn
+                                      blocks from the KON, the fresh ones shaken
+                                      loose over them by 160.45); after it, one cached snapshot + the
                                       live things in aged inks (~5 ms at 1280)
    A.warmLate(k)                      build that snapshot for backing scale k (init)
+   A.warmJolt(k)                      the jolt's two flattened impressions (worn, fresh) (init)
+   A.posterK(T) / A.POSTER            一's poster frame: the print cut close (2.3×) on the
+                                      rising disc 16.5–22.4; drawGarden(ctx, T, {poster:true})
+                                      prints it from its own carved flats (A.warmPoster(k))
+   A.drawFieldSil(ctx,T)              the field's plumes as K/紺 silhouettes, inside the disc only
+   A.glowBand(ctx, a)                 the rising moon's flat 山吹 band (序 prints it on bare paper)
+   A.heldDango(T, tk)                 the dango in たけ's fingers while she carries it to the 三方
    A.drawStrip(ctx, T, a)             the 退紅 strip on the jug (Shot A scale)
    A.aged(hex)                        a colour × the 後摺 paper's yellowing
    A.ageFrame(ctx, T, opts)           PRINT.age with a cheap foxing upscale (≈5 ms, not 24)
@@ -88,7 +95,7 @@
   /* inks                                                                */
   /* ------------------------------------------------------------------ */
   const INK = {
-    ichi: U.mix(C.bero, C.sumi, 0.35),
+    ichi: U.mix(C.bero, C.sumi, 0.5),
     susutake: U.mix(C.odo, C.sumi, 0.55),          // 煤竹 wood
     board: U.mix(C.odo, C.sumi, 0.42),
     ainezu: U.mix(C.ai, C.nezumi, 0.5),            // 藍鼠
@@ -135,9 +142,19 @@
     ctx.restore();
   }
   A.ageFrame = ageFrame;
-  /** the jolt (160.0–160.6): the worn blocks replace the fresh ones at the first peak of the shake */
-  const JOLT_SWAP = 160.05;
-  const blockWear = (T) => (T < PRINT.TIMES.jolt ? 0 : T < JOLT_SWAP ? 0 : 1);
+  /**
+   * The jolt (160.0–160.6): from the KON the worn blocks print; over them the
+   * fresh impression is shaken loose — printed on top at a falling alpha
+   * (gone by 160.45) while the print table's 3-cycle shake moves every plate
+   * and the warm block (P2) lifts away. No frame of the fresh print alone.
+   */
+  const blockWear = (T) => (T < PRINT.TIMES.jolt ? 0 : 1);
+  const FRESH_GONE = 160.45;
+  /** the fresh impression still clinging over the worn one (1 → 0 over 160.0–160.45) */
+  const joltFresh = (T) => (T < PRINT.TIMES.jolt || T >= FRESH_GONE ? 0 : 1 - U.smoothstep(PRINT.TIMES.jolt, FRESH_GONE, T));
+  const ALL_PLATES = (a) => { const o = {}; for (const id of PRINT.IDS) o[id] = a; return o; };
+  /** the print state of the fresh blocks during the jolt: the same shake, the fresh inks' own alphas */
+  const freshState = (st) => Object.assign({}, st, { wear: 0, alpha: Object.assign({}, st.alpha, { P2: 1, P6i: 1, P6: 1 }) });
 
   /* ------------------------------------------------------------------ */
   /* geometry                                                            */
@@ -147,6 +164,11 @@
     const hump = (c, w, h) => h * Math.exp(-Math.pow((x - c) / w, 2));
     return 650 - hump(862, 110, 48) - hump(1060, 170, 64) - hump(1296, 150, 50) - hump(1470, 90, 32) - hump(760, 55, 16);
   };
+  /** the far range's printed ridge: west of x 820 it rolls over and its flank
+   *  slopes down through the high kasumi, setting behind the meadow's shoulder
+   *  (the range stands at x 760–1500 only — never a cut-off block) */
+  const HILL_END = 820;
+  const hillRidge = (x) => (x >= HILL_END ? hillY(x) : hillY(x) + 90 * Math.pow(Math.min(1.3, (HILL_END - x) / 118), 2.5));
   const FUJI = { px: 1720, py: 500, base: 622, x0: 1490, x1: 1960, top: 40 };
   const fujiY = (x) => {
     const d = Math.abs(x - FUJI.px) - FUJI.top / 2;
@@ -294,25 +316,86 @@
     c.lineCap = 'round';
     c.stroke(path);
   };
-  /** 木目: the faint grain of the cherry block in a flat plate (destination-out). */
+  /**
+   * 木目: the grain of the cherry plank the block was cut from, printed into a
+   * flat plate (destination-out: where the grain stands proud the plank holds
+   * less pigment). The lines follow the plank's flow — a slight tilt (±3°),
+   * a slow wander, and one or two knots (節) the rings bend around, each knot
+   * wearing a few rings of its own — at uneven spacing (3–14 px: the early and
+   * late wood of each year), each running unbroken across most of the plank,
+   * its pigment-loss rising and fading along its length. Never a ruled comb.
+   */
   function woodGrain(c, clip, x0, y0, w, h, seed, a) {
     const r = U.rng(seed);
     c.save();
     if (clip) c.clip(clip);
     c.globalCompositeOperation = 'destination-out';
     c.lineCap = 'round';
-    for (let i = 0; i < h / 5.5; i++) {
-      const y = y0 + i * 5.5 + r() * 4;
-      c.strokeStyle = `rgba(0,0,0,${U.lerp(0.2, 1, r()) * a})`;
-      c.lineWidth = U.lerp(0.6, 1.6, r());
-      c.beginPath();
-      const ph = r() * 10, amp = U.lerp(0.6, 3.2, r()), f = U.lerp(0.002, 0.007, r());
-      const xs = x0 + r() * w * 0.6, xe = Math.min(x0 + w, xs + U.lerp(0.25, 1, r()) * w);
-      for (let x = xs; x <= xe; x += 24) {
-        const yy = y + Math.sin(x * f + ph) * amp + U.wobble(x * 0.01 + i, seed) * 1.2;
-        x === xs ? c.moveTo(x, yy) : c.lineTo(x, yy);
+    c.lineJoin = 'round';
+    const tilt = U.lerp(-1, 1, r()) * U.deg(3);
+    const tt = Math.tan(tilt);
+    // the knots: 1–2, never at the plank's edge
+    const knots = [];
+    const nk = r() < 0.45 ? 2 : 1;
+    for (let k = 0; k < nk; k++) {
+      knots.push({ x: x0 + w * U.lerp(0.18, 0.82, r()), y: y0 + h * U.lerp(0.2, 0.8, r()), rx: U.lerp(26, 60, r()), ry: U.lerp(7, 15, r()), sx: U.lerp(220, 420, r()) });
+    }
+    const xc = x0 + w / 2;
+    // a ring's height at x: the base line, tilted and wandering, bent around the knots
+    // (rings above a knot bow up, rings below bow down — the more the nearer)
+    const lineY = (yb, x, i) => {
+      let y = yb + (x - xc) * tt + (U.noise1(x * 0.0021 + i * 0.13, seed + 5) - 0.5) * 9 + (U.noise1(x * 0.011 + i * 0.7, seed + 9) - 0.5) * 1.6;
+      for (const K of knots) {
+        const dy = yb - K.y, side = dy < 0 ? -1 : 1;
+        const near = Math.exp(-Math.abs(dy) / (K.ry * 3.2));
+        const along = Math.exp(-Math.pow((x - K.x) / K.sx, 2));
+        y += side * (K.ry * 1.9) * near * along;
       }
-      c.stroke();
+      return y;
+    };
+    // pigment loss quantised into a few buckets (a few strokes, not thousands)
+    const NB = 7, buckets = [];
+    for (let b = 0; b < NB; b++) buckets.push({ p: new Path2D(), a: ((b + 1) / NB) * a });
+    const thin = [], thick = [];
+    for (let b = 0; b < NB; b++) { thin.push(new Path2D()); thick.push(new Path2D()); }
+    let yb = y0 - 10, i = 0;
+    while (yb < y0 + h + 10) {
+      // spacing: a year's ring — wide early wood, then a tight latewood pair
+      const sp = U.lerp(3, 14, Math.pow(U.noise1(i * 0.37, seed + 21), 1.4));
+      yb += sp;
+      i++;
+      if (r() < 0.1) continue;                         // a ring the plank did not print
+      const L = w * U.lerp(0.6, 1.0, r());
+      const xs = x0 + (w - L) * r(), xe = xs + L;
+      const strong = U.lerp(0.25, 1, Math.pow(r(), 0.7));
+      const heavy = r() < 0.3;
+      const ph = r() * 50;
+      // segments of ~36 px, each in the bucket of its own strength along the line
+      let px = xs, py = lineY(yb, xs, i);
+      for (let x = xs + 36; x <= xe + 35.9; x += 36) {
+        const xx = Math.min(x, xe), yy = lineY(yb, xx, i);
+        const env = Math.sin(Math.PI * U.clamp((xx - xs) / L)) ** 0.5;            // fades in and out at its ends
+        const mod = U.clamp(0.25 + 0.95 * U.noise1(xx * 0.004 + ph, seed + 33));  // and rises / fades along its length
+        const b = Math.max(0, Math.min(NB - 1, Math.floor(strong * env * mod * NB)));
+        const tgt = heavy ? thick[b] : thin[b];
+        tgt.moveTo(px, py); tgt.lineTo(xx, yy);
+        px = xx; py = yy;
+      }
+    }
+    // the knots' own rings: a few concentric, slightly eccentric ellipses
+    for (const K of knots) {
+      for (let j = 0; j < 4; j++) {
+        const s = 0.35 + j * 0.24;
+        const b = Math.min(NB - 1, 3 + j);
+        thin[b].moveTo(K.x + K.rx * s, K.y + j * 0.6);
+        thin[b].ellipse(K.x + j * 1.2, K.y + j * 0.6, K.rx * s, K.ry * s * (0.8 + j * 0.1), tilt, 0, TAU);
+      }
+    }
+    for (let b = 0; b < NB; b++) {
+      const al = buckets[b].a;
+      c.strokeStyle = `rgba(0,0,0,${al})`;
+      c.lineWidth = 0.7; c.stroke(thin[b]);
+      c.lineWidth = 1.35; c.stroke(thick[b]);
     }
     c.restore();
   }
@@ -744,8 +827,8 @@
     for (let x = W + 20; x >= -20; x -= 5) {
       let y;
       if (x >= 1490) y = Math.min(fujiY(x), 640);
-      else if (x >= 790) y = Math.min(hillY(x), 660);
-      else y = U.lerp(bankY(Math.max(0, x)) + 2, Math.min(hillY(x), 660), U.smoothstep(700, 790, x));
+      else if (x >= 790) y = Math.min(hillRidge(x), 660);
+      else y = U.lerp(bankY(Math.max(0, x)) + 2, Math.min(hillRidge(x), 660), U.smoothstep(700, 790, x));
       p.lineTo(x, y);
     }
     p.closePath();
@@ -787,8 +870,10 @@
       // starts at y 596 (sagging 10 px higher where it thins out toward x 840),
       // reaches 0.55 at 45 % of the way to y 748 and 0.84 below it. (Stepped
       // 4 px columns overlapped by half a pixel and printed a comb here.)
+      // (built in the plate's own device px — under any carving camera — and
+      // laid back in logical coordinates)
       {
-        const q = c.getTransform().a;
+        const tf = c.getTransform(), q = Math.hypot(tf.a, tf.b);
         const Y0 = Math.floor(586 * q), mw = Math.ceil(860 * q), mh = Math.ceil(848 * q) - Y0;
         const mcv = B.canvas(mw, mh), mc = mcv.getContext('2d');
         const img = mc.createImageData(mw, mh), d = img.data;
@@ -806,23 +891,25 @@
         }
         mc.putImageData(img, 0, 0);
         c.save();
-        c.setTransform(1, 0, 0, 1, 0, 0);
         c.globalCompositeOperation = 'destination-out';
-        c.drawImage(mcv, 0, Y0);
+        c.drawImage(mcv, 0, Y0 / q, mw / q, mh / q);
         c.restore();
       }
     });
     pen('P6i', (c) => {
+      // 一文字ぼかし: ベロ藍 × 墨 laid on solid to y 70 (the block's top edge a
+      // shade deeper), then wiped off by y 130 — a band, clearly its own ink
       const col = INK.ichi;
-      const g = c.createLinearGradient(0, 0, 0, 134);
-      g.addColorStop(0, U.rgba(U.mix(col, C.sumi, 0.25), 1));
-      g.addColorStop(0.3, U.rgba(col, 1));
-      g.addColorStop(0.45, U.rgba(col, 0.96));
-      g.addColorStop(0.62, U.rgba(col, 0.5));
-      g.addColorStop(0.82, U.rgba(col, 0.14));
+      const g = c.createLinearGradient(0, 0, 0, 130);
+      g.addColorStop(0, U.rgba(U.mix(col, C.sumi, 0.2), 1));
+      g.addColorStop(0.1, U.rgba(col, 1));
+      g.addColorStop(70 / 130, U.rgba(col, 1));
+      g.addColorStop(84 / 130, U.rgba(col, 0.72));
+      g.addColorStop(100 / 130, U.rgba(col, 0.34));
+      g.addColorStop(116 / 130, U.rgba(col, 0.1));
       g.addColorStop(1, U.rgba(col, 0));
       c.fillStyle = g;
-      c.fillRect(0, 0, W, 132);
+      c.fillRect(0, 0, W, 130);
     });
     pen('P8', (c) => {
       const r = U.rng(808);
@@ -839,10 +926,13 @@
   }
 
   function paintFar(pen, late) {
+    // the west end is the ridge rolling down behind the meadow (its foot hides
+    // under the grove's shoulder), not a vertical cut
     const hills = new Path2D();
-    hills.moveTo(700, 700);
-    for (let x = 700; x <= 1560; x += 5) hills.lineTo(x, hillY(x));
+    hills.moveTo(704, 742);
+    for (let x = 704; x <= 1560; x += 4) hills.lineTo(x, hillRidge(x));
     hills.lineTo(1560, 700);
+    hills.lineTo(760, 712);
     hills.closePath();
     const fujiPts = [];
     for (let x = FUJI.x0 - 30; x <= FUJI.x1 + 10; x += 2) fujiPts.push([x, Math.min(700, fujiY(x))]);
@@ -859,10 +949,12 @@
         c.fill(fuji);
         return;
       }
-      let g = c.createLinearGradient(0, 580, 0, 700);
-      g.addColorStop(0, U.mix(C.kon, C.koiai, 0.35));
-      g.addColorStop(0.45, U.rgba(C.kon, 0.96));
-      g.addColorStop(1, U.rgba(C.kon, 0.5));
+      // flat 紺, one impression: a crisp ridge against the sky, no lit rim; the
+      // high kasumi cuts across its foot
+      let g = c.createLinearGradient(0, 600, 0, 720);
+      g.addColorStop(0, U.mix(C.kon, C.sumi, 0.08));
+      g.addColorStop(0.6, C.kon);
+      g.addColorStop(1, U.rgba(C.kon, 0.85));
       c.fillStyle = g;
       c.fill(hills);
       g = c.createLinearGradient(0, FUJI.py, 0, 650);
@@ -894,74 +986,84 @@
   }
 
   /**
-   * すやり霞 (suyari-gasumi), carved like a 瑞雲 block: one flat 胡粉 impression
-   * (α a) made of 2–3 overlapping bars of different lengths — a stepped, lobed
-   * end — with a crisp lower edge, a short bokashi (≈16 px) only along the
-   * upper edge, both edges breathing a few px, and the entry end tapering to a
-   * point over ~110 px like a brush laid down. Rasterised per pixel at build
-   * time (union of the lobes = max, so overlaps never double the ink).
-   * lobes: [{x0, x1, top, bot, taperL, taperR, capL, capR}] — taper (px) thins
-   * the bar to a point; cap (px) rounds the end.
+   * すやり霞 (suyari-gasumi), cut like the 瑞雲 of an emaki: one flat 胡粉
+   * impression made of 2–3 bars of different lengths, so each end steps. Each
+   * bar has a crisp top edge (a 1 px cut, breathing only a few px along its
+   * length) carrying a thin line of the deeper ink, a flat body at α a, only
+   * softened a little toward its lower edge (it cuts what lies behind it); its ends
+   * are elongated half-ovals whose nose sits a little above mid-height (the
+   * upper edge runs out further). No feathered outline, no pointed tail.
+   * Rasterised per pixel at build time (union of the bars = max, so overlaps
+   * never double the ink). q = device px per logical px of the ctx it lands in.
+   * lobes: [{x0, x1, top, bot, capL, capR}] — cap (px) is the length of the end.
    */
   function mistBand(c, lobes, a, seed, q) {
     let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
-    for (const L of lobes) { bx0 = Math.min(bx0, L.x0); bx1 = Math.max(bx1, L.x1); by0 = Math.min(by0, L.top - 8); by1 = Math.max(by1, L.bot + 6); }
-    bx0 = Math.max(0, Math.floor(bx0)); bx1 = Math.min(W, Math.ceil(bx1));
+    for (const L of lobes) { bx0 = Math.min(bx0, L.x0); bx1 = Math.max(bx1, L.x1); by0 = Math.min(by0, L.top - 6); by1 = Math.max(by1, L.bot + 6); }
+    bx0 = Math.max(-40, Math.floor(bx0)); bx1 = Math.min(W + 40, Math.ceil(bx1));
     const pw = Math.ceil((bx1 - bx0) * q), ph = Math.ceil((by1 - by0) * q);
     if (pw <= 0 || ph <= 0) return;
     const cv = B.canvas(pw, ph), cx = cv.getContext('2d');
     const img = cx.createImageData(pw, ph), d = img.data;
-    const [cr, cg, cb] = U.hexToRgb(C.gofun);
-    const fb = 16;
-    const wav = (x, k) => (U.noise1(x * 0.012 + k * 7.1, seed + k) - 0.5) * 7 + (U.noise1(x * 0.05 + k, seed + 30 + k) - 0.5) * 2;
+    const body = U.hexToRgb(C.gofun), deep = U.hexToRgb(U.mix(C.gofun, C.kinari, 0.6));
+    const wav = (x, k, amp) => ((U.noise1(x * 0.009 + k * 7.1, seed + k) - 0.5) * 4 + (U.noise1(x * 0.04 + k, seed + 30 + k) - 0.5) * 1.2) * amp;
+    const aa = 1 / q;                                       // one device px of edge
     for (let px = 0; px < pw; px++) {
       const x = bx0 + (px + 0.5) / q;
       const spans = [];
       for (let i = 0; i < lobes.length; i++) {
         const L = lobes[i];
         if (x < L.x0 || x > L.x1) continue;
-        let top = L.top + wav(x, i * 2), bot = L.bot + wav(x, i * 2 + 1) * 0.6;
-        const hgt = bot - top;
-        // tapered entry / exit: the upper edge descends to the lower one
-        if (L.taperL && x < L.x0 + L.taperL) { const u = (x - L.x0) / L.taperL; top = bot - hgt * Math.pow(Math.sin(u * Math.PI / 2), 0.85); }
-        if (L.taperR && x > L.x1 - L.taperR) { const u = (L.x1 - x) / L.taperR; top = bot - hgt * Math.pow(Math.sin(u * Math.PI / 2), 0.85); }
-        // rounded ends: an ellipse about the bar's middle
-        const capAt = (dxe, cap) => { const u = U.clamp(1 - dxe / cap); const hh = Math.sqrt(Math.max(0, 1 - u * u)); const mid = (top + bot) / 2; top = mid - (mid - top) * hh; bot = mid + (bot - mid) * hh; };
-        if (L.capL && x < L.x0 + L.capL) capAt(x - L.x0, L.capL);
-        if (L.capR && x > L.x1 - L.capR) capAt(L.x1 - x, L.capR);
-        if (bot - top > 0.2) spans.push([top, bot, Math.min(fb, (bot - top) * 0.7)]);
+        let top = L.top + wav(x, i * 2, 1), bot = L.bot + wav(x, i * 2 + 1, 0.6);
+        const hgt = bot - top, nose = top + hgt * 0.44;
+        // the rounded suyari ends: the upper edge closes on an elongated
+        // curve toward a nose a little above mid-height, the lower one sooner
+        const cap = (dxe, capL) => {
+          const u = U.clamp(dxe / capL);
+          const ku = Math.sqrt(Math.max(0, 1 - (1 - u) * (1 - u)));
+          const kd = Math.sqrt(Math.max(0, 1 - Math.pow(1 - Math.min(1, u * 1.35), 2)));
+          top = nose - (nose - top) * ku; bot = nose + (bot - nose) * kd;
+        };
+        if (L.capL && x < L.x0 + L.capL) cap(x - L.x0, L.capL);
+        if (L.capR && x > L.x1 - L.capR) cap(L.x1 - x, L.capR);
+        if (bot - top > 0.3) spans.push([top, bot, L.top, L.bot]);
       }
       if (!spans.length) continue;
       for (let py = 0; py < ph; py++) {
         const y = by0 + (py + 0.5) / q;
-        let al = 0;
-        for (const [t0, b0, f] of spans) {
-          if (y < t0 || y > b0 + 1) continue;
-          const up = f > 0.5 ? U.smoothstep(t0, t0 + f, y) : 1;
-          const lo = U.clamp(b0 - y + 0.5);
-          al = Math.max(al, up * lo);
+        let al = 0, dp = 0;
+        for (const [t0, b0, lt, lb] of spans) {
+          if (y < t0 - aa || y > b0 + aa) continue;
+          const edgeT = U.clamp((y - t0) / aa + 0.5), edgeB = U.clamp((b0 - y) / aa + 0.5);
+          // flat to 70 % of the bar's own height, then only softened toward its
+          // lower edge (to 0.7) — it still cuts what lies behind it cleanly
+          const u = (y - (lt + (lb - lt) * 0.7)) / ((lb - lt) * 0.3);
+          const wipe = u <= 0 ? 1 : U.lerp(1, 0.7, U.smoothstep(0, 1, u));
+          const v = edgeT * edgeB * wipe;
+          if (v > al) { al = v; dp = U.clamp(1 - (y - t0) / 2.2); }
         }
         if (al <= 0) continue;
         const o = (py * pw + px) * 4;
-        d[o] = cr; d[o + 1] = cg; d[o + 2] = cb; d[o + 3] = Math.round(255 * a * al);
+        d[o] = U.lerp(body[0], deep[0], dp); d[o + 1] = U.lerp(body[1], deep[1], dp); d[o + 2] = U.lerp(body[2], deep[2], dp);
+        d[o + 3] = Math.round(255 * a * al);
       }
     }
     cx.putImageData(img, 0, 0);
     c.drawImage(cv, bx0, by0, pw / q, ph / q);
   }
-  /** the three bands of Shot A (they drift, so their entry ends are tapered, their far ends stepped) */
+  /** the three bands of Shot A (they drift: the entry ends and the far ends are both stepped suyari ends) */
   const MIST_BANDS = {
     high: [
-      // y 585–625 across x 280–1320: tapered entry, a stepped lobed end behind the house
-      { lobes: [{ x0: 262, x1: 1236, top: 586, bot: 626, taperL: 130, capR: 30 }, { x0: 620, x1: 1322, top: 604, bot: 626, capL: 24, capR: 18 }, { x0: 980, x1: 1276, top: 581, bot: 600, capL: 60, capR: 16 }], seed: 41 },
+      // y 585–625 across x ≈330–1320 (clear of the rising disc): a stepped entry, a stepped end behind the house
+      { lobes: [{ x0: 348, x1: 1236, top: 586, bot: 624, capL: 70, capR: 34 }, { x0: 318, x1: 800, top: 605, bot: 626, capL: 46, capR: 30 }, { x0: 980, x1: 1310, top: 580, bot: 598, capL: 50, capR: 20 }], seed: 41, a: 0.86 },
       // y 592–625 from x 1480, running off the frame: a stepped entry
-      { lobes: [{ x0: 1478, x1: 1960, top: 596, bot: 626, capL: 26 }, { x0: 1530, x1: 1960, top: 588, bot: 606, capL: 20 }, { x0: 1440, x1: 1640, top: 610, bot: 627, capL: 14, capR: 22 }], seed: 43 },
+      { lobes: [{ x0: 1478, x1: 1960, top: 596, bot: 626, capL: 40 }, { x0: 1530, x1: 1960, top: 587, bot: 604, capL: 30 }, { x0: 1440, x1: 1640, top: 610, bot: 627, capL: 26, capR: 26 }], seed: 43, a: 0.86 },
     ],
     // y 780–805 across the field, entering from the left edge, its east end stepped short of the yard
-    low: [{ lobes: [{ x0: 10, x1: 640, top: 780, bot: 806, taperL: 150, capR: 24 }, { x0: 380, x1: 700, top: 792, bot: 807, capL: 22, capR: 14 }, { x0: 160, x1: 520, top: 776, bot: 790, capL: 40, capR: 30 }], seed: 47 }],
+    low: [{ lobes: [{ x0: 12, x1: 640, top: 781, bot: 805, capL: 60, capR: 28 }, { x0: 380, x1: 712, top: 792, bot: 807, capL: 30, capR: 18 }, { x0: 150, x1: 520, top: 776, bot: 790, capL: 44, capR: 32 }], seed: 47, a: 0.62 }],
   };
   function paintMist(pen, which, q) {
-    pen('P7', (c) => { for (const b of MIST_BANDS[which]) mistBand(c, b.lobes, 0.55, b.seed, q || 1); });
+    pen('P7', (c) => { for (const b of MIST_BANDS[which]) mistBand(c, b.lobes, b.a, b.seed, q || 1); });
   }
 
   /* the grove: meadow, the yard, bamboo --------------------------------- */
@@ -984,8 +1086,9 @@
     const gp = new Path2D();
     gp.moveTo(700, 860);
     gp.lineTo(640, 764);
-    gp.bezierCurveTo(690, 704, 730, 672, 780, 654);
-    for (let x = 780; x <= W + 10; x += 20) gp.lineTo(x, Math.max(640, Math.min(hillY(x) + 24, 662)) + (x > 1480 ? -18 : 0));
+    // the meadow's shoulder rolls into its level top (no step where they meet)
+    gp.bezierCurveTo(688, 705, 734, 654, 808, 641);
+    for (let x = 820; x <= W + 10; x += 20) gp.lineTo(x, Math.max(640, Math.min(hillY(x) + 24, 662)) + (x > 1480 ? -18 : 0));
     gp.lineTo(W + 10, 860);
     gp.closePath();
     // 苔点: moss in clusters of small irregular dabs (never ovals)
@@ -1571,6 +1674,23 @@
     pen('K', (c) => inkLine(c, bb.key, 0.5, 0.6));
   }
 
+  /**
+   * The field's plumes as they print against the rising disc: the far fringe
+   * and the mid clumps of the moon's side (x < 430) cut again in one dark ink
+   * (K / 紺), printed only inside the disc (A.drawFieldSil clips it there) —
+   * so over the moon they stand as silhouettes, over the night as silver.
+   */
+  function paintFieldSil(pen) {
+    const b = newBuckets();
+    for (const o of farClumps(false)) if (o.x < 430) clumpInto(o, U.deg(3), b);
+    for (const o of midClumps(false)) if (o.moon) clumpInto(o, U.deg(4), b, { keyAll: true });
+    pen('K', (c) => {
+      c.fillStyle = SIL;
+      for (const k of ['stems', 'blades', 'bladesLt', 'hairs', 'hairsHi']) c.fill(b[k]);
+      inkLine(c, b.key, 1, 0.95, SIL);
+    });
+  }
+
   /* the pond, banks, the spit ------------------------------------------ */
   function paintPond(pen, late) {
     const land = new Path2D();
@@ -1853,6 +1973,9 @@
     return { cv: out, x: (px0 + tx0) / q, y: (py0 + ty0) / q, w: out.width / q, h: out.height / q };
   }
   /** Neighbouring clumps (similar depth, within ~130 px) share one sprite pair and one sway. */
+  /** the one ink a plume prints in where it stands against the moon's disc (a K/紺 silhouette) */
+  const SIL = U.mix(C.sumi, C.kon, 0.35);
+  const SIL_COLS = { stem: ['K', SIL], blade: ['K', SIL], bladeLt: ['K', SIL], hair: ['K', SIL], hairHi: ['K', SIL] };
   function clumpSprites(q, list, late) {
     const sorted = list.slice().sort((a, b) => a.x - b.x);
     const groups = [];
@@ -1870,19 +1993,28 @@
       }
       const y1 = g.y + 8;
       const split = Math.round((g.y - hmax * 0.45) * q) / q;
-      const paint = (pen) => {
-        for (const o of g.m) {
-          const cols = late ? (o.dark ? NEAR_COLS.lateDark : NEAR_COLS.late) : (o.dark ? NEAR_COLS.earlyDark : NEAR_COLS.early);
-          const b = newBuckets();
-          clumpInto(o, 0, b, { keyAll: o.dark });
-          paintBuckets(pen, b, cols);
-        }
-      };
       const cx = g.m.reduce((a, o) => a + o.x, 0) / g.m.length;
       const o = { x: cx, y: g.y, h: hmax, seed: g.m[0].seed };
-      return { o, split, up: spriteOf(q, x0, y0, x1, split + 1 / q, paint), lo: spriteOf(q, x0, split, x1, y1, paint) };
+      const box = { m: g.m, late, x0, y0, x1, y1 };
+      const sp = groupSprite(q, box, split, false);
+      return { o, split, up: sp.up, lo: sp.lo, box };
     });
   }
+  /** one group's two sway bands, carved at q (sil: the whole group in the silhouette ink) */
+  function groupSprite(q, box, split, sil) {
+    const paint = (pen) => {
+      for (const o of box.m) {
+        const cols = sil ? SIL_COLS : box.late ? (o.dark ? NEAR_COLS.lateDark : NEAR_COLS.late) : (o.dark ? NEAR_COLS.earlyDark : NEAR_COLS.early);
+        const b = newBuckets();
+        clumpInto(o, 0, b, { keyAll: o.dark || sil });
+        paintBuckets(pen, b, cols);
+        if (sil) pen('K', (c) => inkLine(c, b.key, 1, 0.9, SIL));
+      }
+    };
+    return { up: spriteOf(q, box.x0, box.y0, box.x1, split + 1 / q, paint), lo: spriteOf(q, box.x0, split, box.x1, box.y1, paint) };
+  }
+  /** the groups that can stand against the rising disc (x < 430) */
+  const nearMoonGroup = (sp) => sp.box.x0 < 430 && sp.o.x < 430;
   function buildSprites(q) {
     SPR = {
       q,
@@ -1893,23 +2025,61 @@
     };
     SPR.nearLateAged = SPR.nearLate.map((g) => Object.assign({}, g, { up: ageSprite(g.up), lo: ageSprite(g.lo) }));
     SPR.hagiLateAged = ageSprite(SPR.hagiLate);
+    // the plumes over the rising disc print as silhouettes (clipped to the disc when drawn)
+    SPR.nearSil = SPR.near.map((sp) => (nearMoonGroup(sp) ? groupSprite(q, sp.box, sp.split, true) : null));
   }
   /** draw clump sprites with their sway (two-band shear) */
-  function drawClumps(c, T, sprites, filter, alpha) {
+  function drawClumps(c, T, sprites, filter, alpha, v) {
     const w = wind(T);
     const a0 = c.globalAlpha;
     c.globalAlpha = a0 * alpha;
-    for (const sp of sprites) {
+    const hi = v && v.hi, sil = v && v.sil && v.disc && v.silA > 0.003 ? v.sil : null;
+    const shear = (sp) => {
       const o = sp.o;
-      if (filter && !filter(o)) continue;
+      return Math.tan(leanAt(T, o.x, o.seed * 0.013, w) * (o.h > 150 ? 1.1 : 1)) * 1.9;
+    };
+    const m = c.__m;
+    const put = (pair, split, L1) => {
+      const lo = pair.lo;
+      if (m.b === 0 && m.c === 0 && Math.abs(m.a * lo.w - lo.cv.width) < 0.5 && Math.abs(m.d * lo.h - lo.cv.height) < 0.5) {
+        // carved at exactly this resolution: copied 1:1 on whole device px (no resampling)
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        const se = c.imageSmoothingEnabled;
+        c.imageSmoothingEnabled = false;
+        c.drawImage(lo.cv, Math.round(m.a * lo.x + m.e), Math.round(m.d * lo.y + m.f));
+        c.imageSmoothingEnabled = se;
+      } else {
+        c.setTransform(m);
+        c.drawImage(lo.cv, lo.x, lo.y, lo.w, lo.h);
+      }
+      c.setTransform(m);
+      c.transform(1, 0, -L1, 1, L1 * split, 0);
+      c.drawImage(pair.up.cv, pair.up.x, pair.up.y, pair.up.w, pair.up.h);
+    };
+    for (let i = 0; i < sprites.length; i++) {
+      const sp = sprites[i];
+      if (filter && !filter(sp.o)) continue;
+      if (v && v.skip && v.skip[i]) continue;
+      if (v && v.view && (sp.box.x0 > v.view[2] || sp.box.x1 < v.view[0] || sp.box.y0 > v.view[3] || sp.box.y1 < v.view[1])) continue;
       // the lower band (stems, leaves) stands; the upper band (the plumes) bends
       // from the split line — a plain blit and one sheared blit per group
-      const lean = Math.tan(leanAt(T, o.x, o.seed * 0.013, w) * (o.h > 150 ? 1.1 : 1));
-      const L1 = lean * 1.9;
+      put((hi && hi[i]) || sp, sp.split, shear(sp));
+    }
+    if (sil) {
+      // against the disc the same plumes print as one dark silhouette
+      const d = v.disc;
       c.setTransform(c.__m);
-      c.drawImage(sp.lo.cv, sp.lo.x, sp.lo.y, sp.lo.w, sp.lo.h);
-      c.transform(1, 0, -L1, 1, L1 * sp.split, 0);
-      c.drawImage(sp.up.cv, sp.up.x, sp.up.y, sp.up.w, sp.up.h);
+      c.save();
+      c.beginPath(); c.rect(d.x - d.r - 2, d.y - d.r - 2, 2 * d.r + 4, Math.min(2 * d.r + 4, bankY(d.x) - 2 - (d.y - d.r - 2))); c.clip();
+      c.beginPath(); c.arc(d.x, d.y, d.r + 0.4, 0, TAU); c.clip();
+      c.globalAlpha = a0 * alpha * Math.min(1, v.silA);
+      for (let i = 0; i < sprites.length; i++) {
+        const sp = sprites[i];
+        if (!sil[i] || (filter && !filter(sp.o))) continue;
+        if (sp.box.x1 < d.x - d.r || sp.box.x0 > d.x + d.r || sp.box.y1 < d.y - d.r || sp.box.y0 > d.y + d.r) continue;
+        put((v.silHi && v.silHi[i]) || sil[i], sp.split, shear(sp));
+      }
+      c.restore();
     }
     c.setTransform(c.__m);
     c.globalAlpha = a0;
@@ -1919,7 +2089,7 @@
   /* CARVE                                                               */
   /* ------------------------------------------------------------------ */
   PRINT.defineShot('A', {
-    layers: ['sky', 'far', 'mistHigh', 'grove', 'house', 'mistLow', 'field', 'pond', 'banks', 'still'],
+    layers: ['sky', 'far', 'mistHigh', 'grove', 'house', 'mistLow', 'field', 'fieldSil', 'pond', 'banks', 'still'],
     worn: true,
     build(P, q) {
       buildSprites(q);
@@ -1930,6 +2100,7 @@
       paintGrove(buildPen(P, 'grove'), false);
       paintHouse(buildPen(P, 'house'), false);
       paintField(buildPen(P, 'field'), false);
+      paintFieldSil(buildPen(P, 'fieldSil'));
       paintPond(buildPen(P, 'pond'), false);
       paintBanks(buildPen(P, 'banks'), false);
       // the hand-carved late blocks (後摺) for the layers whose drawing changes,
@@ -1965,48 +2136,89 @@
   A.drawMoon = (ctx, T, opts = {}) => {
     const m = MOON.A(T);
     const a = opts.alpha == null ? 1 : opts.alpha;
-    const gk = (opts.glow == null ? 1 : opts.glow) * moonGlow(T);
+    // (the rising moon's warmth is the flat 山吹 band printed with the sky —
+    // horizonGlow — never an airbrushed halo round the disc)
+    const gk = moonGlow(T);
     ctx.save();
-    ctx.clip(SKY_MASK);
-    if (gk > 0.002) {
-      const br = 1 + 0.06 * Math.sin((TAU * T) / 7);
-      const gx = m.x, gy = m.y - 52 * (1 - U.smoothstep(-0.22, 0.3, MOON.phi(T)));
-      const R = 300;
-      const g = ctx.createRadialGradient(gx, gy, 60, gx, gy, R);
-      g.addColorStop(0, U.rgba(C.yamabuki, 0.35 * gk * br));
-      g.addColorStop(0.4, U.rgba(C.yamabuki, 0.13 * gk * br));
-      g.addColorStop(1, U.rgba(C.yamabuki, 0));
-      ctx.fillStyle = g;
-      ctx.fillRect(gx - R, gy - R, R * 2, R * 2);
-    }
+    // a hole to the paper where the sky is (only needed once the disc reaches the far bank)
+    const late0 = T >= 160, halo = late0 ? 0.5 : 0.35 * (1 - gk);
+    if (m.y + m.r * (halo > 0.002 ? 1.9 : 1) > bankY(m.x) - 4) ctx.clip(SKY_MASK);
     if (a > 0.002) {
       const late = T >= 160;
       // 四: the printed rabbit keeps pounding over the garden until the cut to B (118),
       // long after the ぺったん has faded out of hearing (≈112)
       const SD = TSUKI.SHOTS.D;
       const pestle = T >= 106 && T < 118 && SD && SD.pestle ? SD.pestle(T) : 0;
-      MOON.draw(ctx, m.x, m.y, m.r, T, { alpha: a, halo: late ? 0.5 : 0.35 * (1 - gk), haloR: m.r * 1.9, pestle });
+      MOON.draw(ctx, m.x, m.y, m.r, T, { alpha: a, halo, haloR: m.r * 1.9, pestle });
     }
     ctx.restore();
     return m;
   };
 
-  /** The horizon's 山吹 bokashi (printed with P6): 0.25 → 0.08 as the moon clears the susuki. */
-  function horizonGlow(ctx, T) {
+  /**
+   * The rising moon's warmth: ONE flat 山吹 band, printed like any bokashi —
+   * a hard lower edge on the far bank, wiped upward to nothing by y 600, and
+   * confined to x 0–760 (its east end wiped off over the last 200 px, behind
+   * the hills and the meadow's shoulder). No radial airbrush round the disc.
+   * c: a ctx already in Shot A coordinates; a = the band's full alpha.
+   */
+  const GLOW_BAND = (() => {
+    const p = new Path2D();
+    p.moveTo(-40, 598); p.lineTo(700, 598); p.lineTo(772, 640); p.lineTo(790, 700);
+    for (let x = 790; x >= -40; x -= 10) p.lineTo(x, bankY(Math.max(0, x)) + 2);
+    p.closePath();
+    return p;
+  })();
+  const GLOW_R = { x0: -40, y0: 590, w: 830, h: 250 };
+  const glowSprites = new Map();
+  /** the band at full strength, cut once per device scale: vertical wipe × its east end wiped off (x 560–780) */
+  function glowSprite(dev) {
+    dev = Math.max(0.25, Math.ceil(dev * 4 - 0.05) / 4);      // a few resolutions, never one per camera step
+    const key = Math.round(dev * 100);
+    let s = glowSprites.get(key);
+    if (s) return s;
+    const pw = Math.ceil(GLOW_R.w * dev), ph = Math.ceil(GLOW_R.h * dev);
+    const cv = B.canvas(pw, ph), c = cv.getContext('2d');
+    c.setTransform(dev, 0, 0, dev, -GLOW_R.x0 * dev, -GLOW_R.y0 * dev);
+    const col = C.yamabuki;
+    const g = c.createLinearGradient(0, 600, 0, 832);
+    g.addColorStop(0, U.rgba(col, 0));
+    g.addColorStop(0.3, U.rgba(col, 0.1));
+    g.addColorStop(0.62, U.rgba(col, 0.55));
+    g.addColorStop(0.86, U.rgba(col, 1));
+    g.addColorStop(1, U.rgba(col, 1));
+    c.fillStyle = g;
+    c.fill(GLOW_BAND);
+    const e = c.createLinearGradient(560, 0, 780, 0);
+    e.addColorStop(0, 'rgba(0,0,0,0)');
+    e.addColorStop(1, 'rgba(0,0,0,1)');
+    c.globalCompositeOperation = 'destination-out';
+    c.fillStyle = e;
+    c.fillRect(560, GLOW_R.y0, 260, GLOW_R.h);
+    s = { cv };
+    glowSprites.set(key, s);
+    return s;
+  }
+  function glowBand(c, a) {
+    if (a <= 0.002) return;
+    const m = c.getTransform();
+    const s = glowSprite(Math.hypot(m.a, m.b));
+    c.save();
+    // (the sprite is cut to the band, down to the far bank; the hills, the
+    // meadow's shoulder and the field all print over its edges)
+    c.globalAlpha *= Math.min(1, a);
+    c.drawImage(s.cv, GLOW_R.x0, GLOW_R.y0, GLOW_R.w, GLOW_R.h);
+    c.restore();
+  }
+  A.glowBand = glowBand;
+  /** The horizon's 山吹 band (printed with P6): 0.34 → 0.08 as the moon clears the susuki (30–40), gone by 60. */
+  function horizonGlow(ctx, T, o) {
     if (T >= 60) return;
-    const a = T < 30 ? 0.3 : U.lerp(0.3, 0.08, U.seg(T, 30, 40, U.ease.inOutSine)) * (1 - U.seg(T, 44, 60));
-    PRINT.with(ctx, 'P6', T, (c) => {
-      const g = c.createLinearGradient(0, 600, 0, 832);
-      g.addColorStop(0, U.rgba(C.yamabuki, 0));
-      g.addColorStop(1, U.rgba(C.yamabuki, a));
-      c.save();
-      c.clip(SKY_MASK);
-      c.fillStyle = g;
-      c.beginPath();
-      c.moveTo(0, 600); c.lineTo(620, 600); c.bezierCurveTo(710, 650, 750, 720, 780, 832); c.lineTo(0, 832); c.closePath();
-      c.fill();
-      c.restore();
-    });
+    const base = T < 30 ? 0.34 : U.lerp(0.34, 0.08, U.seg(T, 30, 40, U.ease.inOutSine)) * (1 - U.seg(T, 44, 60));
+    // 序: the band breathes ±6 % on a 7 s period — stilled as 一 begins
+    const br = 1 + 0.06 * Math.sin((TAU * T) / 7) * (1 - U.smoothstep(13, 16, T));
+    const a = base * br * (o && o.glow != null ? o.glow : 1);
+    PRINT.with(ctx, 'P6', T, (c) => glowBand(c, a));
   }
 
   /** Print one Shot A layer (optionally in two passes around a live hook). */
@@ -2021,11 +2233,14 @@
     // offset snaps to the device pixel, ten times cheaper than a filtered blit
     const m = ctx.getTransform(), k = ctx.canvas.width / W;
     const unit = Math.abs(m.a - k) < 1e-3 && Math.abs(m.d - k) < 1e-3 && Math.abs(m.b) < 1e-6 && Math.abs(m.c) < 1e-6;
+    const jf = joltFresh(T);
     const draw = (extra) => {
       const se = ctx.imageSmoothingEnabled;
       if (unit) ctx.imageSmoothingEnabled = false;
-      if (flat) TSUKI.SHOTS.printFlat(ctx, T, 'A', name, Object.assign(extra, o.wear == null ? {} : { wear: o.wear }));
-      else PRINT.drawLayer(ctx, 'A', name, T, Object.assign(extra, o));
+      if (flat) TSUKI.SHOTS.printFlat(ctx, T, 'A', name, Object.assign({}, extra, o.wear == null ? {} : { wear: o.wear }));
+      else PRINT.drawLayer(ctx, 'A', name, T, Object.assign({}, extra, o));
+      // the jolt: the fresh impression, shaken loose over the worn one
+      if (jf > 0.002) PRINT.drawLayer(ctx, 'A', name, T, Object.assign({}, extra, { state: freshState(o.state || PRINT.state(T)), wear: 0, alpha: ALL_PLATES(jf) }));
       ctx.imageSmoothingEnabled = se;
     };
     if (!mid) return draw({});
@@ -2083,13 +2298,53 @@
   A.drawField = (ctx, T, opts) => layer(ctx, T, 'field', opts);
   A.drawPondLayer = (ctx, T, opts) => layer(ctx, T, 'pond', opts);
   A.drawBanks = (ctx, T, opts) => layer(ctx, T, 'banks', opts);
+  /** the rising disc as the plumes see it: {x,y,r} while it stands behind the field (T < 60), else null */
+  function discBehindField(T) {
+    if (T >= 60) return null;
+    const m = MOON.A(T);
+    return m.y + m.r < 650 ? null : m;
+  }
+  /**
+   * The field's silhouette block, printed only inside the rising disc (in 序 it
+   * comes with the disc's glaze, 6.4–9.6).
+   */
+  A.drawFieldSil = (ctx, T, opts) => {
+    const m = discBehindField(T);
+    if (!m) return;
+    const a = T < 14 ? U.seg(T, 6.4, 9.6, U.ease.inOutSine) : 1;
+    if (a <= 0.003) return;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(m.x, m.y, m.r + 0.4, 0, TAU); ctx.clip();
+    ctx.globalAlpha *= a;
+    layer(ctx, T, 'fieldSil', opts);
+    ctx.restore();
+  };
 
+  /**
+   * 一's poster frame (21.0): the print cut close on the rising disc. The
+   * camera cuts in on the first note of the 縁 motif (16.5 — the only time it
+   * sounds whole) and holds, Ozu-still, while the disc lifts out of the grass
+   * and 小夜 carries her sheaf across it; it cuts back to the garden on the
+   * first counting pluck (22.4), as the first dango lands. The close framing is
+   * the print seen 2.3× about POSTER.fix (the disc ≈ 250 px, its centre ≈
+   * (360, 560) at 21.0; the sheet's left edge never leaves the printed ground).
+   */
+  const CU_ = TSUKI.CUES || {};
+  const POSTER = {
+    k: 2.3, fix: [6, 801],
+    t0: (CU_.enWhole && CU_.enWhole[0]) || 16.5,
+    t1: (CU_.dango && CU_.dango[0]) || 22.4,
+  };
+  A.POSTER = POSTER;
+  /** the poster camera's zoom at T: 2.3 while the close print holds, else 1 */
+  A.posterK = (T) => (T >= POSTER.t0 && T < POSTER.t1 ? POSTER.k : 1);
   /** Kasumi drift: +3 px/s (continuous within each stretch of Shot A). */
   function mistDrift(T) {
     if (T < 60) return 3 * (T - 12);
     if (T < 150) return 3 * (T - 113);
     return -24;          // 後摺: the bands are printed, still
   }
+  A.mistDrift = mistDrift;
   A.drawMist = (ctx, T, which, opts) => {
     const d = mistDrift(T) * (which === 'low' ? 1.2 : 1);
     ctx.save();
@@ -2098,8 +2353,13 @@
     ctx.restore();
   };
 
-  /** The andon behind the shoji (P2): 1 until 37.0, gone by 38.2. */
-  const andonAt = (T) => (T < 37 ? 1 : 1 - U.seg(T, 37, 38.2, U.ease.inOutSine));
+  /**
+   * The andon behind the shoji (P2): blown out at 37.0 (on the breath) — the
+   * flame dies at once (to 22 % within 0.22 s), and only the warmth of the
+   * paper lingers, sinking over the next second (gone by 38.3). たけ's shadow
+   * on the paper fades with it (shojiShadow reads the same curve).
+   */
+  const andonAt = (T) => (T < 37 ? 1 : T < 37.22 ? 1 - 0.78 * U.ease.outQuad(U.seg(T, 37, 37.22)) : 0.22 * (1 - U.ease.inOutSine(U.seg(T, 37.22, 38.3))));
   A.andon = andonAt;
   /**
    * The lamplit shoji, printed from the warm block: one flat 山吹 over the
@@ -2181,7 +2441,7 @@
       pen('K', (c) => inkLine(c, d, 0.55, 0.6));
     }
     if (!late) {
-      if (T >= 29.5) {
+      if (T >= DISH_T) {
         const [dx, dy] = GEO.dish;
         const dish = new Path2D();
         dish.ellipse(dx, dy - 2, 11, 2.6, 0, 0, TAU);
@@ -2195,7 +2455,7 @@
         pen('P7', (c) => { c.fillStyle = U.mix(C.gofun, C.ginnezu, 0.2); c.fill(dish); });
         pen('P3', (c) => { c.fillStyle = C.susuki; c.fill(imo); });
         pen('K', (c) => { inkLine(c, dish, 0.7, 0.7); inkLine(c, imo, 0.6, 0.55); c.fillStyle = U.rgba(C.sumi, 0.85); c.fill(tips); });
-        const st = U.seg(T, 29.5, 30.4);
+        const st = U.seg(T, DISH_T, DISH_T + 0.9);
         if (st > 0) {
           pen('P7', (c) => {
             c.lineCap = 'round';
@@ -2283,20 +2543,28 @@
     const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
     return [h00 * p1[1] + h10 * m1[0] + h01 * p2[1] + h11 * m2[0], h00 * p1[2] + h10 * m1[1] + h01 * p2[2] + h11 * m2[1]];
   }
-  // distance run so far (for the stride phase) — a fixed table, built once
-  const SAYO_DIST = (() => {
+  /**
+   * Her stride phase — a fixed table, built once: the distance she covers (in
+   * her own body's px) divided by the stride, integrated step by step, so when
+   * the walk quickens into a run (21.2–21.6) and slows back (29.8–30.2) her
+   * legs and her sheaf carry on from where they are: the phase never jumps.
+   */
+  const SAYO_STRIDE = (T) => (T < 25 ? U.lerp(34, 58, U.smoothstep(21.2, 21.6, T)) : U.lerp(58, 34, U.smoothstep(29.8, 30.2, T)));
+  const SAYO_PHASE = (() => {
     const out = [];
-    let d = 0, prev = sayoKeyAt(16.6);
+    let ph = 0, prev = sayoKeyAt(16.6);
     for (let T = 16.6; T <= 30.4 + 1e-9; T += 0.02) {
       const q = sayoKeyAt(T);
       const k = U.lerp(0.4, 0.6, U.clamp((q[1] - 820) / 300)) / 0.4;
-      d += Math.hypot(q[0] - prev[0], q[1] - prev[1]) / k;
-      out.push(d);
+      ph += Math.hypot(q[0] - prev[0], q[1] - prev[1]) / k / SAYO_STRIDE(T - 0.01);
+      out.push(ph);
       prev = q;
     }
     return out;
   })();
-  const sayoDist = (T) => { const f = U.clamp((T - 16.6) / 0.02, 0, SAYO_DIST.length - 1), i = Math.floor(f); return U.lerp(SAYO_DIST[i], SAYO_DIST[Math.min(SAYO_DIST.length - 1, i + 1)], f - i); };
+  const sayoPhase = (T) => { const f = U.clamp((T - 16.6) / 0.02, 0, SAYO_PHASE.length - 1), i = Math.floor(f); return U.lerp(SAYO_PHASE[i], SAYO_PHASE[Math.min(SAYO_PHASE.length - 1, i + 1)], f - i); };
+  /** the wind in her sheaf: the garden's breeze, and every gust the plumes around her lean in */
+  const sayoWind = (T) => 0.3 + 1.1 * wind(T).gust;
   const depthScale = (y) => U.lerp(0.4, 0.6, U.clamp((y - 820) / 300));
   /** where 小夜 ducks under the engawa for the dango, and where her arm comes over the lip */
   const STEAL = { x: 1000, y: 738, arm: [993, 693], s: 0.42 };
@@ -2304,7 +2572,36 @@
   /** the arm's reach for the top dango: rises 32.7 → 33.0 (the grab on the beat), gone by 33.5 */
   const stealReach = (T) => (T < 33.0 ? U.seg(T, 32.7, 33.0, U.ease.inOutSine) : 1 - U.seg(T, 33.05, 33.45, U.ease.inOutSine));
 
-  /** 小夜 (the child) at T — {x, y, s, pose, facing, t, look, gaze, hidden, sheaf, run, under, steal, reach, dango}. */
+  /** a new key lands two frames out of register, then settles (the film's key-swap grammar) */
+  const LAND = [1.2, -0.8];
+  /**
+   * 四: she dozes off against her grandmother. The kneeling key tips over
+   * toward her (about the knee on that side, the other knee lifting), then the
+   * sleeping key lands where the tipping head is — its body still propped at a
+   * slant, feet on the boards — and sinks into the lap.
+   */
+  const SLEEP = { lean: 0.7, swap: 114.9, pivot: [GEO.seat[0] + 9, GEO.seat[1]], len: 64 };
+  let SLEEP_GEO = null;
+  /** the sleeping key's head, and the offset / prop that put it where the leaning head is at the swap */
+  function sleepGeo() {
+    if (SLEEP_GEO) return SLEEP_GEO;
+    let kb = [GEO.seat[0], GEO.seat[1] - 33.4], sl = [GEO.take[0] - 16, GEO.take[1] - 9.2];
+    try {
+      const c = B.canvas(4, 4).getContext('2d');
+      const a = TSUKI.CAST.child(c, GEO.seat[0], GEO.seat[1], 0.4, { pose: 'kneel-back', facing: 1, t: 0, look: -0.3 });
+      const b = TSUKI.CAST.child(c, GEO.take[0] - 16, GEO.take[1] - 2, 0.4, { pose: 'sleep', facing: -1, t: 0, haori: false });
+      if (a && a.head) kb = a.head;
+      if (b && b.head) sl = b.head;
+    } catch (e) { /* the fallback numbers */ }
+    const [px, py] = SLEEP.pivot;
+    const dx = kb[0] - px, dy = kb[1] - py, cl = Math.cos(SLEEP.lean), sn = Math.sin(SLEEP.lean);
+    const hx = px + dx * cl - dy * sn, hy = py + dx * sn + dy * cl;
+    const off = [hx - sl[0], hy - sl[1]];
+    // propped: the body slants down from the raised head so the feet stay on the boards
+    const prop = -Math.asin(U.clamp(-off[1] / SLEEP.len, 0, 0.9));
+    return (SLEEP_GEO = { head: sl, off, prop });
+  }
+  /** 小夜 (the child) at T — {x, y, s, pose, facing, t, look, gaze, hidden, sheaf, run, under, steal, reach, dango, wind, lean, land, belowLip}. */
   A.sayo = (T, opts = {}) => {
     if (T < 16.6) return { hidden: true };
     if (T < 30.35) {
@@ -2312,9 +2609,9 @@
       const a = sayoKeyAt(T - 0.06), b = sayoKeyAt(T + 0.06);
       const facing = b[0] - a[0] < -0.4 ? -1 : 1;
       const walk = T < 21.4 || T > 30.0;
-      return { x, y, s: depthScale(y), pose: 'carry-susuki', facing, t: sayoDist(T) / (walk ? 34 : 58), sheaf: 300, run: !walk };
+      return { x, y, s: depthScale(y), pose: 'carry-susuki', facing, t: sayoPhase(T), sheaf: 300, run: !walk, wind: sayoWind(T) };
     }
-    if (T < 30.5) return { x: 944, y: 734, s: 0.4, pose: 'carry-susuki', facing: 1, t: sayoDist(30.35) / 34, sheaf: 300 };
+    if (T < 30.5) return { x: 944, y: 734, s: 0.4, pose: 'carry-susuki', facing: 1, t: sayoPhase(30.35), sheaf: 300, wind: sayoWind(T) };
     if (T < 31.4) return { x: 944, y: 734, s: 0.4, pose: 'stand', facing: 1, t: T };
     if (T < 32.35) {
       // she creeps along the front of the engawa toward the 三方
@@ -2327,19 +2624,41 @@
       const reach = stealReach(T);
       return { x: STEAL.x, y: STEAL.y, s: 0.4, pose: 'reach', facing: 1, t: T, under: true, steal: T >= 32.7 && T < 33.5, reach, dango: T >= 33.0 };
     }
-    if (T < 34.8) {
-      // out from under, and up onto the engawa beside her
-      const u = U.seg(T, 34.2, 34.8, U.ease.inOutSine);
-      return { x: U.lerp(STEAL.x, GEO.seat[0], u), y: U.lerp(STEAL.y, GEO.seat[1], u) - Math.sin(u * Math.PI) * 10, s: 0.4, pose: u < 0.2 ? 'reach' : u < 0.6 ? 'stand' : 'kneel-back', facing: 1, t: T, look: 0.2 };
+    if (T < 34.4) {
+      // out from under the engawa, crouched (one crouched key — no standing key):
+      // into the moonlight in front of the crawlspace, nothing of her above its lip yet
+      const u = U.ease.outSine(U.seg(T, 34.2, 34.4));
+      return { x: U.lerp(STEAL.x, STEAL.x + 8, u), y: STEAL.y + 8, s: 0.4, pose: 'reach', facing: 1, t: T, belowLip: true };
+    }
+    if (T < 34.7) {
+      // …and up over the lip onto the boards beside her
+      const u = U.ease.inOutSine(U.seg(T, 34.4, 34.7));
+      return { x: U.lerp(STEAL.x + 8, GEO.seat[0], u), y: U.lerp(STEAL.y + 8, GEO.seat[1] + 6, u) - Math.sin(u * Math.PI) * 5, s: 0.4, pose: 'reach', facing: 1, t: T };
     }
     if (T < 60) {
-      const eat = T < 37 ? Math.max(0, Math.sin((T - 34.8) * 4.2)) * 0.12 : 0;
-      return { x: GEO.seat[0], y: GEO.seat[1], s: 0.4, pose: 'kneel-back', facing: 1, t: T, look: 0.15 - eat, gaze: opts.gazeOut || 0 };
+      // up: the kneeling key lands (two frames off register) and settles onto her knees; then she eats
+      const drop = T < 35.05 ? 6 * (1 - U.ease.outBack(U.seg(T, 34.7, 35.05))) : 0;
+      const eat = T > 35.3 && T < 37 ? Math.max(0, Math.sin((T - 35.3) * 4.2)) * 0.12 : 0;
+      return { x: GEO.seat[0], y: GEO.seat[1] + drop, s: 0.4, pose: 'kneel-back', facing: 1, t: T, look: 0.15 - eat, gaze: opts.gazeOut || 0, land: T - 34.7 < 0.07 ? LAND : null };
     }
-    if (T < 114) return { x: GEO.seat[0], y: GEO.seat[1], s: 0.4, pose: 'kneel-back', facing: 1, t: T, look: T > 112.5 ? 0.05 - Math.max(0, Math.sin((T - 112.5) * 4)) * 0.1 : 0.2 };
+    if (T < 114) {
+      const base = U.lerp(0.2, 0.05, U.seg(T, 112.3, 112.6, U.ease.inOutSine));
+      return { x: GEO.seat[0], y: GEO.seat[1], s: 0.4, pose: 'kneel-back', facing: 1, t: T, look: base - (T > 112.5 ? Math.max(0, Math.sin((T - 112.5) * 4)) * 0.1 : 0) };
+    }
+    if (T < SLEEP.swap) {
+      // dozing off: she tips over toward her grandmother, head drooping
+      const a = SLEEP.lean * U.ease.inOutSine(U.seg(T, 114.0, SLEEP.swap));
+      return { x: GEO.seat[0], y: GEO.seat[1], s: 0.4, pose: 'kneel-back', facing: 1, t: T, look: 0.2 - 0.5 * (a / SLEEP.lean), lean: { a, about: SLEEP.pivot } };
+    }
     if (T < 160) {
+      // …and the sleeping key lands where her tipping head is, propped, and sinks into the lap; then breathes
+      const g = sleepGeo();
+      const sink = 1 - U.ease.inOutSine(U.seg(T, SLEEP.swap, SLEEP.swap + 0.9));
       const settle = U.seg(T, 115.5, 116.5, U.ease.inOutSine) * 3;
-      return { x: GEO.take[0] - 16, y: GEO.take[1] - 2 + settle, s: 0.4, pose: 'sleep', facing: -1, t: T };
+      const breath = T > 116.5 ? 0.8 * Math.sin((TAU * (T - 116.5)) / 3.8) * U.smoothstep(116.5, 117.5, T) : 0;
+      const dx = g.off[0] * sink, dy = g.off[1] * sink + settle + breath;
+      return { x: GEO.take[0] - 16 + dx, y: GEO.take[1] - 2 + dy, s: 0.4, pose: 'sleep', facing: -1, t: T,
+        lean: sink > 0.001 ? { a: g.prop * sink, about: [g.head[0] + dx, g.head[1] + dy] } : null, land: T - SLEEP.swap < 0.07 ? LAND : null };
     }
     return { hidden: true };
   };
@@ -2352,36 +2671,122 @@
   }
   const lastBefore = (T, times) => { let l = -1e9; for (const ti of times) if (ti <= T) l = ti; return l; };
 
+  /**
+   * The stacking. She kneels close to the 三方 to build it (STACK_X — her hand
+   * over the tray), and each dango is carried there: from ≈0.3 s before its
+   * pluck she bows toward its place — the whole figure turned about the knee
+   * and leaning a few px, so the dango in her fingers travels with her — the
+   * last few px it is set down by the fingers (A.drawOfferings draws it moving
+   * from her hand into its place), it lands on the pluck, and she comes back up.
+   */
+  const STACK_X = 1036;
+  const DISH_T = 30.05;                     // the dish of 衣かつぎ set down (after she shuffles back)
+  let HELD = null;
+  /** the dango in her hand at rest ('stack' at STACK_X), the knee she bows about, and for each place the bow that reaches it */
+  function heldGeo() {
+    if (HELD) return HELD;
+    const ky = GEO.take[1];
+    let d = [STACK_X - 33.1, 671];
+    try {
+      const r = TSUKI.CAST.grandma(B.canvas(4, 4).getContext('2d'), STACK_X, ky, 0.34, { pose: 'stack', facing: -1, t: 0 });
+      if (r && r.dango) d = r.dango;
+    } catch (e) { /* the fallback numbers */ }
+    const K = [STACK_X - 10, ky];
+    const fits = DANGO_POS.map(([dx, dy]) => {
+      const S = [SANBO.x + dx, SANBO.y + dy];
+      let best = null;
+      for (let phi = -0.3; phi <= 0.3001; phi += 0.01) {
+        const cs = Math.cos(phi), sn = Math.sin(phi), rx = d[0] - K[0], ry = d[1] - K[1];
+        const px = K[0] + rx * cs - ry * sn, py = K[1] + rx * sn + ry * cs;
+        const ex = S[0] - px, ey = S[1] - py;
+        // lean a few px (the knees barely move), bow the rest
+        const tx = U.clamp(ex, -4, 3), ty = U.clamp(ey, -1.5, 1);
+        const err = Math.hypot(ex - tx, ey - ty) + Math.abs(phi) * 3 + Math.hypot(tx, ty) * 0.2;
+        if (!best || err < best.err) best = { phi, tx, ty, err, S };
+      }
+      return best;
+    });
+    return (HELD = { d, K, fits });
+  }
+  /** the reach toward the i-th place: {i, r 0..1, hold} (hold: the dango is still in her fingers) */
+  function reachAt(T, times) {
+    const i = times.findIndex((ti) => ti >= T - 0.14);
+    if (i < 0) return null;
+    const ti = times[i];
+    const r = T < ti ? U.ease.outSine(U.seg(T, ti - 0.3, ti - 0.02)) : 1 - U.ease.inSine(U.seg(T, ti + 0.02, ti + 0.14));
+    const from = i ? times[i - 1] + 0.14 : ti - 0.6;
+    return { i, r, hold: T < ti && T > from };
+  }
+  /** her fingers' dango at T while it is carried (stage coords), or null */
+  function heldDango(T, tk) {
+    if (!tk || !tk.reach || !tk.reach.hold) return null;
+    const G = heldGeo(), f = G.fits[tk.reach.i], r = tk.reach.r;
+    const phi = f.phi * r + (tk.dip ? tk.facing * 0.045 * tk.dip : 0);
+    const cs = Math.cos(phi), sn = Math.sin(phi), rx = G.d[0] - G.K[0], ry = G.d[1] - G.K[1];
+    return [G.K[0] + f.tx * r + rx * cs - ry * sn, G.K[1] + f.ty * r + (tk.dip || 0) * 2.5 + rx * sn + ry * cs];
+  }
+  A.heldDango = heldDango;
+  /** the stacking figure at T on the plucks `times` */
+  function stacking(T, times, extraDips, ty) {
+    const rc = reachAt(T, times);
+    const tk = { x: STACK_X, y: ty, s: 0.34, pose: 'stack', facing: -1, t: T, dip: stackDip(T, extraDips ? times.concat(extraDips) : times), reach: rc };
+    tk.dango = false;             // the carried dango is drawn by drawCarried, at the tray's size
+    tk.times = times;
+    return tk;
+  }
+  /**
+   * The dango she carries: in her fingers (at her hand's point) while she bows
+   * toward its place, then, in the last 0.1 s before its pluck, set down — from
+   * her fingers into its place on the tray, where it lands on the pluck.
+   */
+  function drawCarried(c, T, tk, ink) {
+    const rc = tk.reach;
+    if (!rc || !rc.hold) return;
+    const ti = tk.times[rc.i], h = heldDango(T, tk), S = heldGeo().fits[rc.i].S;
+    const u = U.ease.inOutSine(U.seg(T, ti - 0.1, ti));
+    const x = U.lerp(h[0], S[0], u), y = U.lerp(h[1], S[1], u), r = U.lerp(2.7, 3.9, u);
+    const d = new Path2D();
+    d.ellipse(x, y, r, r * 0.95, 0, 0, TAU);
+    c.fillStyle = ink;
+    c.fill(d);
+    inkLine(c, d, 0.55, 0.6);
+  }
   /** たけ (and, from 160, old 小夜 on her exact path). */
   A.take = (T) => {
     const [tx, ty] = GEO.take;
-    const s = 0.34;
+    const s = 0.34, E = U.ease;
+    const land = (t0) => (T - t0 >= 0 && T - t0 < 0.07 ? LAND : null);
     if (T >= 160) {
-      const settle = T < 161 ? -2 * (1 - U.seg(T, 160.6, 161, U.ease.inOutSine)) : 0;
-      const stack = T >= 161.0 && T < 168.95;
-      const lt = lastBefore(T, DANGO_TIMES_LATE);
-      return { x: tx, y: ty + settle, s, pose: stack ? 'stack' : 'seiza', facing: -1, look: 0, t: T, dip: stack ? stackDip(T, DANGO_TIMES_LATE) : 0, dango: stack && T - lt > 0.2 && T < DANGO_TIMES_LATE[14] };
+      const settle = T < 161 ? -2 * (1 - U.seg(T, 160.6, 161, E.inOutSine)) : 0;
+      if (T >= 161.0 && T < 168.95) return stacking(T, DANGO_TIMES_LATE, null, ty + settle);
+      return { x: STACK_X, y: ty + settle, s, pose: 'seiza', facing: -1, look: 0, t: T };
     }
     // she comes round the house's corner onto the engawa and walks, slowly, to the offerings
     if (T < 14.6) return { hidden: true };
-    if (T < 21.3) { const u = U.seg(T, 14.6, 21.3, U.ease.outSine); return { x: U.lerp(1486, tx, u), y: ty, s, pose: 'walk', facing: -1, t: T, walk: true, clipX: 1455 }; }
-    if (T < 22) return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: 0.25, t: T };
-    if (T < 29.6) {
-      const lt = lastBefore(T, DANGO_TIMES);
-      // after the fifteenth dango she sets down the dish of 衣かつぎ (29.5)
-      return { x: tx, y: ty, s, pose: 'stack', facing: -1, t: T, dip: stackDip(T, DANGO_TIMES.concat([29.5])), dango: T - lt > 0.2 && T < DANGO_TIMES[14] };
+    if (T < 21.3) { const u = U.seg(T, 14.6, 21.3, E.outSine); return { x: U.lerp(1486, STACK_X, u), y: ty, s, pose: 'walk', facing: -1, t: T, walk: true, clipX: 1455 }; }
+    if (T < 22) return { x: STACK_X, y: ty, s, pose: 'seiza', facing: -1, look: 0.25, t: T };
+    if (T < 29.5) return stacking(T, DANGO_TIMES, null, ty);
+    // the stand built, she shuffles back on her knees (膝行) and sets the dish of 衣かつぎ down by it
+    if (T < 29.95) {
+      const u = U.seg(T, 29.5, 29.95, E.inOutSine);
+      return { x: U.lerp(STACK_X, tx, u), y: ty - Math.abs(Math.sin(u * Math.PI * 2)) * 1.1, s, pose: 'seiza', facing: -1, look: 0.25, t: T };
     }
-    if (T < 30.0) return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: 0.25, t: T };
-    // the stand built, she turns to the lamplit room … the arm steals behind her back;
-    // at 33.6 she turns back — her face already lifted to the moon, above the thief
-    if (T < 33.6) return { x: tx, y: ty, s, pose: 'seiza', facing: 1, look: 0.1, t: T };
-    if (T < 36.0) return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: -1.05, t: T };
+    if (T < 30.3) return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: 0.25 - 0.15 * U.seg(T, 30.1, 30.3), t: T, dip: stackDip(T, [DISH_T]) };
+    // she turns to the lamplit room — through her back (three keys, each landing like a new block) …
+    if (T < 30.4) return { x: tx, y: ty, s, pose: 'seiza', view: 'back', facing: 1, look: 0, t: T, land: land(30.3) };
+    // … the arm steals behind her back; at 33.35 she turns back the same way, and on the
+    // harmonic (33.6) her face is to the moon, lifting to it, above the thief
+    if (T < 33.35) return { x: tx, y: ty, s, pose: 'seiza', facing: 1, look: 0.1, t: T, land: land(30.4) };
+    if (T < 33.47) return { x: tx, y: ty, s, pose: 'seiza', facing: 1, look: U.lerp(0.1, 0, U.seg(T, 33.35, 33.47)), t: T };
+    if (T < 33.6) return { x: tx, y: ty, s, pose: 'seiza', view: 'back', facing: 1, look: 0, t: T, land: land(33.47) };
+    if (T < 36.0) return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: U.lerp(-0.45, -1.05, E.outSine(U.seg(T, 33.6, 34.1))), t: T, land: land(33.6) };
     // 36.0–36.4: she shuffles on her knees (膝行) to the shoji and slips inside …
-    if (T < 36.4) { const u = U.seg(T, 36.0, 36.4, U.ease.inOutSine); return { x: U.lerp(tx, tx + 26, u), y: ty - Math.abs(Math.sin(u * Math.PI * 2)) * 1.2, s, pose: 'seiza', facing: 1, look: 0.2, t: T }; }
+    if (T < 36.4) { const u = U.seg(T, 36.0, 36.4, E.inOutSine); return { x: U.lerp(tx, tx + 26, u), y: ty - Math.abs(Math.sin(u * Math.PI * 2)) * 1.2, s, pose: 'seiza', facing: 1, look: 0.2, t: T }; }
     // … and from 36.4 she is inside: her shadow crosses the lit paper (see shojiShadow)
     if (T < 60) return { hidden: true, inside: true };
     if (T >= 111.5 && T < 112.5) return { x: tx, y: ty, s, pose: 'stack', facing: -1, t: T, dango: T < 112.3 };
-    return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: T > 114 ? 0.45 : 0.15, t: T };
+    // 四: the child asleep in her lap — she looks down at her
+    return { x: tx, y: ty, s, pose: 'seiza', facing: -1, look: 0.15 + 0.3 * E.inOutSine(U.seg(T, 114.6, 115.6)), t: T };
   };
   /** たけ's shadow on the lamplit shoji as she goes to the andon (36.4–37.2), fading with its light */
   function shojiShadow(c, T, amt) {
@@ -2462,9 +2867,17 @@
       if (st.steal) CAST.child(c, STEAL.arm[0], STEAL.arm[1], STEAL.s, { pose: 'steal', facing: 1, reach: st.reach, dango: st.dango, t: T });
       return;
     }
-    const o = { pose: st.pose, facing: st.facing, t: st.t, sheaf: st.sheaf, look: st.look, wind: 0.3 };
+    const o = { pose: st.pose, facing: st.facing, t: st.t, sheaf: st.sheaf, look: st.look, wind: st.wind == null ? 0.3 : st.wind };
     if (st.pose === 'sleep') o.haori = false;
+    c.save();
+    if (st.land) c.translate(st.land[0], st.land[1]);
+    if (st.lean) { const [ax, ay] = st.lean.about; c.translate(ax, ay); c.rotate(st.lean.a); c.translate(-ax, -ay); }
+    if (st.belowLip) {
+      // still in front of the crawlspace: nothing of her shows above the engawa's lip yet
+      c.beginPath(); c.rect(GEO.engawa.x0, GEO.engawa.y1 + 0.5, GEO.engawa.x1 - GEO.engawa.x0, 80); c.clip();
+    }
     CAST.child(c, st.x, st.y, st.s, o);
+    c.restore();
   }
   let agedOld = null;
   const AGED_OLD_SAYO = () => {
@@ -2477,15 +2890,24 @@
   /** the old woman / grandmother, bowing a little as each dango is set down */
   function drawElder(c, fn, tk, extra) {
     const o = Object.assign({ pose: tk.pose, facing: tk.facing, t: tk.walk ? tk.t * 0.8 : tk.t, look: tk.look, dango: tk.dango === true || (tk.dango !== false && tk.pose === 'stack' && tk.dip == null) }, extra);
-    if (tk.dip) {
-      c.save();
+    if (tk.view) o.view = tk.view;
+    c.save();
+    if (tk.land) c.translate(tk.land[0], tk.land[1]);
+    // the bow toward the dango's place (reach) and the little bow as it lands (dip), about the knee
+    let rot = 0, dx = 0, dy = 0;
+    if (tk.reach) { const f = heldGeo().fits[tk.reach.i]; rot += f.phi * tk.reach.r; dx += f.tx * tk.reach.r; dy += f.ty * tk.reach.r; }
+    if (tk.dip) { rot += tk.facing * 0.045 * tk.dip; dy += tk.dip * 2.5; }
+    if (rot || dx || dy) {
       const kx = tk.x + tk.facing * 10, ky = tk.y;
-      c.translate(kx, ky + tk.dip * 1.6);
-      c.rotate(tk.facing * 0.045 * tk.dip);
-      c.translate(-kx, -ky);
-      fn(c, tk.x, tk.y, tk.s, o);
-      c.restore();
+      c.translate(kx + dx, ky + dy); c.rotate(rot); c.translate(-kx, -ky);
+    }
+    if (tk.view === 'back' && tk.s < 0.6) {
+      // the back key is cut at 0.6 and printed small: its 波兎 then carries the
+      // rabbits over the waves (below 0.6 CAST gives the haori a few specks only)
+      c.translate(tk.x, tk.y); c.scale(tk.s / 0.6, tk.s / 0.6);
+      fn(c, 0, 0, 0.6, o);
     } else fn(c, tk.x, tk.y, tk.s, o);
+    c.restore();
   }
 
   A.drawFigures = (ctx, T, opts = {}) => {
@@ -2496,29 +2918,50 @@
     PRINT.with(ctx, 'K', T, (c) => {
       if (late) {
         drawElder(c, CAST.oldSayo, tk, opts.aged ? { palette: AGED_OLD_SAYO(), ink: aged(C.sumi) } : { palette: { obijime: U.mix(C.kon, C.ginnezu, 0.3) } });
+        const dk = U.mix(C.gofun, C.torinoko, 0.3);
+        drawCarried(c, T, tk, opts.aged ? aged(dk) : dk);
         return;
       }
       const sy = opts.sayo || A.sayo(T, opts);
       const behindTake = !sy.hidden && sy.pose === 'sleep';
       if (behindTake) drawSayo(c, T, sy);
-      if (!tk.hidden) {
+      const vw = opts.view;                  // a closer camera's view (A coords): what it cannot see is not drawn
+      const seen = (x, y, rx, ry) => !vw || !(x - rx > vw[2] || x + rx < vw[0] || y - ry > vw[3] || y + ry < vw[1]);
+      if (!tk.hidden && seen(tk.x, tk.y - 30, 50, 50)) {
         if (tk.clipX) { c.save(); c.beginPath(); c.rect(-10, 0, tk.clipX + 10, H); c.clip(); }
         drawElder(c, CAST.grandma, tk, { palette: { obijime: INK.ebicha } });
         if (tk.clipX) c.restore();
+        drawCarried(c, T, tk, C.gofun);
       }
       if (!sy.hidden && !behindTake && !opts.noSayo) {
-        drawSayo(c, T, sy);
         const m = MOON.A(T);
         if (T < 40 && sy.y < 826 && !sy.under && Math.abs(sy.x - m.x) < m.r + 70) {
-          // against the disc she prints as a flat 墨 silhouette, sheaf and all
+          // against the disc she prints as ONE flat 墨 silhouette, sheaf and all; her
+          // colours only where the disc is not behind her (no coloured rim round the ink)
+          const yb = bankY(m.x) - 1;
+          // (her sheaf's tip and fan, head, hand and feet: if all lie on the disc, she is all silhouette)
+          const f = sy.facing < 0 ? -1 : 1, K = sy.s;
+          const allIn = sy.pose === 'carry-susuki' && [[-246, -330], [-200, -210], [-120, -300], [0, -160], [34, -96], [-26, 0], [26, 0]]
+            .every(([lx, ly]) => { const px = sy.x + f * lx * K, py = sy.y + ly * K; return py < yb - 2 && Math.hypot(px - m.x, py - m.y) < m.r - 2; });
+          if (!allIn) {
+            c.save();
+            c.beginPath(); c.rect(-200, -200, W + 400, H + 400); c.arc(m.x, m.y, m.r + 0.5, 0, TAU); c.clip('evenodd');
+            drawSayo(c, T, sy);
+            c.restore();
+          }
+          if (sy.y > yb - 4) {
+            c.save();
+            c.beginPath(); c.rect(-200, yb, W + 400, H); c.clip();
+            c.beginPath(); c.arc(m.x, m.y, m.r + 0.5, 0, TAU); c.clip();
+            drawSayo(c, T, sy);
+            c.restore();
+          }
           c.save();
-          c.clip(SKY_MASK);
-          c.beginPath();
-          c.arc(m.x, m.y, m.r + 0.5, 0, TAU);
-          c.clip();
-          CAST.child(c, sy.x, sy.y, sy.s, { pose: sy.pose, facing: sy.facing, t: sy.t, sheaf: sy.sheaf, silhouette: C.sumi, wind: 0.3 });
+          c.beginPath(); c.rect(-200, -200, W + 400, yb + 200); c.clip();
+          c.beginPath(); c.arc(m.x, m.y, m.r + 1.5, 0, TAU); c.clip();
+          CAST.child(c, sy.x, sy.y, sy.s, { pose: sy.pose, facing: sy.facing, t: sy.t, sheaf: sy.sheaf, silhouette: C.sumi, wind: sy.wind == null ? 0.3 : sy.wind });
           c.restore();
-        }
+        } else drawSayo(c, T, sy);
       }
     });
   };
@@ -2538,7 +2981,7 @@
       c.translate(0, by * 2);
       c.scale(1, -1);
       c.globalAlpha *= 0.35;
-      CAST.child(c, st.x, st.y, st.s, { pose: st.pose, facing: st.facing, t: st.t, sheaf: st.sheaf, silhouette: C.sumi, wind: 0.3, noBuffer: true });
+      CAST.child(c, st.x, st.y, st.s, { pose: st.pose, facing: st.facing, t: st.t, sheaf: st.sheaf, silhouette: C.sumi, wind: st.wind == null ? 0.3 : st.wind, noBuffer: true });
       c.restore();
     });
   }
@@ -2597,9 +3040,21 @@
     else if (opts.split === 'front') filter = (o) => o.y > opts.depth;
     // the late plumes are the worn blocks: they replace the fresh ones at the jolt's first peak
     const late = opts.late == null ? (opts.state ? st.wear >= 0.5 : blockWear(T) >= 1) : !!opts.late;
+    // before 60 the plumes over the rising disc print as silhouettes (from 13, as the live plumes take over from 序's still block)
+    let v = null;
+    if (!late && T < 60 && SPR.nearSil) {
+      const m = MOON.A(T);
+      if (m.y - m.r < bankY(m.x)) v = { sil: SPR.nearSil, silHi: opts.hi ? POST.silHi : null, silA: U.smoothstep(13, 15.5, T), disc: m };
+    }
+    if (!late && opts.hi && POST.nearHi) (v || (v = {})).hi = POST.nearHi;
+    if (opts.view) (v || (v = {})).view = opts.view;
+    if (opts.skip) (v || (v = {})).skip = opts.skip;
     PRINT.with(ctx, 'K', T, (c) => {
       c.__m = c.getTransform();
-      drawClumps(c, T, late ? (opts.aged ? SPR.nearLateAged : SPR.nearLate) : SPR.near, filter, 1);
+      drawClumps(c, T, late ? (opts.aged ? SPR.nearLateAged : SPR.nearLate) : SPR.near, filter, 1, v);
+      // the jolt: the fresh plumes shaken loose over the worn ones
+      const jf = late && opts.late == null && !opts.state ? joltFresh(T) : 0;
+      if (jf > 0.002) drawClumps(c, T, SPR.near, filter, jf, null);
     });
   };
 
@@ -2616,6 +3071,8 @@
       const late = opts.state ? st.wear >= 0.5 : blockWear(T) >= 1;
       const sp = late ? (opts.aged ? SPR.hagiLateAged : SPR.hagiLate) : SPR.hagi;
       c.drawImage(sp.cv, sp.x, sp.y, sp.w, sp.h);
+      const jf = late && !opts.state && !opts.noFresh ? joltFresh(T) : 0;
+      if (jf > 0.002) { c.globalAlpha *= jf; c.drawImage(SPR.hagi.cv, SPR.hagi.x, SPR.hagi.y, SPR.hagi.w, SPR.hagi.h); }
     });
   };
 
@@ -2686,21 +3143,22 @@
 
   /**
    * The whole Shot A frame at T (see header). Paint order:
-   * sky → moon → far → mist(high) → horizon glow → grove → house(+andon) → mist(low) →
+   * sky → horizon glow → moon → far → mist(high) → grove → house(+andon) → mist(low) →
    * field → pond → water live → near susuki (behind figures) → offerings → figures →
    * near susuki (front) → sōzu tube → 萩 → florets / glints
    */
   /** the carved layers and what lives inside them: sky … banks (the part a camera may take as one impression) */
   function gardenBack(ctx, T, o) {
     A.drawSky(ctx, T, o);
-    if (o.moon !== false) A.drawMoon(ctx, T, { alpha: o.moonAlpha, glow: o.glow });
+    horizonGlow(ctx, T, o);          // the sky block's 山吹 band: the moon is a hole through it
+    if (o.moon !== false) A.drawMoon(ctx, T, { alpha: o.moonAlpha });
     A.drawFar(ctx, T, o);
     A.drawMist(ctx, T, 'high', o);
-    horizonGlow(ctx, T);
     A.drawGrove(ctx, T, o);
     A.drawHouse(ctx, T, o);
     A.drawMist(ctx, T, 'low', o);
     A.drawField(ctx, T, o);
+    A.drawFieldSil(ctx, T, o);
     A.drawPondLayer(ctx, T, o);
     A.drawPond(ctx, T, o);
     A.drawBanks(ctx, T, o);
@@ -2711,11 +3169,11 @@
     const st = o.figures === false ? { hidden: true } : A.sayo(T, o);
     const depth = st.hidden ? 2000 : st.y;
     if (still) PRINT.drawLayer(ctx, 'A', 'still', T, o.state ? { state: o.state } : {});
-    else if (o.near !== false) A.drawNearSusuki(ctx, T, { split: 'back', depth });
+    else if (o.near !== false) A.drawNearSusuki(ctx, T, { split: 'back', depth, hi: o.hi, view: o.view, skip: o.skipNear });
     if (o.beforeNear) { ctx.save(); o.beforeNear(ctx, PRINT.state(T)); ctx.restore(); }
     if (o.offerings !== false) A.drawOfferings(ctx, T, o);
     if (o.figures !== false) A.drawFigures(ctx, T, o);
-    if (!still && o.near !== false) A.drawNearSusuki(ctx, T, { split: 'front', depth });
+    if (!still && o.near !== false) A.drawNearSusuki(ctx, T, { split: 'front', depth, hi: o.hi, view: o.view, skip: o.skipNear });
     if (!still) {
       A.drawSozu(ctx, T);
       if (o.hagi !== false) A.drawHagi(ctx, T);
@@ -2745,6 +3203,7 @@
   A.drawGarden = (ctx, T, opts = {}) => {
     const o = opts;
     if (pushBuf && T >= 41.5) A.releaseBuffers();   // 一's push and zoom are over (a seek back rebuilds it)
+    if (POST.key && T >= 24 && T < 160) A.releasePoster();   // the poster frame is over (likewise)
     ctx.save();
     ctx.imageSmoothingQuality = 'low';    // plates are cached 1:1; only the push / crops resample them
     if (o.camera !== false) {
@@ -2762,6 +3221,12 @@
           return;
         }
         ctx.translate(1180, 630); ctx.scale(k, k); ctx.translate(-1180, -630);
+      }
+      // 一's poster frame (opts.poster): the close print carved for it (see posterFrame)
+      if (o.poster && isStageUnit(ctx)) {
+        posterFrame(ctx, T, o);
+        ctx.restore();
+        return;
       }
       // a closer camera (opts.zoom = {k, about}): the carved layers are printed 1:1 and
       // their impression scaled once; the near, live things are redrawn under the
@@ -2786,6 +3251,138 @@
     gardenFront(ctx, T, o);
     ctx.restore();
   };
+
+  /* ------------------------------------------------------------------ */
+  /* 一's poster frame (16.5–22.4): the close print of the rising disc    */
+  /* ------------------------------------------------------------------ */
+  // The close framing is carved once, at the stage's resolution, from the same
+  // painters seen through the poster camera (2.3× about POSTER.fix) and
+  // flattened per group of layers the live things sit between — so it prints
+  // as crisply as the wide view (1:1 blits), never the wide plates blown up.
+  // The kasumi are carved where they lie mid-hold (the close view holds them
+  // still), the 山吹 band at its still α 0.34. The ichimonji keeps to the top
+  // of the sheet; the 萩 hangs from the frame's corner, a touch larger (it is
+  // near). The print table is still throughout (no landing, tear or jolt).
+  const POST = { key: '', flats: null, nearHi: null, silHi: null, still: null };
+  const postCam = (c, k) => { const fx = POSTER.fix[0], fy = POSTER.fix[1]; c.translate(fx, fy); c.scale(k, k); c.translate(-fx, -fy); };
+  /** layers painted through the poster camera, each flushed plate by plate in PRINT.ORDER, into one flat */
+  function posterFlat(cw, ch, parts) {
+    const kq = cw / W;
+    const cv = B.canvas(cw, ch), c = cv.getContext('2d');
+    for (const part of parts) {
+      const qd = {};
+      part((id, fn) => { (qd[id] || (qd[id] = [])).push(fn); });
+      for (const id of PRINT.ORDER) {
+        if (!qd[id]) continue;
+        for (const f of qd[id]) {
+          c.save();
+          c.setTransform(kq, 0, 0, kq, 0, 0);
+          postCam(c, POSTER.k);
+          c.imageSmoothingQuality = 'high';
+          if (id === 'P8') c.globalCompositeOperation = 'lighter';
+          f(c);
+          c.restore();
+        }
+      }
+    }
+    return trimSprite(cv, 0, 0, kq);
+  }
+  function posterCaches(cw, ch) {
+    const key = cw + 'x' + ch;
+    if (POST.key === key) return POST;
+    A.releasePoster();
+    PRINT.shot('A');
+    const kq = cw / W, qd = kq * POSTER.k;
+    const Dm = mistDrift((POSTER.t0 + POSTER.t1) / 2);
+    const shifted = (pen, d) => (id, fn) => pen(id, (c) => { c.translate(d, 0); fn(c); });
+    POST.flats = {
+      // the sky block with its 山吹 band (still at α 0.34 all the while)
+      sky: posterFlat(cw, ch, [(pen) => paintSky(pen, false), (pen) => pen('P6', (c) => glowBand(c, 0.34))]),
+      land: posterFlat(cw, ch, [
+        (pen) => paintFar(pen, false),
+        (pen) => paintMist(shifted(pen, Dm), 'high', qd),
+        (pen) => paintGrove(pen, false),
+        (pen) => paintMist(shifted(pen, Dm * 1.2), 'low', qd),
+        (pen) => paintField(pen, false),
+      ]),
+      sil: posterFlat(cw, ch, [(pen) => paintFieldSil(pen)]),
+      // the pond and its banks in one flat: the moon road is laid over both (it keeps to the water)
+      pond: posterFlat(cw, ch, [(pen) => paintPond(pen, false), (pen) => paintBanks(pen, false)]),
+    };
+    // the near plumes of the close view, carved at its resolution (and their silhouettes). Those
+    // east of the disc stand still while the camera holds (it looks at the disc: what moves there
+    // is the disc, the child, her sheaf and the plumes against it) — they are printed at rest
+    // into one flat of their own; the cuts hide the change of their sway
+    const inView = (sp) => sp.box.x0 < 860;
+    POST.still = SPR.near.map((sp) => inView(sp) && sp.box.x0 >= 270 && sp.box.y0 < 880);
+    POST.flats.near = posterFlat(cw, ch, [(pen) => {
+      SPR.near.forEach((sp, i) => {
+        if (!POST.still[i]) return;
+        for (const o of sp.box.m) {
+          const b = newBuckets();
+          clumpInto(o, 0, b, { keyAll: o.dark });
+          paintBuckets(pen, b, o.dark ? NEAR_COLS.earlyDark : NEAR_COLS.early);
+        }
+      });
+    }]);
+    POST.nearHi = SPR.near.map((sp, i) => (inView(sp) && !POST.still[i] ? groupSprite(qd, sp.box, sp.split, false) : null));
+    POST.silHi = SPR.near.map((sp, i) => (SPR.nearSil[i] && inView(sp) ? groupSprite(qd, sp.box, sp.split, true) : null));
+    POST.key = key;
+    return POST;
+  }
+  /** carve the poster frame's print for backing scale k before the first frame needs it (a scene's init) */
+  A.warmPoster = (k) => { try { posterCaches(Math.round(W * k), Math.round(H * k)); } catch (e) { /* only an optimisation */ } };
+  A.releasePoster = () => {
+    const free = (cv) => { if (cv) { cv.width = 0; cv.height = 0; } };
+    if (POST.flats) for (const f of Object.values(POST.flats)) if (f) free(f.cv);
+    for (const list of [POST.nearHi, POST.silHi]) if (list) for (const g of list) if (g) { free(g.up.cv); free(g.lo.cv); }
+    POST.key = ''; POST.flats = null; POST.nearHi = null; POST.silHi = null; POST.still = null;
+  };
+  /**
+   * One frame of the close print (ctx at the stage's unit transform): the
+   * flats 1:1 with the live moon, silhouettes and water between them, the
+   * ichimonji on the sheet's top, the live near things under the camera, the
+   * 萩 from the corner.
+   */
+  function posterFrame(ctx, T, o) {
+    const P = posterCaches(ctx.canvas.width, ctx.canvas.height), F = P.flats;
+    const m0 = ctx.getTransform(), K = POSTER.k;
+    const blit = (f) => {
+      if (!f) return;
+      const se = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;          // 1:1, on whole device pixels
+      ctx.drawImage(f.cv, f.x, f.y, f.w, f.h);
+      ctx.imageSmoothingEnabled = se;
+    };
+    blit(F.sky);
+    if (o.moon !== false) { ctx.save(); postCam(ctx, K); A.drawMoon(ctx, T, { alpha: o.moonAlpha }); ctx.restore(); }
+    blit(F.land);
+    const m = discBehindField(T);
+    if (m && F.sil) {
+      ctx.save();
+      postCam(ctx, K);
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r + 0.4, 0, TAU); ctx.clip();
+      ctx.setTransform(m0);
+      blit(F.sil);
+      ctx.restore();
+    }
+    blit(F.pond);
+    ctx.save(); postCam(ctx, K); A.drawPond(ctx, T, o); ctx.restore();
+    blit(F.near);
+    // the ichimonji stays on the sheet's top edge
+    PRINT.drawLayer(ctx, 'A', 'sky', T, { only: ['P6i'] });
+    const fx = POSTER.fix[0], fy = POSTER.fix[1];
+    const view = [fx - fx / K - 20, fy - fy / K - 20, fx + (W - fx) / K + 20, fy + (H - fy) / K + 20];
+    ctx.save();
+    postCam(ctx, K);
+    gardenFront(ctx, T, Object.assign({}, o, { hagi: false, hi: true, view, skipNear: P.still }));
+    ctx.restore();
+    // the 萩 from the frame's corner, a touch nearer
+    ctx.save();
+    ctx.translate(-40, -40); ctx.scale(1.1, 1.1); ctx.translate(40, 40);
+    A.drawHagi(ctx, T);
+    ctx.restore();
+  }
 
   /* ------------------------------------------------------------------ */
   /* 六: the late impression, aged — the moon exempt                     */
@@ -2842,14 +3439,79 @@
    * printed live and aged by PRINT.age; after it, from the cached snapshot.
    * Draws the 退紅 strip last (unaged).
    */
+  /**
+   * The jolt's two impressions, flattened once (the carved layers sky … banks,
+   * unaged, no moon — at 160 the disc stands clear of everything printed after
+   * the sky): the worn one as it will stay (its late registration drift baked
+   * in, the dry sōzu) and the fresh one. During the jolt each is printed with
+   * the shake of its own block, the fresh one fading off the worn.
+   */
+  let joltSnap = null;
+  function joltSnaps(ctx) {
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    if (joltSnap && joltSnap.cw === cw && joltSnap.ch === ch) return joltSnap;
+    PRINT.shot('A');
+    const k = cw / W, Tl = LATE_REF;
+    const flat = (st, wear, extra) => {
+      const cv = B.canvas(cw, ch), c = cv.getContext('2d');
+      c.setTransform(k, 0, 0, k, 0, 0);
+      c.imageSmoothingQuality = 'low';
+      const o = { state: st, wear };
+      for (const l of ['sky', 'far']) PRINT.drawLayer(c, 'A', l, Tl, o);
+      c.save(); c.translate(mistDrift(Tl), 0); PRINT.drawLayer(c, 'A', 'mistHigh', Tl, o); c.restore();
+      for (const l of ['grove', 'house']) PRINT.drawLayer(c, 'A', l, Tl, o);
+      c.save(); c.translate(mistDrift(Tl) * 1.2, 0); PRINT.drawLayer(c, 'A', 'mistLow', Tl, o); c.restore();
+      for (const l of ['field', 'pond', 'banks']) PRINT.drawLayer(c, 'A', l, Tl, o);
+      if (extra) extra(c);
+      return cv;
+    };
+    const stW = PRINT.state(Tl);
+    const stF = freshState(PRINT.state(100));
+    // (the fresh impression's near plumes and 萩, at rest, go into its flat: it holds for 0.45 s)
+    const freshNear = (c) => { A.drawNearSusuki(c, PRINT.TIMES.jolt, { late: false }); A.drawHagi(c, PRINT.TIMES.jolt, { state: stF }); };
+    joltSnap = { cw, ch, worn: flat(stW, 1, (c) => A.drawSozu(c, Tl)), fresh: flat(stF, 0, freshNear) };
+    return joltSnap;
+  }
+  A.warmJolt = (k) => { try { const cv = B.canvas(Math.round(W * k), Math.round(H * k)); const c = cv.getContext('2d'); c.setTransform(k, 0, 0, k, 0, 0); joltSnaps(c); } catch (e) { /* only an optimisation */ } };
+  function releaseJolt() { if (joltSnap) { joltSnap.worn.width = joltSnap.worn.height = joltSnap.fresh.width = joltSnap.fresh.height = 0; joltSnap = null; } }
+  /** 160.0–160.62: the worn impression under the fresh one shaken loose, then the live things, the paper yellowing */
+  function drawJolt(ctx, T, opts) {
+    const J = joltSnaps(ctx), st = PRINT.state(T), m0 = ctx.getTransform(), kd = ctx.canvas.width / W;
+    const put = (cv, off, a) => {
+      if (a <= 0.002) return;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = a;
+      ctx.drawImage(cv, Math.round(m0.e + off[0] * kd), Math.round(m0.f + off[1] * kd));
+      ctx.restore();
+    };
+    // the worn blocks jolt with the key block's shake (their late drift is in the snapshot); the fresh
+    // impression with the sky block's, so the two slip against each other as the fresh one lets go
+    const late = PRINT.state(LATE_REF);
+    put(J.worn, [st.off.K[0] - late.off.K[0], st.off.K[1] - late.off.K[1]], 1);
+    put(J.fresh, st.off.P6i, joltFresh(T));
+    ctx.save();
+    ctx.imageSmoothingQuality = 'low';
+    A.drawMoon(ctx, T);
+    A.drawPond(ctx, T, opts);
+    A.drawNearSusuki(ctx, T, { split: 'back', depth: GEO.take[1], late: true });
+    A.drawOfferings(ctx, T, opts);
+    A.drawFigures(ctx, T, opts);
+    A.drawNearSusuki(ctx, T, { split: 'front', depth: GEO.take[1], late: true });
+    A.drawHagi(ctx, T, { noFresh: true });
+    ctx.restore();
+  }
   A.drawLate = (ctx, T, opts = {}) => {
     const m = MOON.A(T);
     if (T < PRINT.TIMES.jolt + PRINT.TIMES.joltDur + 0.02) {
-      A.drawGarden(ctx, T, opts);
+      if (T >= PRINT.TIMES.jolt && !opts.state && isStageUnit(ctx)) drawJolt(ctx, T, opts);
+      else A.drawGarden(ctx, T, opts);
       ageFrame(ctx, T, { holes: [[m.x, m.y, m.r + 1.5]] });
       A.drawStrip(ctx, T);
       return;
     }
+    if (joltSnap && T > 161) releaseJolt();
     PRINT.shot('A');
     const snap = lateSnapshot(ctx);
     ctx.save();

@@ -124,9 +124,10 @@ quiet passages −33…−45; 0–2 s paper room −51.5; 148–152 and 234.2–
 | `dangoLate` / `dangoLateSilent` | 161.2 … 165.2 (×9 @0.5) · 165.95 … 167.45 · 168.2 168.7 / 162.2 164.2 165.95 167.45 | same, the four silent ones still appear |
 | `sozuTip` / `sozu` | 39.8 159.8 232.3 / 40.0 160.0 232.5 | the tube tips and spills / strikes the stone (KON = the cut) |
 | `sozuDry` · `dew` | 181.0 · 201.5 | the dry tube knocks once (off-screen, in the 月に雁 crop) · a dew drop falls into it |
-| `gusts`, `gustAt(t)` | 13.0 19.5 27.0 35.0 114.2 163.8 177.4 193.2 199.6 204.2 | each gust starts at t, peaks at t+1.0, dies ≈3 s; `gustAt` is the extra sway (0 between gusts). 190–206 is heard far off only (the incense stays straight) |
-| `biwa` · `kaguraSuzu` · `puppetRustle` | 41 43 46 48 50.5 52.5 54.5 57 · 46 48 · 40.7 42.7 49.8 54.2 59.8 | shadow beats · the culm shines / the girl of light · たけ's hands move a puppet |
+| `gusts`, `gustAt(t)`, `gustRise` · `gustFall` | 13.0 19.5 27.0 35.0 114.2 163.8 177.4 193.2 199.6 204.2 | each gust starts at t, peaks at t+`gustRise` (1.0), dies ≈`gustFall` (3) s; `gustAt` is the extra sway (0 between gusts). 190–206 is heard far off only (the incense stays straight) |
+| `biwa` · `kaguraSuzu` · `puppetRustle` | 41 43 46 48 50.5 52.5 54.5 57 · 46 48 · 40.7 42.7 49.8 54.5 59.8 | shadow beats · the culm shines / the girl of light · たけ's hands move a puppet: the bamboo lifted, the cutter set walking, Kaguya's stick taken, the carry across panel 2 (54.5, on the biwa: the morph has come to rest, the card moves off again), the paper moon lifted in |
 | `splash` · `spoutDrops` · `palmBeads` | 67.9 · 72.0 74.3 76.6 78.9 81.2 · 75.4 + k·6.8/14 (k 0…14, last 82.2) | the moon shatters · a drop lands (the spout then holds a bead through the 間 82.2–86.0) · a bead falls from her fingers |
+| `leap` | 98.0 | the rabbit leaves the ground — its parabola starts here, no crouch (a four-string biwa chord D2 A2 D3 G3, bachi strike, damped at 98.85 as it reaches the fire; the fire bed flares 98.1–98.95) |
 | `insectsStop` · `bowl` · `insectReturns` | [99.0, 100.2] · 99.0 · 100.2 100.6 101.1 101.9 103.0 | the disc flashes; everything stops · the bowl · insects return one by one |
 | `pestle` · `pestleFade` | 106.4 108.0 … 117.6 (every 1.6) · [108, 112] | the pestle strikes (the sound fades to nothing over 108–112; the picture keeps pounding) |
 | `heartbeat` | 136 … 146 (lub; dub +0.3) | – (no beat at 147.0: the look back) |

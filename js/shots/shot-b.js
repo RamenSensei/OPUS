@@ -31,9 +31,11 @@
      draw(ctx, T, opts)           print the shot: opts.id 'B'|'B7', opts.between {layer: fn(ctx, st)},
                                   opts.under fn(ctx, st) (before any layer: e.g. a registered underlay
                                   that shows where a drifting plate leaves paper), opts.skip [layers]
-     light(ctx, T, opts)          live moonlight on the paper (P4 falloff, P7 core, K dim):
-                                  opts x, y, r, falloff, core, dim (0..1 cloud), ranges [[x0,x1]…],
-                                  eclipse (0..1: the paper around the glow sinks, the ring stays)
+     light(ctx, T, opts)          live moonlight on the paper, carved in flat steps (P4 veil with
+                                  the glow's disc + one bokashi band + a half-step ring cut out,
+                                  a flat P7 lift on the disc, K dim): opts x, y, r, falloff, core,
+                                  dim (0..1 cloud), ranges [[x0,x1]…], eclipse (0..1: the paper
+                                  sinks, the disc narrows to eclipseR — the ring stays)
      paperClip(ctx, ranges)       clip to the shoji paper (optionally some x-ranges)
      windowClip(ctx)              clip to the round window's opening
      moonInWindow(ctx, T, opts)   MOON.draw clipped to the window (opts x, y, r, halo, alpha)
@@ -918,41 +920,57 @@
   };
 
   /**
-   * The live moonlight on the paper: 月白 at the glow falling to 月白×藍鼠 on
-   * the far panels (P4), a brighter core (P7), and a cloud's dimming (K).
+   * The live moonlight on the paper, printed like a block, not airbrushed: the paper is one flat
+   * night value (a 藍鼠 veil through P4) with the glow carved out of it in three flat steps —
+   *   the disc  r0 (≈0.92 r): no veil, and a flat 胡粉 lift (P7) — the moon behind the paper,
+   *             edged by ONE narrow bokashi band (the only gradient, ≈36 px);
+   *   the ring  to r2 (≈1.62 r): a flat half-step of veil, crisp-edged;
+   *   the rest: the full veil.
+   * opts x, y, r, falloff (the full veil's strength), core (the disc's lift), dim (0..1 a cloud:
+   * K multiply), ranges [[x0,x1]…], eclipse (0..1: the ring and the paper sink to the full veil
+   * and beyond, and the disc narrows to opts.eclipseR (190) — a paper moon over its middle leaves
+   * a flat ring of real light).
    */
   SB.light = (ctx, T, opts = {}) => {
     const gl = SB.glow(T);
     const x = opts.x == null ? gl.x : opts.x, y = opts.y == null ? gl.y : opts.y;
     const R = opts.r == null ? 235 : opts.r;
     const far = opts.falloff == null ? 0.56 : opts.falloff;
+    const ecl = U.clamp(opts.eclipse || 0);
     const x0 = G.panels[0][0], x1 = G.panels[3][1];
+    const r0 = U.lerp(0.92 * R, opts.eclipseR == null ? 190 : opts.eclipseR, ecl), bw = 36;
+    const r1 = r0 + bw, r2 = Math.max(r1 + 20, 1.62 * R);
+    const v0 = Math.min(0.95, far * (0.64 + 0.6 * ecl)), v1 = U.lerp(far * 0.3, v0, ecl);
     ctx.save();
     SB.paperClip(ctx, opts.ranges);
     PRINT.with(ctx, 'P4', T, (c) => {
-      const R1 = R * 5.2;
-      const ecl = U.clamp(opts.eclipse || 0);
-      const g = c.createRadialGradient(x, y, 0, x, y, R1);
-      const at = (r) => r / R1;
+      const circ = (p, r, ccw) => { p.moveTo(x + r, y); p.arc(x, y, r, 0, U.TAU, !!ccw); };
+      // the full veil, outside the ring
+      const o = new Path2D();
+      o.rect(x0, G.top, x1 - x0, G.bottom - G.top);
+      circ(o, r2, true);
+      c.fillStyle = U.rgba(AINEZU, v0);
+      c.fill(o, 'evenodd');
+      // the ring: a flat half-step
+      const rg = new Path2D();
+      circ(rg, r2); circ(rg, r1, true);
+      c.fillStyle = U.rgba(AINEZU, v1);
+      c.fill(rg, 'evenodd');
+      // the disc's edge: the one bokashi
+      const g = c.createRadialGradient(x, y, r0, x, y, r1 + 0.5);
       g.addColorStop(0, U.rgba(AINEZU, 0));
-      g.addColorStop(at(R * (0.8 + 0.2 * ecl)), U.rgba(AINEZU, 0));
-      g.addColorStop(at(R * (1.7 - 0.55 * ecl)), U.rgba(AINEZU, far * (0.4 + 0.5 * ecl)));
-      g.addColorStop(at(R * 2.6), U.rgba(AINEZU, far * (0.74 + 0.4 * ecl)));
-      g.addColorStop(1, U.rgba(AINEZU, Math.min(0.95, far * (1 + 0.4 * ecl))));
+      g.addColorStop(1, U.rgba(AINEZU, v1));
+      const bd = new Path2D();
+      circ(bd, r1 + 0.5); circ(bd, r0, true);
       c.fillStyle = g;
-      c.fillRect(x0, G.top, x1 - x0, G.bottom - G.top);
+      c.fill(bd, 'evenodd');
     });
     const core = opts.core == null ? 1 : opts.core;
     if (core > 0) {
       PRINT.with(ctx, 'P7', T, (c) => {
         c.globalCompositeOperation = 'lighter';
-        const g = c.createRadialGradient(x, y, 0, x, y, R * 1.12);
-        g.addColorStop(0, U.rgba(C.gofun, 0.2 * core));
-        g.addColorStop(0.6, U.rgba(C.gofun, 0.15 * core));
-        g.addColorStop(0.84, U.rgba(C.gofun, 0.06 * core));
-        g.addColorStop(1, U.rgba(C.gofun, 0));
-        c.fillStyle = g;
-        c.fillRect(x - R * 1.1, y - R * 1.1, 2.2 * R, 2.2 * R);
+        c.fillStyle = U.rgba(C.gofun, 0.08 * core);
+        c.beginPath(); c.arc(x, y, r0, 0, U.TAU); c.fill();
       });
     }
     const dim = opts.dim || 0;

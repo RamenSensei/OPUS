@@ -94,27 +94,38 @@
     const c = cv.getContext('2d');
     c.scale(sc, sc);
     const r = U.rng(1230);
-    // the stone's face: an upright oblong whose edge has been chipped by age
-    c.beginPath();
+    // the stone's face: an upright oblong, its edge worn and chipped by age.
+    // At ≈46 px on the sheet one stone unit is ≈0.46 px, so the wear is cut
+    // at a scale that reads: the sides waver by ≈1–2 units, the corners are
+    // softened unevenly, and a few real chips bite 2–5 units into the face.
+    const CHIPS = [[0, 0.22, 3.2, 7], [0, 0.71, 2.2, 5], [1, 0.12, 2.6, 6], [1, 0.47, 4.2, 9], [1, 0.9, 2.4, 5], [2, 0.34, 3.4, 8], [2, 0.8, 1.8, 4], [3, 0.58, 2.8, 7], [3, 0.93, 3.6, 6]];
+    const CORNER = [4.2, 2.4, 5.6, 3.0];                 // TL, TR, BR, BL: how much each corner is rounded off
+    const corners = [[2.2, 2.6], [97.6, 2.0], [98.0, SH - 2.6], [2.4, SH - 2.2]];
     const edge = [];
-    const side = (x0, y0, x1, y1, n) => {
+    for (let sd = 0; sd < 4; sd++) {
+      const [x0, y0] = corners[sd], [x1, y1] = corners[(sd + 1) % 4];
+      const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;   // inward normal (the sides run clockwise)
+      const n = Math.round(L / 1.2);
+      const c0 = CORNER[sd], c1 = CORNER[(sd + 1) % 4];
       for (let i = 0; i < n; i++) {
-        const s = i / n;
-        const j = (r() - 0.5) * 1.1 + (r() < 0.08 ? -1.5 * r() : 0);
-        const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy);
-        edge.push([U.lerp(x0, x1, s) - (dy / L) * j, U.lerp(y0, y1, s) + (dx / L) * j]);
+        const u = i / n, d = u * L;
+        let j = 0.9 * (U.fbm2(d * 0.09, sd * 3.1, 3, 1231) - 0.5) + 0.35 * (r() - 0.5);    // the wavering side
+        j += c0 * Math.pow(Math.max(0, 1 - d / (c0 * 2.2)), 2) + c1 * Math.pow(Math.max(0, 1 - (L - d) / (c1 * 2.2)), 2);
+        for (const [cs, cu, cd, cw] of CHIPS) {
+          if (cs !== sd) continue;
+          const t = (d - cu * L) / cw;
+          if (Math.abs(t) < 1) j += cd * (1 - t * t) * (0.8 + 0.4 * U.hash(i + sd * 97));
+        }
+        edge.push([x0 + dx * u + nx * j, y0 + dy * u + ny * j]);
       }
-    };
-    side(2.2, 2.6, 97.6, 2.0, 30);
-    side(97.6, 2.0, 98.0, SH - 2.6, 78);
-    side(98.0, SH - 2.6, 2.4, SH - 2.2, 30);
-    side(2.4, SH - 2.2, 2.2, 2.6, 78);
+    }
+    c.beginPath();
     c.moveTo(edge[0][0], edge[0][1]);
-    for (const p of edge) c.lineTo(p[0], p[1]);
+    for (const q of edge) c.lineTo(q[0], q[1]);
     c.closePath();
     c.fillStyle = C.shu;
     c.fill();
-    // 印泥: the paste lies a little unevenly — denser and deeper in places
+    // 印泥: the paste lies unevenly — denser and deeper in places, thinner in others
     c.save();
     c.globalCompositeOperation = 'source-atop';
     for (let i = 0; i < 180; i++) {
@@ -128,6 +139,10 @@
       c.fillStyle = g;
       c.fillRect(x - rr, y - rr, rr * 2, rr * 2);
     }
+    // the paste pools a little at the stone's edge (a pressed seal's rim is its densest line)
+    c.strokeStyle = U.rgba(U.mix(C.shu, C.akane, 0.5), 0.28);
+    c.lineWidth = 2.2;
+    c.stroke();
     c.restore();
     // cut the characters out to the paper. A carver's strokes are more even
     // than a brush's: the mincho's hairlines are thickened a little.
@@ -169,25 +184,88 @@
     c.moveTo(98, 52); c.lineTo(95, 53);
     c.stroke();
     c.restore();
+    // the paper's tooth takes the paste unevenly: density 0.85–1 in a fibrous noise
+    const img = c.getImageData(0, 0, cv.width, cv.height), px = img.data;
+    for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+      const o = (y * cv.width + x) * 4 + 3;
+      if (!px[o]) continue;
+      const X = x / sc, Y = y / sc;
+      const v = 0.6 * U.fbm2(X / 9, Y / 14, 3, 1241) + 0.4 * U.fbm2(X / 1.6, Y / 3.2, 2, 1242);
+      px[o] = Math.round(px[o] * U.clamp(0.85 + 0.15 * (1.35 * v - 0.1), 0.85, 1));
+    }
+    c.putImageData(img, 0, 0);
     sealSprite = cv;
     return cv;
   }
 
+  /** The stone's shadow as it comes down (and lifts): a soft 墨 oblong, two degrees of softness. */
+  let stoneShade = null;
+  function buildStoneShade() {
+    const { w } = SEAL, h = (w * STONE.h) / STONE.w, pad = 26, q = 2;
+    const mk = (blur) => {
+      const cv = TSUKI.B.canvas(Math.ceil((w + pad * 2) * q), Math.ceil((h + pad * 2) * q));
+      const c = cv.getContext('2d');
+      c.scale(q, q);
+      c.filter = `blur(${blur}px)`;
+      c.fillStyle = C.sumi;
+      c.fillRect(pad, pad, w, h);
+      return cv;
+    };
+    stoneShade = { soft: mk(10 * 2), firm: mk(4 * 2), pad, w, h };
+    return stoneShade;
+  }
+
+  /**
+   * 忘れじ is pressed (230.0, the taiko's thud). 229.72–230.0: the stone's
+   * shadow comes down onto the paper — large and soft, then small and firm
+   * (α 0 → 0.18, scale 1.25 → 1.02, offset (+6,+8) → (+1,+1)). 230.0: the
+   * stone is on the paper and lifts: the seal is simply THERE, at full
+   * density and full size; the shadow goes up and away (230.02–230.34).
+   * 230.0–230.5 the paste settles into the fibres (1.0 → 0.92), its first
+   * wet spread (a 0.4 px bloom) drying back by 230.6.
+   */
+  const SEAL_T = 230.0;
+  function drawStoneShade(ctx, T) {
+    let p, dir;
+    if (T >= SEAL_T - 0.28 && T < SEAL_T) { p = U.ease.inQuad(U.seg(T, SEAL_T - 0.28, SEAL_T)); dir = 1; }
+    else if (T >= SEAL_T + 0.02 && T < SEAL_T + 0.34) { p = 1 - U.ease.outQuad(U.seg(T, SEAL_T + 0.02, SEAL_T + 0.34)); dir = -1; }
+    else return;
+    const sh = stoneShade || buildStoneShade();
+    const a = (dir > 0 ? 0.16 : 0.1) * p;
+    const s = U.lerp(1.25, 1.02, p);
+    const ox = U.lerp(6, 1, p), oy = U.lerp(8, 1, p);
+    const { cx, cy } = SEAL;
+    ctx.save();
+    ctx.translate(cx + ox, cy + oy);
+    ctx.rotate(SEAL_ROT);
+    ctx.scale(s, s);
+    const W = sh.w + sh.pad * 2, H = sh.h + sh.pad * 2;
+    ctx.globalAlpha = a * (1 - p);
+    ctx.drawImage(sh.soft, -W / 2, -H / 2, W, H);
+    ctx.globalAlpha = a * p;
+    ctx.drawImage(sh.firm, -W / 2, -H / 2, W, H);
+    ctx.restore();
+  }
+  const SEAL_ROT = -0.0087;                        // ≈ 0.5°: stamped by hand, never quite square
+
   function drawSeal(ctx, T) {
-    const t0 = 230.0;
-    if (T < t0) return;
-    const p = U.clamp((T - t0) / 0.12);
-    const a = 0.92 * U.ease.outCubic(p);
-    const s = U.lerp(1.06, 1.0, U.ease.outCubic(p));
+    drawStoneShade(ctx, T);
+    if (T < SEAL_T) return;
+    const a = U.lerp(1, 0.92, U.ease.outSine(U.seg(T, SEAL_T, SEAL_T + 0.5)));
+    const bloom = 0.25 * (1 - U.ease.outSine(U.seg(T, SEAL_T, SEAL_T + 0.6)));
     const spr = sealSprite || buildSeal();
     const { cx, cy, w } = SEAL;
     const h = (w * STONE.h) / STONE.w;
     ctx.save();
     ctx.imageSmoothingQuality = 'high';       // a small, heavily reduced sprite: resample well
-    ctx.globalAlpha = a;
     ctx.translate(cx, cy);
-    ctx.scale(s, s);
-    ctx.rotate(-0.012);                       // stamped by hand, never quite square
+    ctx.rotate(SEAL_ROT);
+    if (bloom > 0.003) {                       // the wet paste's first spread into the fibres
+      ctx.globalAlpha = bloom;
+      const bw = w + 0.8, bh = h + 0.8;
+      ctx.drawImage(spr, -bw / 2, -bh / 2, bw, bh);
+    }
+    ctx.globalAlpha = a;
     ctx.drawImage(spr, -w / 2, -h / 2, w, h);
     ctx.restore();
   }
@@ -250,6 +328,10 @@
     ctx.beginPath();
     ctx.arc(x, y, r, 0, TAU);
     ctx.fill();
+    // the rabbit pressed up with the disc: its outline in relief under the
+    // carbon — lit on its upper-left slopes, shaded on its lower-right
+    const rl = relief || buildRelief();
+    ctx.drawImage(rl.cv, x - r - rl.pad, y - r - rl.pad, rl.S / rl.q, rl.S / rl.q);
     // the rabbit's carbon: the one thing given to the moon, and kept (墨 α 0.10)
     const cb = carbon || buildCarbon();
     ctx.save();
@@ -257,18 +339,6 @@
     ctx.globalAlpha = k * 0.1 / 0.82;          // the sprite's mean density ≈ 0.82
     ctx.drawImage(cb.cv, x - r - cb.pad, y - r - cb.pad, cb.S / cb.q, cb.S / cb.q);
     ctx.restore();
-    // soft cast shade just outside the lower-right rim
-    const cs = ctx.createConicGradient(L, x, y);
-    cs.addColorStop(0, U.rgba(C.sumi, 0));
-    cs.addColorStop(0.3, U.rgba(C.sumi, 0));
-    cs.addColorStop(0.5, U.rgba(C.sumi, 0.08));
-    cs.addColorStop(0.7, U.rgba(C.sumi, 0));
-    cs.addColorStop(1, U.rgba(C.sumi, 0));
-    ctx.strokeStyle = cs;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.arc(x + 1.2, y + 1.2, r + 3.5, 0, TAU);
-    ctx.stroke();
     // the fold of the emboss: a hairline that keeps the circle whole at the sides
     ctx.strokeStyle = U.rgba(C.sumi, 0.07);
     ctx.lineWidth = 0.9;
@@ -302,6 +372,78 @@
     ctx.arc(x + 0.7, y + 0.7, r + 0.2, 0, TAU);
     ctx.stroke();
     ctx.restore();
+    drawKira(ctx, T, k);
+  }
+
+  /**
+   * Kira in the relief: a few fixed mica flecks dusted into the embossed
+   * disc. They rest barely there; once — as the last key lines clear and
+   * before the seal (228.2–229.6) — a slow raking light crosses the disc
+   * along the moon's own 30° kira axis and each catches it in turn.
+   */
+  const KIRA_N = 26;
+  const kiraFlecks = (() => {
+    const out = [];
+    for (let i = 0; i < KIRA_N; i++) {
+      const a = U.hash(i * 5 + 3301) * TAU, d = Math.sqrt(U.hash(i * 5 + 3302)) * 0.9;
+      out.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, s: U.lerp(1.0, 2.1, Math.pow(U.hash(i * 5 + 3303), 1.5)), rot: U.hash(i * 5 + 3304) * Math.PI, g: U.lerp(0.65, 1, U.hash(i * 5 + 3305)) });
+    }
+    return out;
+  })();
+  const KIRA_AX = [Math.cos(Math.PI / 6), Math.sin(Math.PI / 6)];
+  function drawKira(ctx, T, k) {
+    const { x, y, r } = KARA;
+    const u = U.seg(T, 228.2, 229.6, U.ease.inOutSine);          // the light's pass, once
+    const s = U.lerp(-1.5, 1.5, u);
+    const passing = T > 228.2 && T < 229.6;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of kiraFlecks) {
+      const along = f.x * KIRA_AX[0] + f.y * KIRA_AX[1];
+      const w = passing ? Math.max(0, 1 - Math.pow((along - s) / 0.42, 2)) : 0;
+      const a = k * (0.08 + 0.85 * w * w * f.g);
+      if (a < 0.01) continue;
+      const px = x + f.x * r, py = y + f.y * r, sz = f.s;
+      ctx.fillStyle = `rgba(255,252,242,${a.toFixed(3)})`;
+      ctx.beginPath();                                          // a flake of mica: a small cut facet
+      ctx.moveTo(px + Math.cos(f.rot) * sz, py + Math.sin(f.rot) * sz);
+      ctx.lineTo(px + Math.cos(f.rot + 1.9) * sz * 0.55, py + Math.sin(f.rot + 1.9) * sz * 0.55);
+      ctx.lineTo(px - Math.cos(f.rot) * sz * 0.8, py - Math.sin(f.rot) * sz * 0.8);
+      ctx.lineTo(px + Math.cos(f.rot - 1.4) * sz * 0.5, py + Math.sin(f.rot - 1.4) * sz * 0.5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /**
+   * The rabbit's outline in relief (built once): the plain maria shape, its
+   * upper-left rim band in 胡粉 and its lower-right rim band in 墨 — the same
+   * pair of the disc's own rim, at the scale of a finer carving.
+   */
+  let relief = null;
+  function buildRelief() {
+    const { r } = KARA;
+    const q = 2, pad = 8, S = Math.ceil((r * 2 + pad * 2) * q);
+    const shape = TSUKI.B.canvas(S, S), c = shape.getContext('2d');
+    c.scale(q, q);
+    const M = TSUKI.MOON.maria;
+    M(c, r + pad, r + pad, r, 1, '#000000', { strokes: M.STROKES.map((_, i) => i) });
+    const band = (dx, dy, col, a) => {
+      const b = TSUKI.B.canvas(S, S), bc = b.getContext('2d');
+      bc.drawImage(shape, 0, 0);
+      bc.globalCompositeOperation = 'destination-out';
+      bc.drawImage(shape, dx * q, dy * q);
+      bc.globalCompositeOperation = 'source-in';
+      bc.fillStyle = U.rgba(col, a);
+      bc.fillRect(0, 0, S, S);
+      return b;
+    };
+    const out = TSUKI.B.canvas(S, S), oc = out.getContext('2d');
+    oc.drawImage(band(1.1, 1.1, C.gofun, 0.55), 0, 0);        // upper-left slopes: lit
+    oc.drawImage(band(-1.1, -1.1, C.sumi, 0.13), 0, 0);       // lower-right slopes: in shade
+    relief = { cv: out, pad, q, S };
+    return relief;
   }
 
   function drawNotch(ctx, k) {
@@ -371,10 +513,21 @@
     b.globalCompositeOperation = 'source-over';
     b.imageSmoothingEnabled = true;
     b.imageSmoothingQuality = 'low';
+    // only the part of the sheet the pushed view can see is printed (at 1.3×
+    // that is 59 % of it): every full-frame plate costs that much less
+    const x0 = Math.max(0, Math.floor(CAM.fx - CAM.fx / s) - 2), y0 = Math.max(0, Math.floor(CAM.fy - CAM.fy / s) - 2);
+    const x1 = Math.min(S.W, Math.ceil(CAM.fx + (S.W - CAM.fx) / s) + 2), y1 = Math.min(S.H, Math.ceil(CAM.fy + (S.H - CAM.fy) / s) + 2);
+    b.save();
+    b.setTransform(1, 0, 0, 1, 0, 0);          // a whole-pixel clip (no anti-aliased clip mask)
+    b.beginPath();
+    b.rect(Math.floor(x0 * S.k), Math.floor(y0 * S.k), Math.ceil((x1 - x0) * S.k) + 1, Math.ceil((y1 - y0) * S.k) + 1);
+    b.clip();
+    b.setTransform(S.k, 0, 0, S.k, 0, 0);
     b.fillStyle = C.kinari;                    // the bare washi, as the engine lays it
-    b.fillRect(0, 0, S.W, S.H);
+    b.fillRect(x0, y0, x1 - x0, y1 - y0);
     E.age(b, T);
     E.draw(b, T, { age: false, live: false });
+    b.restore();
     ctx.save();
     camApply(ctx, s);
     ctx.drawImage(camBuf, 0, 0, S.W, S.H);
@@ -386,7 +539,9 @@
   TSUKI.scene('fuji-no-keburi', {
     init() {
       buildSeal();
+      buildStoneShade();
       buildCarbon();
+      buildRelief();
       // ask the browser for the glyphs the canvas will need at the end
       try {
         if (document.fonts && document.fonts.load) document.fonts.load('22px "Shippori Mincho B1"', COLOPHON + SEAL_TEXT).catch(() => {});

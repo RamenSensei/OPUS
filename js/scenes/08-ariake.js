@@ -12,8 +12,10 @@
    did, turns her face to the moon and pretends not to see. Her haiku writes
    itself on the dark wall (DOM).
 
-   191 the incense lit; the thread grows 191–194   193–196.5 two slow nods
-   195 glints round the stile, the fox's head rises   195.2–196 the paw
+   191 the incense lit; the thread grows 191–194   193–196.5 two dozing nods (a slow
+       sink, a quick catch; the second held asleep through the theft)
+   195 glints round the stile, the fox's head rises   195.2–196.12 the paw (creep,
+       hook, snatch)
    196 the top dango gone (14 remain)   196.2 glints off, the head sinks
    196.5 she wakes and turns to the stand   197.5 she turns to the moon
    204–206 a slow push-in on the thread (1.00 → 1.04 about (1180,700))
@@ -130,7 +132,7 @@
   /* offerings: the 三方 with fifteen dango (then fourteen), the jug     */
   /* ------------------------------------------------------------------ */
   function offerings(c, T) {
-    const taken = T >= 196.0;
+    const taken = T >= 195.95;                       // (the paw closes on it at 195.95)
     PRINT.with(c, 'P1', T, (k) => {
       k.save();
       k.translate(STAND.x, STAND.y);
@@ -210,7 +212,7 @@
   function foxShadow(c, T) {
     const up = E.outCubic(U.seg(T, 194.9, 195.4)) * (1 - E.inCubic(U.seg(T, 196.2, 196.8)));
     if (up <= 0.001) return;
-    const reach = U.env(T, 195.2, 195.7, 195.9, 196.2);
+    const reach = U.env(T, 195.3, 195.7, 195.95, 196.15);
     // ears and muzzle only, rising from below the bottom rail, looking left toward the stand
     const X = 1372 - 10 * reach, Y = 884 + (1 - up) * 110;
     const b = SB.softLayer(c, 'fox', [1290, 760, 1460, G.bottom], 0.5);
@@ -232,20 +234,40 @@
     SB.softPrint(c, T, 'fox', { alpha: 0.85, ranges: [[1290, 1620]] });
   }
   function foxPaw(c, T) {
-    const r = U.env(T, 195.2, 195.8, 195.95, 196.2, E.inOutSine);
-    if (r <= 0.001) return;
-    // from behind panel 4's stile, low along the boards, then up to the top dango
+    // three movements, not a telescope: it CREEPS low along the boards from behind the stile
+    // (195.2–195.6, outSine), LIFTS and hooks over the top dango (195.6–195.8, inOutSine), holds a
+    // breath (195.8–195.95), and SNATCHES back in a straight line (195.95–196.12, inQuad) — the pad
+    // curls 0.3 rad round the dango as it closes
+    if (T < 195.2 || T > 196.12) return;
     const x0 = OPEN.x1 + 2, y0 = 926;
-    const tx = U.lerp(x0 - 6, STAND.x + 5, r), ty = U.lerp(y0, STAND.y - 34, r);
-    const mid = [(x0 + tx) / 2 + 6, Math.max(ty, y0) + 4];
+    const low = [STAND.x + 18, 930], hook = [STAND.x + 5, STAND.y - 34];
+    let tip, curl = 0, carry = false;
+    if (T < 195.6) {
+      const u = E.outSine(U.seg(T, 195.2, 195.6));
+      tip = [U.lerp(x0 - 4, low[0], u), low[1] + 1.5 * Math.sin(Math.PI * u)];
+    } else if (T < 195.95) {
+      const u = E.inOutSine(U.seg(T, 195.6, 195.8));
+      tip = [U.lerp(low[0], hook[0], u), U.lerp(low[1], hook[1], u) - 4 * Math.sin(Math.PI * u)];
+      curl = 0.3 * E.inOutSine(U.seg(T, 195.72, 195.9));
+    } else {
+      const u = E.inQuad(U.seg(T, 195.95, 196.12));
+      tip = [U.lerp(hook[0], x0 + 4, u), U.lerp(hook[1], y0 - 6, u)];
+      curl = 0.3; carry = true;
+    }
+    const tx = tip[0], ty = tip[1];
+    // the foreleg from behind the stile: low along the boards, the wrist lifting as it hooks
+    const mid = [(x0 + tx) / 2 + 4, Math.max(ty, y0) + 3 - 10 * (y0 - ty > 20 ? 1 : 0)];
     PRINT.with(c, 'K', T, (k) => {
       const pts = B.qpts(x0 + 6, y0 + 2, mid[0], mid[1], tx, ty, 12);
       B.taper(k, pts, 7, 4, U.rgba(C.sumi, 0.95), 0.1);
-      // the pad and three toe bumps, curled round the dango
+      // the pad and three toe bumps, curling round the dango
+      k.save();
+      k.translate(tx, ty); k.rotate(0.3 - curl);
       k.fillStyle = U.rgba(C.sumi, 0.95);
-      k.beginPath(); k.ellipse(tx, ty + 1, 4.2, 3.4, 0.3, 0, U.TAU); k.fill();
-      for (const [ox, oy] of [[-3.6, -2.6], [-1, -4], [1.8, -3.4]]) { k.beginPath(); k.arc(tx + ox, ty + oy, 1.4, 0, U.TAU); k.fill(); }
-      if (T > 195.9) { k.fillStyle = C.gofun; k.beginPath(); k.arc(tx - 4, ty - 3, 4.2, 0, U.TAU); k.fill(); k.strokeStyle = U.rgba(C.sumi, 0.6); k.lineWidth = 0.8; k.stroke(); }
+      k.beginPath(); k.ellipse(0, 1, 4.2, 3.4, 0, 0, U.TAU); k.fill();
+      for (const [ox, oy] of [[-3.6, -2.6], [-1, -4], [1.8, -3.4]]) { k.beginPath(); k.arc(ox, oy - curl * 3, 1.4, 0, U.TAU); k.fill(); }
+      if (carry) { k.fillStyle = C.gofun; k.beginPath(); k.arc(-4, -3, 4.2, 0, U.TAU); k.fill(); k.strokeStyle = U.rgba(C.sumi, 0.6); k.lineWidth = 0.8; k.stroke(); }
+      k.restore();
     });
   }
   function foxGlints(c, T) {
@@ -268,14 +290,30 @@
   /* ------------------------------------------------------------------ */
   /* 小夜 at sixty-six, from behind: CAST.oldSayo — たけ's own paths      */
   /* ------------------------------------------------------------------ */
+  /**
+   * 舟を漕ぐ: a doze is not a bow. The head sinks slowly (inSine: the weight wins by degrees) and
+   * is caught in a jerk (outCubic, ≈0.15 s) that overshoots a little and settles. The second sink
+   * goes deeper and stays down, asleep through the theft; the wake jerk is her turn to the stand.
+   */
+  function dozeNod(T) {
+    // first nod: sink 193.0–194.1, catch 194.1–194.28 (to −0.15), settle 194.28–194.63
+    let n = 0;
+    if (T >= 193.0 && T < 194.1) n = E.inSine(U.seg(T, 193.0, 194.1));
+    else if (T >= 194.1 && T < 194.28) n = U.lerp(1, -0.15, E.outCubic(U.seg(T, 194.1, 194.28)));
+    else if (T >= 194.28 && T < 194.9) n = U.lerp(-0.15, 0, E.inOutSine(U.seg(T, 194.28, 194.63)));
+    // second: sink 194.9–196.2 to 1.15, held asleep to 196.5, the wake jerk 196.5–196.65
+    else if (T >= 194.9 && T < 196.5) n = 1.15 * E.inSine(U.seg(T, 194.9, 196.2));
+    else if (T >= 196.5 && T < 196.65) n = U.lerp(1.15, -0.12, E.outCubic(U.seg(T, 196.5, 196.65)));
+    else if (T >= 196.65) n = U.lerp(-0.12, 0, E.inOutSine(U.seg(T, 196.65, 197.0)));
+    return n;
+  }
   function sayoPose(T) {
     const light = U.env(T, 190.6, 190.95, 191.2, 191.8);
-    const nod1 = U.env(T, 193.0, 193.9, 194.2, 194.9, E.inOutSine);
-    const nod2 = U.env(T, 194.9, 195.7, 196.2, 196.6, E.inOutSine);
     const toStand = U.env(T, 196.5, 196.85, 197.25, 197.7, E.inOutSine);
     const toMoon = U.seg(T, 197.5, 198.4, E.inOutSine);
+    const dz = dozeNod(T);
     return {
-      nod: Math.max(light * 0.5, nod1 * 0.85, nod2), // head forward and down
+      nod: Math.abs(dz) > light * 0.5 ? dz : light * 0.5, // head forward and down (negative: the catch lifts it past level)
       turn: U.clamp(0.55 * toStand + 0.9 * toMoon, -1, 1),   // toward +x (the stand, then the moon)
       lift: toMoon,                                  // the head raised a little to the moon: she smiles
     };
@@ -290,7 +328,7 @@
     PRINT.with(L, 'K', T, (k) => {
       CAST.oldSayo(k, SAYO.x, SAYO.y, SAYO.s, {
         pose: 'seiza', view: 'back', t: T,
-        look: q.turn, nod: 1.6 * q.nod - 0.5 * q.lift,     // (the doze exaggerated for the scale: the head sinks ≈10 px)
+        look: q.turn, nod: 2.0 * q.nod - 0.5 * q.lift,     // (the doze exaggerated for the scale: the head sinks ≈13 px)
         palette: { hair: OLD_HAIR },
       });
     });
@@ -329,7 +367,9 @@
           between: {
             base: (c) => {
               // the paper of the closed panels: the dim pre-dawn light from the low moon beyond the opening
-              SB.light(c, T, { x: m.x, y: m.y + 150, r: 250, falloff: 0.6, core: 0.3, ranges: [[G.panels[0][0], G.opening.x0], [G.opening.x1, G.panels[3][1]]] });
+              // (carved in flat steps like every light on this paper, but faint: the old paper holds
+              //  only a pale disc of the setting moon beside the opening, no lift of its own)
+              SB.light(c, T, { x: m.x, y: m.y + 150, r: 262, falloff: 0.44, core: 0, ranges: [[G.panels[0][0], G.opening.x0], [G.opening.x1, G.panels[3][1]]] });
               PRINT.with(c, 'P4', T, (k) => { k.fillStyle = U.rgba(AINEZU, 0.3); k.fillRect(G.panels[0][0], G.top, G.panels[0][1] - G.panels[0][0], G.bottom - G.top); });
               foxShadow(c, T);
             },

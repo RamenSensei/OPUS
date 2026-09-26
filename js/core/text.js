@@ -214,8 +214,14 @@
     if (setIf(subsEn, 'txt', subEn)) subsEn.textContent = subEn;
     // dark subtitle ink for cues whose band is pale paper (cue.sub_ink)
     if (setIf(subs, 'dark', subInk)) subs.classList.toggle('dark', subInk);
+    // the line's ink fades as a, its halo as a² (film.css): the block itself
+    // is never faded as a whole, which would bring the dark halo in with it
     const sa = subA.toFixed(3);
-    if (setIf(subs, 'op', sa)) subs.style.opacity = sa;
+    if (setIf(subs, 'op', sa)) {
+      subs.style.opacity = subA > 0 ? '1' : '0';
+      subs.style.setProperty('--sa', sa);
+      subs.style.setProperty('--ss', (subA * subA).toFixed(3));
+    }
   };
 
   TEXT.cues = () => cues;
