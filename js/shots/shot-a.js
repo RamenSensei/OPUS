@@ -88,7 +88,13 @@
    A.ageFrame(ctx, T, opts)           PRINT.age with a cheap foxing upscale (≈5 ms, not 24)
    Performance notes: unscaled plate blits run with image smoothing off (the
    plates are 1:1 with the stage), and 一's push (38–40) prints the frame 1:1
-   into a buffer and scales the finished impression once.
+   into a buffer and scales the finished impression once (the thief's zoom
+   prints only the part its camera sees, and culls the near things outside it).
+   A curved clip (the disc, SKY_MASK, POND) is rasterised as a mask over its
+   bounds every frame, so each is first cut to a rect round what it clips (the
+   moon's box, the moon road, 小夜's CAST bounds, the sil flat): same pixels,
+   a fraction of the mask. The poster frame's ichimonji is carved into its sky
+   flat and its near kasumi into its near flat (nothing live between them).
    ========================================================================== */
 (function (TSUKI) {
   'use strict';
@@ -2224,7 +2230,12 @@
     ctx.save();
     // a hole to the paper where the sky is (only needed once the disc reaches the far bank)
     const late0 = T >= 160, halo = late0 ? 0.5 : 0.35 * (1 - gk);
-    if (m.y + m.r * (halo > 0.002 ? 1.9 : 1) > bankY(m.x) - 4) ctx.clip(SKY_MASK);
+    const reach = m.r * (halo > 0.002 ? 1.9 : 1);
+    if (m.y + reach > bankY(m.x) - 4) {
+      // the sky's mask, cut first to the moon's own box (the mask is rasterised over its bounds)
+      ctx.beginPath(); ctx.rect(m.x - reach - 8, m.y - reach - 8, 2 * reach + 16, 2 * reach + 16); ctx.clip();
+      ctx.clip(SKY_MASK);
+    }
     if (a > 0.002) {
       const late = T >= 160;
       // 四: the printed rabbit keeps pounding over the garden until the cut to B (118),
@@ -2952,6 +2963,17 @@
     c.restore();
   }
 
+  /**
+   * 小夜's box in Shot A coordinates [x0, y0, x1, y1] — CAST's own bounds for the
+   * pose (the sheaf's sway inside them), a margin round it; the whole stage when
+   * she is translated or leaning (landing, the lean), where it is not needed.
+   */
+  function sayoBox(st) {
+    if (st.land || st.lean || st.belowLip || st.gaze > 0) return [-200, -200, W + 200, H + 200];
+    const bb = TSUKI.CAST.bounds('child', st.pose, { sheaf: st.sheaf }), K = st.s, f = st.facing < 0 ? -1 : 1;
+    const x0 = f > 0 ? bb[0] : -bb[0] - bb[2], m = 10;
+    return [st.x + x0 * K - m, st.y + bb[1] * K - m, st.x + (x0 + bb[2]) * K + m, st.y + (bb[1] + bb[3]) * K + m];
+  }
   function drawSayo(c, T, st) {
     const CAST = TSUKI.CAST;
     if (st.gaze > 0) return sayoGaze(c, st, st.gaze);
@@ -3042,21 +3064,26 @@
           const f = sy.facing < 0 ? -1 : 1, K = sy.s;
           const allIn = sy.pose === 'carry-susuki' && [[-246, -330], [-200, -210], [-120, -300], [0, -160], [34, -96], [-26, 0], [26, 0]]
             .every(([lx, ly]) => { const px = sy.x + f * lx * K, py = sy.y + ly * K; return py < yb - 2 && Math.hypot(px - m.x, py - m.y) < m.r - 2; });
+          // (every clip below is first cut to her own box: a curved clip is rasterised as a
+          // mask over its bounds, and a mask the size of her rather than of the frame
+          // costs a fraction — the same pixels print)
+          const box = sayoBox(sy);
           if (!allIn) {
             c.save();
-            c.beginPath(); c.rect(-200, -200, W + 400, H + 400); c.arc(m.x, m.y, m.r + 0.5, 0, TAU); c.clip('evenodd');
+            c.beginPath(); c.rect(box[0], box[1], box[2] - box[0], box[3] - box[1]); c.clip();
+            c.beginPath(); c.rect(box[0] - 20, box[1] - 20, box[2] - box[0] + 40, box[3] - box[1] + 40); c.arc(m.x, m.y, m.r + 0.5, 0, TAU); c.clip('evenodd');
             drawSayo(c, T, sy);
             c.restore();
           }
           if (sy.y > yb - 4) {
             c.save();
-            c.beginPath(); c.rect(-200, yb, W + 400, H); c.clip();
+            c.beginPath(); c.rect(box[0], Math.max(yb, box[1]), box[2] - box[0], Math.max(0, box[3] - Math.max(yb, box[1]))); c.clip();
             c.beginPath(); c.arc(m.x, m.y, m.r + 0.5, 0, TAU); c.clip();
             drawSayo(c, T, sy);
             c.restore();
           }
           c.save();
-          c.beginPath(); c.rect(-200, -200, W + 400, yb + 200); c.clip();
+          c.beginPath(); c.rect(box[0], box[1], box[2] - box[0], Math.max(0, Math.min(box[3], yb) - box[1])); c.clip();
           c.beginPath(); c.arc(m.x, m.y, m.r + 1.5, 0, TAU); c.clip();
           CAST.child(c, sy.x, sy.y, sy.s, { pose: sy.pose, facing: sy.facing, t: sy.t, sheaf: sy.sheaf, silhouette: C.sumi, wind: sy.wind == null ? 0.3 : sy.wind });
           c.restore();
@@ -3113,10 +3140,12 @@
     const post = !late && opts.poster;
     PRINT.with(ctx, 'P7', T, (c) => {
       c.save();
+      const top = bankY(m.x) + 4;
+      // (the pond's mask cut first to the road's own box: the dashes keep within m.r + 60 of the disc's x)
+      c.beginPath(); c.rect(m.x - m.r - 80, top - 6, 2 * m.r + 160, 1100 - top); c.clip();
       c.clip(POND);
       const r = U.rng(late ? 88 : 8);
       const n = late ? 8 : 40;
-      const top = bankY(m.x) + 4;
       const ink = opts.aged ? aged(C.gofun) : post ? U.mix(C.gofun, C.yamabuki, 0.5) : C.gofun;
       for (let i = 0; i < n; i++) {
         const s = late ? (i + 0.5) / n : Math.pow(i / n, 1.3);
@@ -3342,12 +3371,17 @@
         const pc = stageBuf(ctx.canvas.width, ctx.canvas.height);
         pc.save();
         pc.imageSmoothingQuality = 'low';
+        // only what the camera sees is printed into the scratch (a scissor: every plate's
+        // blit and every live mark outside it costs nothing)
+        const vx = ax - ax / z.k, vy = ay - ay / z.k;
+        pc.beginPath(); pc.rect(vx - 4, vy - 4, W / z.k + 8, H / z.k + 8); pc.clip();
         gardenBack(pc, T, o);
         pc.restore();
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(pushBuf, ax - ax * z.k, ay - ay * z.k, W * z.k, H * z.k);
         ctx.translate(ax, ay); ctx.scale(z.k, z.k); ctx.translate(-ax, -ay);
-        gardenFront(ctx, T, o);
+        // (what the camera cannot see is not drawn: the plumes and figures outside its view)
+        gardenFront(ctx, T, o.view ? o : Object.assign({}, o, { view: [vx - 20, vy - 20, vx + W / z.k + 20, vy + H / z.k + 20] }));
         ctx.restore();
         return;
       }
@@ -3371,7 +3405,7 @@
   const POST = { key: '', flats: null, nearHi: null, silHi: null, still: null };
   const postCam = (c, k) => { const fx = POSTER.fix[0], fy = POSTER.fix[1]; c.translate(fx, fy); c.scale(k, k); c.translate(-fx, -fy); };
   /** layers painted through the poster camera, each flushed plate by plate in PRINT.ORDER, into one flat */
-  function posterFlat(cw, ch, parts) {
+  function posterFlat(cw, ch, parts, stage) {
     const kq = cw / W;
     const cv = B.canvas(cw, ch), c = cv.getContext('2d');
     for (const part of parts) {
@@ -3390,6 +3424,8 @@
         }
       }
     }
+    // printed on the sheet itself, not through the camera (the ichimonji on the sheet's top edge)
+    if (stage) { c.save(); c.setTransform(kq, 0, 0, kq, 0, 0); stage(c); c.restore(); }
     return trimSprite(cv, 0, 0, kq);
   }
   function posterCaches(cw, ch) {
@@ -3402,7 +3438,10 @@
     const shifted = (pen, d) => (id, fn) => pen(id, (c) => { c.translate(d, 0); fn(c); });
     POST.flats = {
       // the sky block with its 山吹 band (still at α 0.34 all the while)
-      sky: posterFlat(cw, ch, [(pen) => paintSky(pen, false), (pen) => pen('P6', (c) => glowBand(c, 0.34))]),
+      // … and the ichimonji on the sheet's top edge (the print table is still all the hold: nothing
+      // the camera sees reaches the top band, so it is carved in with the sky — one blit, not two)
+      sky: posterFlat(cw, ch, [(pen) => paintSky(pen, false), (pen) => pen('P6', (c) => glowBand(c, 0.34))],
+        (c) => PRINT.drawLayer(c, 'A', 'sky', POSTER.t0, { only: ['P6i'] })),
       land: posterFlat(cw, ch, [
         (pen) => paintFar(pen, false),
         (pen) => paintMist(shifted(pen, Dm), 'high', qd, { solid: true }),
@@ -3413,8 +3452,6 @@
       sil: posterFlat(cw, ch, [(pen) => paintFieldSil(pen)]),
       // the pond and its banks in one flat: the moon road is laid over both (it keeps to the water)
       pond: posterFlat(cw, ch, [(pen) => paintPond(pen, false, { poster: true }), (pen) => paintBanks(pen, false, { poster: true })]),
-      // the near suyari-gasumi of the close view: laid over the water below the far bank
-      veil: posterFlat(cw, ch, [(pen) => pen('P7', (c) => mistBand(c, POSTER_VEIL.lobes, 1, POSTER_VEIL.seed, qd, true, POSTER_VEIL.tint))]),
     };
     // the near plumes of the close view, carved at its resolution (and their silhouettes). Those
     // east of the disc stand still while the camera holds (it looks at the disc: what moves there
@@ -3422,7 +3459,9 @@
     // into one flat of their own; the cuts hide the change of their sway
     const inView = (sp) => sp.box.x0 < 860;
     POST.still = SPR.near.map((sp) => inView(sp) && sp.box.x0 >= 270 && sp.box.y0 < 880);
-    POST.flats.near = posterFlat(cw, ch, [(pen) => {
+    // the near suyari-gasumi of the close view, laid over the water below the far bank, and the
+    // still plumes over it: nothing live comes between them, so they are one flat
+    POST.flats.near = posterFlat(cw, ch, [(pen) => pen('P7', (c) => mistBand(c, POSTER_VEIL.lobes, 1, POSTER_VEIL.seed, qd, true, POSTER_VEIL.tint)), (pen) => {
       SPR.near.forEach((sp, i) => {
         if (!POST.still[i]) return;
         for (const o of sp.box.m) {
@@ -3477,6 +3516,8 @@
     const m = discBehindField(T);
     if (m && F.sil) {
       ctx.save();
+      // (the disc's mask cut first to the flat's own box)
+      ctx.beginPath(); ctx.rect(F.sil.x, F.sil.y, F.sil.w, F.sil.h); ctx.clip();
       postCam(ctx, K);
       ctx.beginPath(); ctx.arc(m.x, m.y, m.r + 0.4, 0, TAU); ctx.clip();
       ctx.setTransform(m0);
@@ -3485,10 +3526,7 @@
     }
     blit(F.pond);
     ctx.save(); postCam(ctx, K); A.drawPond(ctx, T, Object.assign({}, o, { poster: true })); ctx.restore();
-    blit(F.veil);
-    blit(F.near);
-    // the ichimonji stays on the sheet's top edge
-    PRINT.drawLayer(ctx, 'A', 'sky', T, { only: ['P6i'] });
+    blit(F.near);          // the near kasumi and the still plumes (the ichimonji came with the sky)
     const fx = POSTER.fix[0], fy = POSTER.fix[1];
     const view = [fx - fx / K - 20, fy - fy / K - 20, fx + (W - fx) / K + 20, fy + (H - fy) / K + 20];
     ctx.save();

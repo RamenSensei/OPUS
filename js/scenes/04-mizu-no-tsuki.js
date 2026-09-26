@@ -746,8 +746,9 @@
    * toward 藍, a 墨 key line round the whole pose, 墨 creases and knuckles,
    * and a 2 px 胡粉 rim of moonlight on the upper-left (moon-side) edges.
    * As the window opens toward the eye (88.2–90) the hands pass out of the
-   * light into a flat 墨藍 silhouette. The diamond hole is also the clip
-   * through which Shot D is seen.
+   * light into a 墨藍 silhouette that keeps its carving as white lines (see
+   * paintWindowCut). The diamond hole is also the clip through which Shot D
+   * is seen.
    */
   const WIN_INK = U.mix(C.sumi, C.ai, 0.2);
   // the ladle hand's skin (NIGHT .24) a little deeper in shadow — skin, not stone
@@ -1094,12 +1095,278 @@
     // the same pose in the near dark (the opening), for the cross-fade into the vectors
     const ink = mk();
     paintWindow(ink.c, 1, 0, WIN_INK, true);
-    winSpr = { k, q, W, H, detail: detail.cv, rim: rim.cv, ink: ink.cv };
+    // …and in the dark with its carving kept, carved at ×SPR_MAX — exactly what
+    // the vectors print when they take over there
+    const qc = q * SPR_MAX;
+    const cw = Math.ceil((WIN_BOX[2] - WIN_BOX[0]) * qc), ch = Math.ceil((WIN_BOX[3] - WIN_BOX[1]) * qc);
+    const cut = B.canvas(cw, ch), cc = cut.getContext('2d');
+    cc.setTransform(qc, 0, 0, qc, -WIN_BOX[0] * qc, -WIN_BOX[1] * qc);
+    warmCut();
+    paintWindowCut(cc, 1, 0, cutWeight(SPR_MAX) / SPR_MAX, 1);
+    winSpr = { k, q, W, H, detail: detail.cv, rim: rim.cv, ink: ink.cv, cut };
     return winSpr;
   }
 
+  /*
+   * In silhouette the carving stays. Turned into 墨藍 the hands would merge
+   * into a mitten — palm, thumb and curled fingers one blob, the forearms
+   * flat bands — so the block keeps CAST's own inner lines, cut to the paper
+   * (白抜き, seen through the night's glaze): the thumb laid over the palm and
+   * the thenar's curve, the curled fingers' fold and crease, the palm's
+   * lines, the ears' clefts and joints, the knuckles and tendons on the back
+   * of the hand — whatever CAST carves inside the hands — and the wrist's
+   * crease and the sleeve's lip where it lies on the arm; with a 1 px 藍鼠
+   * rim of moonlight along the upper-left (moon-side) edges, as the lit
+   * hands had their 胡粉 one. Both go as the window fills the frame (×3 → ×8).
+   *
+   * The lines are CAST's: its lit window hands are recorded once per line
+   * weight (every fill, stroke and clip with its transform and style) and
+   * replayed — the fills, which are the silhouette, in 墨藍, and of the key
+   * block only the marks that show inside it — so they follow whatever the
+   * hands' carving becomes. If the recording ever fails, the pose falls
+   * back to the flat silhouette.
+   */
+  const WIN_CUT_LINE = U.mix(WIN_INK, C.kinari, 0.62);     // the paper, seen through the night
+  const WIN_CUT_RIM = U.mix(C.ai, C.nezumi, 0.5);          // 藍鼠
+  const WIN_CUT_RIM_W = 2.4;                               // the rim's width (× the lines' weight): ≈ 1.4 stage px at ×SPR_MAX
+  // the lines' weight (× CAST's key, in stage px): 0.6 at ×SPR_MAX, then growing slower than the hands
+  const cutWeight = (s) => 0.6 * Math.pow(s / SPR_MAX, 0.4);
+  const cutFade = (s) => 1 - U.smoothstep(3, 8, s);
+  const CUT_MARK = '#ffffff';                              // the key block while recorded (recoloured on replay)
+  const WIN_CUT_PAL = { ...WIN_PAL, skin: WIN_INK, skinOld: WIN_INK, spot: WIN_INK, vein: WIN_INK, nail: WIN_INK, crease: CUT_MARK };
+  const markAlpha = (s) => {
+    if (typeof s !== 'string') return 0;
+    if (/^#ffffff$/i.test(s)) return 1;
+    const m = /^rgba\(255,\s*255,\s*255,\s*([\d.]+)\)$/.exec(s);
+    return m ? parseFloat(m[1]) : 0;
+  };
+
+  /** Record CAST's lit window hands in the pose's frame (turned over), the key block's weight w (pose units per CAST px). */
+  const recCanvas = B.canvas(8, 8);
+  function recordCut(w) {
+    const real = recCanvas.getContext('2d');
+    real.save();
+    real.setTransform(1, 0, 0, 1, 0, 0);
+    real.rotate(Math.PI);
+    real.scale(w, w);
+    const ops = [];
+    let cur = new Path2D();
+    const toDev = (x, y) => { const m = real.getTransform(); return [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]; };
+    const isP = (a) => a instanceof Path2D;
+    const draw = (k, t, path, dev, rule) => {
+      const o = { k, path, dev, m: t.getTransform(), ga: t.globalAlpha, rule: rule || 'nonzero' };
+      if (k === 'fill') o.style = t.fillStyle;
+      if (k === 'stroke') { o.style = t.strokeStyle; o.lw = t.lineWidth; o.lj = t.lineJoin; o.lc = t.lineCap; o.dash = t.getLineDash(); o.dOff = t.lineDashOffset; }
+      o.pa = k === 'clip' ? 0 : markAlpha(o.style);
+      // a gradient or a pattern is shading (the palm's 薄墨 hollow), not carving: never replayed
+      o.shade = k !== 'clip' && typeof o.style !== 'string';
+      ops.push(o);
+    };
+    const rec = new Proxy(real, {
+      get(t, k) {
+        switch (k) {
+          case 'fill': case 'stroke': case 'clip': return (a, b) => draw(k, t, isP(a) ? a : cur, !isP(a), isP(a) ? b : a);
+          case 'fillRect': return (x, y, ww, hh) => { const p = new Path2D(); p.rect(x, y, ww, hh); draw('fill', t, p, false); };
+          case 'save': case 'restore': return () => { t[k](); ops.push({ k }); };
+          case 'beginPath': return () => { cur = new Path2D(); };
+          case 'moveTo': case 'lineTo': return (x, y) => cur[k](...toDev(x, y));
+          case 'quadraticCurveTo': return (a, b, x, y) => cur.quadraticCurveTo(...toDev(a, b), ...toDev(x, y));
+          case 'bezierCurveTo': return (a, b, c2, d, x, y) => cur.bezierCurveTo(...toDev(a, b), ...toDev(c2, d), ...toDev(x, y));
+          case 'closePath': return () => cur.closePath();
+          case 'arc': case 'arcTo': case 'ellipse': case 'rect': return (...a) => { const p = new Path2D(); p[k](...a); cur.addPath(p, t.getTransform()); };
+          default: { const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; }
+        }
+      },
+      set(t, k, v) { t[k] = v; return true; },
+    });
+    CAST.hands(rec, 0, 0, 1 / w, { ...WIN_OPTS, ink: CUT_MARK, outline: 1, palette: WIN_CUT_PAL, t: 0 });
+    real.restore();
+    return ops;
+  }
+  const opSig = (ops) => ops.map((o) => o.k[0] + (o.pa > 0 ? '+' : '')).join('');
+
+  /** sel with the clips its picked draws lie under (a clip whose scope draws nothing is skipped). */
+  function withClips(ops, sel) {
+    const out = sel.slice();
+    for (let c = 0; c < ops.length; c++) {
+      if (ops[c].k !== 'clip') continue;
+      out[c] = false;
+      for (let i = c + 1, d = 0; i < ops.length && d >= 0; i++) {
+        if (ops[i].k === 'save') d++;
+        else if (ops[i].k === 'restore') d--;
+        else if (sel[i] && ops[i].k !== 'clip') { out[c] = true; break; }
+      }
+    }
+    return out;
+  }
+  /**
+   * Replay recorded ops into ctx (at the pose's frame). sel[i] picks the
+   * draws and the clips (see withClips). o.line: the marks' colour; o.lwK: their
+   * stroke widths' factor; o.mark(i): a flat colour per mark, the fills
+   * blue (to classify them); o.flat: { col, dx, dy } prints the picked
+   * fills flat in col, moved by (dx, dy) (pose units).
+   */
+  function replayCut(ctx, ops, sel, o) {
+    const base0 = ctx.getTransform(), ga = ctx.globalAlpha;
+    const base = o.flat ? base0.translate(o.flat.dx, o.flat.dy) : base0;
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (let i = 0; i < ops.length; i++) {
+      const p = ops[i];
+      if (p.k === 'save') { ctx.save(); continue; }
+      if (p.k === 'restore') { ctx.restore(); continue; }
+      if (!sel[i]) continue;
+      ctx.setTransform(p.dev ? base : base.multiply(p.m));
+      if (p.k === 'clip') { ctx.clip(p.path, p.rule); continue; }
+      if (o.flat) {
+        if (p.k !== 'fill') continue;
+        ctx.globalAlpha = ga;
+        ctx.fillStyle = o.flat.col;
+        ctx.fill(p.path, p.rule);
+        continue;
+      }
+      const paper = p.pa > 0;
+      const col = paper ? (o.mark ? o.mark(i) : o.line) : (o.mark ? '#0000ff' : p.style);
+      ctx.globalAlpha = ga * p.ga * (paper && !o.mark ? p.pa : 1);
+      if (p.k === 'fill') {
+        ctx.fillStyle = col;
+        ctx.fill(p.path, p.rule);
+      } else {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = p.lw * (o.lwK || 1);
+        ctx.lineJoin = p.lj;
+        ctx.lineCap = p.lc;
+        ctx.setLineDash(p.dash);
+        ctx.lineDashOffset = p.dOff;
+        ctx.stroke(p.path);
+      }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * What the carving keeps, found once by printing the recording with every
+   * mark in its own flat colour over the fills: a mark is kept where some of
+   * it shows inside the silhouette and next to none of it outside (CAST's
+   * outer key goes: its inner half lies under the fills, its outer half
+   * outside). Every fill replays: the fills are the silhouette.
+   */
+  let CUT = null;
+  function classifyCut() {
+    const wt = 4, ts = 0.5;                             // thick lines at half size: their cores keep exact colours
+    const ops = recordCut(wt);
+    const W = Math.ceil((WIN_BOX[2] - WIN_BOX[0]) * ts), H = Math.ceil((WIN_BOX[3] - WIN_BOX[1]) * ts);
+    const print = (sel, mark) => {
+      const cv = B.canvas(W, H), c = cv.getContext('2d', { willReadFrequently: true });
+      c.setTransform(ts, 0, 0, ts, -WIN_BOX[0] * ts, -WIN_BOX[1] * ts);
+      for (const g of armGeo) c.clip(g.clip);
+      replayCut(c, ops, withClips(ops, sel), { line: CUT_MARK, mark });
+      return c.getImageData(0, 0, W, H).data;
+    };
+    const n = ops.length;
+    const drawn = (p) => (p.k === 'fill' || p.k === 'stroke') && !p.shade;
+    // a mark fainter than 0.2 is a wash (薄墨 shading), not a cut: it goes with the skin
+    const marks = ops.map((p) => drawn(p) && p.pa >= 0.2);
+    const fills = ops.map((p) => drawn(p) && p.k === 'fill' && !(p.pa > 0));
+    const colOf = (i) => [16 + ((i * 37) % 224), 255 - ((i * 53) % 200), 40 + ((i * 97) % 180)];
+    const px = print(ops.map((p, i) => marks[i] || fills[i]), (i) => { const c = colOf(i); return `rgb(${c[0]},${c[1]},${c[2]})`; });
+    const sil = print(fills, null);
+    const vis = new Array(n).fill(0), out = new Array(n).fill(0);
+    const byCol = new Map();
+    marks.forEach((m, i) => { if (m) { const c = colOf(i); byCol.set((c[0] << 16) | (c[1] << 8) | c[2], i); } });
+    for (let p = 0; p < W * H * 4; p += 4) {
+      if (px[p + 3] < 255) continue;
+      const i = byCol.get((px[p] << 16) | (px[p + 1] << 8) | px[p + 2]);
+      if (i == null) continue;
+      if (sil[p + 3] === 255) vis[i]++;
+      else if (sil[p + 3] === 0) out[i]++;
+    }
+    const keep = marks.map((m, i) => m && vis[i] >= 4 && out[i] <= Math.max(4, 0.2 * vis[i]));
+    // the rim needs only the fills that carve the outline: CAST's top-level,
+    // opaque ones (the spots, veins, nails and the woven finger's redraw sit
+    // inside save blocks or under an alpha)
+    const outline = fills.slice();
+    for (let i = 0, d = 0; i < n; i++) {
+      if (ops[i].k === 'save') d++;
+      else if (ops[i].k === 'restore') d--;
+      else if (outline[i] && (d > 1 || ops[i].ga < 0.999)) outline[i] = false;
+    }
+    CUT = { n, sig: opSig(ops), sel: withClips(ops, fills.map((f, i) => f || keep[i])), rim: withClips(ops, outline), vis, out };
+  }
+
+  // the recordings, one per weight level (12 % apart): the stroke widths
+  // replay exactly, the nicks and the key's shadow side within ±6 %
+  const cutLevels = new Map();
+  function cutLevel(w) {
+    const L = Math.round(Math.log2(w) * 6);
+    let lv = cutLevels.get(L);
+    if (!lv) {
+      const wq = Math.pow(2, L / 6);
+      let ops = null;
+      try { ops = recordCut(wq); } catch (e) { ops = null; }
+      lv = { w: wq, ops, ok: !!CUT && !!ops && ops.length === CUT.n && opSig(ops) === CUT.sig };
+      cutLevels.set(L, lv);
+    }
+    return lv;
+  }
+  function warmCut() {
+    try {
+      if (!CUT) classifyCut();
+      for (let s = SPR_MAX; s < 8.2; s *= 1.03) cutLevel(cutWeight(s) / s);
+    } catch (e) {
+      CUT = null;                                           // → the flat silhouette
+    }
+  }
+
+  /**
+   * The pose in the dark with its carving kept, into ctx at the pose's
+   * origin (scale sc; w: the lines' weight in pose units; fade 0..1): the
+   * rim (the hands' fills once more in 藍鼠, a hair toward the moon, and the
+   * forearms' edges stroked so; the flat pose covers all of it but the
+   * upper-left edge), CAST's fills and inner marks in its own order, the
+   * forearms, the wrists' creases, the sleeves.
+   */
+  function paintWindowCut(ctx, sc, T, w, fade) {
+    const lv = CUT && cutLevel(w);
+    if (!lv || !lv.ok) { ctx.save(); paintWindow(ctx, sc, T, WIN_INK, true); ctx.restore(); return; }
+    const lineCol = U.mix(WIN_INK, WIN_CUT_LINE, fade), rimCol = U.mix(WIN_INK, WIN_CUT_RIM, fade);
+    const r = WIN_CUT_RIM_W * w * fade, u = [0.4191, 0.9079]; // the rim's width (pose units), toward the moon (−û)
+    ctx.save();
+    ctx.scale(sc, sc);
+    ctx.save();
+    for (const g of armGeo) ctx.clip(g.clip);
+    replayCut(ctx, lv.ops, CUT.rim, { flat: { col: rimCol, dx: -u[0] * r, dy: -u[1] * r } });
+    replayCut(ctx, lv.ops, CUT.sel, { line: lineCol, lwK: w / lv.w });
+    ctx.restore();
+    // the forearms: their edges' rim (r wide, moved back r / 2), then the flat skin over it
+    ctx.save();
+    ctx.translate(-u[0] * r / 2, -u[1] * r / 2);
+    ctx.strokeStyle = rimCol;
+    ctx.lineWidth = r;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (const g of armGeo) ctx.stroke(g.key);
+    ctx.restore();
+    ctx.fillStyle = WIN_INK;
+    ctx.fill(armPath);
+    for (const g of armGeo) B.taper(ctx, g.crease, 2.8 * w, 0.2 * w, U.mix(WIN_INK, lineCol, 0.8), 0.1);
+    // the sleeves: the lip's line cut into the arm under it, then the cloth, flat
+    ctx.save();
+    ctx.clip(armPath);
+    ctx.strokeStyle = lineCol;
+    ctx.lineWidth = 2.4 * w;
+    ctx.lineJoin = 'round';
+    ctx.stroke(sleevesPath);
+    ctx.restore();
+    ctx.fillStyle = WIN_INK;
+    ctx.fill(sleevesPath);
+    ctx.restore();
+  }
+
   // the opening (88.2–90): coming toward the eye, the hands leave the
-  // moonlight — the lines and the rim go, the skin sinks into 墨藍 — and past
+  // moonlight — the sumi lines and the 胡粉 rim go, the skin sinks into 墨藍
+  // and the carving comes back as white lines with a 藍鼠 rim — and past
   // ×SPR_MAX they are printed as vectors so they stay sharp at ×12
   const SPR_MAX = 1.6;
   function drawWindowHands(ctx, T, st) {
@@ -1120,12 +1387,28 @@
         ctx.drawImage(spr.rim, x0, y0, w, h);
         ctx.restore();
       }
-      if (dark > 0.001) {
+      // the carving comes back into the dark as white lines once the skin has gone
+      const cut = U.smoothstep(0.35, 1, dark);
+      if (dark > 0.001 && cut < 0.999) {
         ctx.save();
         ctx.globalAlpha *= dark;
         ctx.drawImage(spr.ink, x0, y0, w, h);
         ctx.restore();
       }
+      if (cut > 0.001) {
+        ctx.save();
+        ctx.globalAlpha *= dark * cut;
+        ctx.drawImage(spr.cut, x0, y0, w, h);
+        ctx.restore();
+      }
+      return;
+    }
+    const fade = cutFade(st.scale);
+    if (fade > 0.004) {
+      ctx.save();
+      ctx.translate(st.x, st.y);
+      paintWindowCut(ctx, st.scale, T, cutWeight(st.scale) / st.scale, fade);
+      ctx.restore();
       return;
     }
     ctx.save();

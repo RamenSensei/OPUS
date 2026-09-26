@@ -4196,7 +4196,10 @@
    * PIP knuckles round off the window's side corner) — then the thumb:
    * palm view, it grows out of the thenar in one fleshy curve and lays its
    * pad over the curled fingertips; back view, it runs along the hand's lower
-   * contour and slips behind the index. Inside, only a few carved lines.
+   * contour and slips behind the index. Inside, only a few carved lines:
+   * palm view, the heart and head lines (running on under the curled fingers
+   * and the thumb) round a faint 薄墨 hollow; back view, the tendons, and when
+   * old two soft 藍 veins and a few age spots — all baked with the hand.
    */
   function foxHand(P, side, K, age, dx, dy, tw, part) {
     const ctx = P.ctx;
@@ -4290,6 +4293,36 @@
       // one silhouette: forearm + palm + ears + the curled mass's knuckles
       handKey(P, [palm, earU, earL, mass, ...webs]);
       for (const p of [palm, earU, earL, mass, ...webs]) P.flat(p, skin);
+      // the open palm below the thumb, printed BEFORE the curled fingers and the
+      // thumb go over it (so its lines run on under them, as creases do): the
+      // palm's hollow, a faint 薄墨 bokashi, and two carved creases in the crease
+      // colour — the heart line rising from the little finger's edge toward the
+      // curled fingers, the head line leaving the thumb's web across the palm
+      // (the life line is the thenar's curve, carved below)
+      if (P.fx) {
+        // the hollow: an oval bokashi along the palm (wrist → fingers), kept inside it
+        const hc = M([-186, 35]), ha = M([-150, 25]), ang = Math.atan2(ha[1] - hc[1], ha[0] - hc[0]);
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 34);
+        g.addColorStop(0, U.rgba(K.crease, 0.07 + 0.02 * age));
+        g.addColorStop(0.5, U.rgba(K.crease, 0.035 + 0.01 * age));
+        g.addColorStop(1, U.rgba(K.crease, 0));
+        ctx.save();
+        ctx.clip(palm);
+        ctx.translate(hc[0], hc[1]);
+        ctx.rotate(ang);
+        ctx.scale(1.3, 0.85);
+        ctx.fillStyle = g;
+        ctx.fillRect(-36, -36, 72, 72);
+        ctx.restore();
+      }
+      if (P.mid) {
+        handNicks(P, [
+          // the heart line: from the percussion edge, up under the curled fingers
+          [[M([-151, 61]), M([-156.5, 49]), M([-155, 37]), M([-147.5, 25.5]), M([-139, 18])], 1.9, 0.5],
+          // the head line: from under the thumb's web, across toward the heel
+          [[M([-169, 9]), M([-175, 21]), M([-185, 34]), M([-196.5, 45])], 1.5, 0.15],
+        ], 0.3 + 0.1 * age, K.crease);
+      }
       // the curled mass: its two long edges carved over the palm, the tips under the pad
       handKey(P, [openPath(knuck.slice(-2).concat(mTail)), openPath(mHead.concat([knuck[0], knuck[1]]))], 0.8);
       P.flat(mass, skin);
@@ -4321,6 +4354,28 @@
       handKey(P, [palm, earU, earL, mass, ...webs]);
       for (const p of [palm, earU, earL, mass, ...webs]) P.flat(p, skin);
       if (!P.mid) return;
+      // the back of the old hand: the extensor tendons fanning from the wrist to
+      // the knuckles (carved hairlines, fading at both ends) and, over them, the
+      // soft 藍 of two veins meeting in a fork — so the broad back reads as a
+      // hand's, and an old one
+      if (P.ol > 0) {
+        // the tendons: bowed hairlines over the metacarpals, lost toward the wrist
+        const tn = new Path2D();
+        for (const pts of [
+          [[-216, 45], [-192, 38.5], [-169, 31], [-154, 27]],
+          [[-206, 24], [-186, 15], [-167, 7]],
+          [[-208, 2], [-186, -14.5], [-163, -28], [-146, -36]],
+        ]) taperTo(tn, crs(pts.map(M), 6), 0.05 * P.inv, 0.25 * P.inv, 3.4);
+        P.strokes(tn, 0.26 + 0.1 * age, K.crease);
+      }
+      if (P.fx && age > 0.3) {
+        // two veins, soft rope-like 藍 bands (widths in the hand's own units),
+        // meeting in a fork, rising out of the wrist and sinking toward the knuckles
+        const V = new Path2D();
+        taperTo(V, crs([[-266, 63], [-247, 56], [-229, 50], [-211, 45], [-195, 37], [-181, 28], [-171, 22]].map(M), 4), 0.6 * age, 1.2, 2.6 * age);
+        taperTo(V, crs([[-231, 50], [-221, 35], [-210, 22], [-197, 9], [-189, -4], [-178, -15]].map(M), 4), 0.6 * age, 0.9, 2.6 * age);
+        ctx.save(); ctx.globalAlpha *= 0.14 * age; P.flat(V, K.vein); ctx.restore();
+      }
       handNicks(P, [
         // where the thumb goes under: from the index's crotch along the thenar
         [[M([BlO[0] - 5, BlO[1] + 5]), M([-164, 46]), M([-184, 49])], 1.3, 0.15],

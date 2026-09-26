@@ -30,8 +30,11 @@
                   below the frame); inside the diamond the first impression still
                   plays at T − 150; 186–187 the little girl turns and looks out;
                   187 the andon goes out; 188 the hands tremble (the two arms against
-                  each other, eased across the woven crossings); 189.1 they fall —
-                  still falling when the cut lands at 190.
+                  each other, each hand whole, the fingers woven as CAST weaves
+                  them); 189.1 she lets go — the left a beat before the right, the
+                  fingers unhook, each hand turns outward and they part, the first
+                  impression gone from between them — and they fall, still falling
+                  (and opening) when the cut lands at 190.
    Uses TSUKI.SHOTS.A (shot-a.js) and TSUKI.SHOTS.A_prime (shot-a-prime.js; a
    local fallback of the A′ framing is drawn if that shot is missing).
    ========================================================================== */
@@ -1699,13 +1702,45 @@
   // the diamond sits a little below the frame's centre, so the sleeves run out of
   // the frame early (≤ 45 % of it) and the window, not the arms, is the picture
   const FW = { x: 960, y: 592, s: 1.27 };
+  /** the pair at T: they rise together from just below the frame (unhurried and settling:
+   *  ≈ 950 px/s at entry, slowing; nearly home as the theft plays inside at 183.0); the tremble */
   function handsAt(T) {
-    // they rise from just below the frame, unhurried and settling (≈ 950 px/s at entry,
-    // slowing; nearly home as the theft plays inside at 183.0)
     const rise = 1 - E.outSine(U.seg(T, 182.0, 183.3));
-    const fall = E.inOutSine(U.seg(T, 189.1, 190.6));
     const tremble = U.seg(T, 188.0, 188.25) * 0.67;
-    return { x: FW.x, y: FW.y + 780 * rise + 820 * fall, s: FW.s, tremble };
+    return { x: FW.x, y: FW.y + 780 * rise, s: FW.s, tremble };
+  }
+  /**
+   * Letting go (189.1–190): each arm on its own, the left a beat (0.08 s) ahead
+   * of the right. The woven fingers unhook: each forearm swings a little outward
+   * from the elbow (below the frame) and each hand, loosening, turns up at the
+   * wrist — the window opens from its top, hinged a moment on the crossing at
+   * its foot, and the two hands part; the tremble of holding it goes out of
+   * them. For a fifth of a second the lift of the fingertips half offsets the
+   * first give of the wrists — a moment's hang, open — then the weight takes
+   * them: still falling (the arms still opening) when the cut lands at 190.
+   */
+  const RELEASE = { t0: 189.1, lag: 0.08, dur: 0.5, fall: 1.5, drop: 820, arm: U.deg(2.2), armFall: U.deg(3.0), wrist: U.deg(4.5) };
+  const ELBOW = [-500, 475], WRIST = [-300, 70];      // canonical (left-hand) units: the forearm's ends
+  const stageOf = (side, p) => [FW.x - side * p[0] * FW.s, FW.y + p[1] * FW.s];
+  /** one arm at T (side −1 = the left, as we see it; +1 = the right): its motion off the rest pose */
+  function armAt(T, side, tw) {
+    const t0 = RELEASE.t0 + (side > 0 ? RELEASE.lag : 0);
+    const rel = E.inOutSine(U.seg(T, t0, t0 + RELEASE.dur));
+    const fall = E.inOutSine(U.seg(T, t0, t0 + RELEASE.fall));
+    // (CAST's tremble: +tw on the left hand, −0.8·tw on the right — gone once they let go)
+    const oy = (side < 0 ? tw : -0.8 * tw) * FW.s * (1 - rel);
+    const [ex, ey] = stageOf(side, ELBOW), [wx, wy] = stageOf(side, WRIST);
+    return {
+      rel, fall, ex, ey, wx, wy, dx: 0, dy: RELEASE.drop * fall + oy,
+      a: side * (RELEASE.arm * rel + RELEASE.armFall * fall),     // the forearm, outward (the left anticlockwise)
+      b: side * RELEASE.wrist * rel,                               // the hand at the wrist, fingertips up
+    };
+  }
+  const rotAbout = (p, cx, cy, a) => { const c = Math.cos(a), s = Math.sin(a), u = p[0] - cx, v = p[1] - cy; return [cx + u * c - v * s, cy + u * s + v * c]; };
+  /** a rest-position stage point carried by an arm (hand: turned at the wrist too), plus the pair's rise dy0 */
+  function armPt(a, dy0, p, hand) {
+    const q = rotAbout(hand ? rotAbout(p, a.wx, a.wy, a.b) : p, a.ex, a.ey, a.a);
+    return [q[0] + a.dx, q[1] + a.dy + dy0];
   }
   // the geometry of CAST's fox-window hand (cast.js foxHand), for the sleeves and the creases
   const FWG = (() => {
@@ -1713,7 +1748,7 @@
     const e1 = [Wd / D, -Hd / D], out1 = [-Hd / D, -Wd / D], e2 = [Wd / D, Hd / D], out2 = [-Hd / D, Wd / D];
     const UV = (u, v) => [-Wd + e1[0] * u + out1[0] * v, e1[1] * u + out1[1] * v];
     const along = (e, o, sN, w) => [-Wd + e[0] * D * sN + o[0] * w, e[1] * D * sN + o[1] * w];
-    return { D, UV, along, e1, out1, e2, out2 };
+    return { D, Wd, Hd, UV, along, e1, out1, e2, out2 };
   })();
   /** 波兎 on the sleeves: 胡粉 rabbits leaping over seigaiha on 藍 (a tile, built once) */
   let namiTile = null;
@@ -1743,69 +1778,116 @@
     }
     return ctx.createPattern(namiTile, 'repeat');
   }
+  /** a linear bokashi across a band: `ink` at α a0 on the line (p0 → p1, run on past both ends — the
+   *  caller's clip trims it), wiped to nothing `w` px along n */
+  function bokashiBand(c, p0, p1, n, w, ink, a0) {
+    const g = c.createLinearGradient(p0[0], p0[1], p0[0] + n[0] * w, p0[1] + n[1] * w);
+    g.addColorStop(0, U.rgba(ink, a0));
+    g.addColorStop(0.35, U.rgba(ink, a0 * 0.62));
+    g.addColorStop(0.7, U.rgba(ink, a0 * 0.2));
+    g.addColorStop(1, U.rgba(ink, 0));
+    c.fillStyle = g;
+    c.beginPath();
+    const ext = 400;
+    const d = [p1[0] - p0[0], p1[1] - p0[1]], L = Math.hypot(d[0], d[1]) || 1, u = [d[0] / L, d[1] / L];
+    const a = [p0[0] - u[0] * ext, p0[1] - u[1] * ext], b = [p1[0] + u[0] * ext, p1[1] + u[1] * ext];
+    c.moveTo(a[0] - n[0] * 4, a[1] - n[1] * 4); c.lineTo(b[0] - n[0] * 4, b[1] - n[1] * 4);
+    c.lineTo(b[0] + n[0] * w, b[1] + n[1] * w); c.lineTo(a[0] + n[0] * w, a[1] + n[1] * w);
+    c.closePath();
+    c.fill();
+  }
   /**
-   * The forearms in their 波兎 sleeves, rising from below the frame to the
-   * wrists (POV hands): flat 藍 shapes carrying the pattern, the dark lining
-   * where the cuff opens round the wrist, 墨 key lines.
+   * One forearm in its 波兎 sleeve (side −1 = the left arm as we see it, +1 =
+   * the right), rising from below the frame to the wrist (POV hands): a flat
+   * 藍 shape carrying the pattern, the paler lit fold along the forearm, a
+   * 薄墨 bokashi wiped in along the hanging edge and under the cuff (the arm is
+   * round inside the cloth), the dark lining where the cuff opens round the
+   * wrist; carved 墨 key line as heavy as the hands' (≈2 px on the lit side,
+   * swelling toward the lower right as CAST's), and three tapering folds —
+   * down the hanging 袂, along the forearm, and the crease at the elbow.
    */
-  function sleeves(ctx, T, h, tw) {
+  function sleeve(ctx, T, h, side) {
     const pat = namiPattern(ctx);
-    for (const side of [-1, 1]) {
-      const L = (p) => [h.x + side * p[0] * h.s, h.y + p[1] * h.s + (side < 0 ? tw : -tw * 0.8) * h.s];
-      const A = FWG.UV(-0.86 * FWG.D, 146), G = FWG.UV(-0.74 * FWG.D, -40);
-      // the forearm runs down and out, below the frame; the sleeve's upper edge
-      // follows it with the elbow's fullness, its 袂 hangs from the cuff's lower side
-      const top = [A, [A[0] - 118, A[1] + 120], [A[0] - 196, A[1] + 360], [A[0] - 232, A[1] + 620]];
-      const hang = [[G[0] - 30, G[1] + 560], [G[0] - 6, G[1] + 300], [G[0] + 4, G[1] + 150], G];
-      const pts = top.concat(hang).map(L);
-      // the sleeve's upper corner at the cuff is rounded, not a point
-      const a1 = L([U.lerp(A[0], G[0], 0.16), U.lerp(A[1], G[1], 0.16)]), a2 = L([A[0] - 26, A[1] + 30]);
-      const sl = new Path2D();
-      sl.moveTo(a1[0], a1[1]);
-      sl.quadraticCurveTo(pts[0][0], pts[0][1], a2[0], a2[1]);
-      sl.bezierCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1], pts[3][0], pts[3][1]);
-      sl.lineTo(pts[4][0], pts[4][1]);
-      sl.bezierCurveTo(pts[5][0], pts[5][1], pts[6][0], pts[6][1], pts[7][0], pts[7][1]);
-      sl.closePath();
-      // the lit fold along the forearm: a second, paler 藍 block
-      const fold = new Path2D();
-      const q = [A, [A[0] - 118, A[1] + 120], [A[0] - 196, A[1] + 360], [A[0] - 232, A[1] + 620], [A[0] - 184, A[1] + 620], [A[0] - 146, A[1] + 360], [A[0] - 76, A[1] + 134], [A[0] + 26, A[1] + 30]].map(L);
-      fold.moveTo(q[0][0], q[0][1]);
-      fold.bezierCurveTo(q[1][0], q[1][1], q[2][0], q[2][1], q[3][0], q[3][1]);
-      fold.lineTo(q[4][0], q[4][1]);
-      fold.bezierCurveTo(q[5][0], q[5][1], q[6][0], q[6][1], q[7][0], q[7][1]);
-      fold.closePath();
-      // the cuff opening round the wrist: the dark lining, seen end-on
-      const cuffPts = [A, FWG.UV(-0.95 * FWG.D, 118), FWG.UV(-0.97 * FWG.D, 50), FWG.UV(-0.88 * FWG.D, -22), G, FWG.UV(-0.8 * FWG.D, 60)].map(L);
-      const cuff = new Path2D();
-      cuff.moveTo(cuffPts[0][0], cuffPts[0][1]);
-      for (let i = 1; i < cuffPts.length; i++) cuff.lineTo(cuffPts[i][0], cuffPts[i][1]);
-      cuff.closePath();
-      PRINT.with(ctx, 'P5', T, (c) => {
-        c.fillStyle = aged(C.ai); c.fill(sl);
-        c.save();
-        c.clip(sl);
-        if (pat.setTransform) pat.setTransform(new DOMMatrix().translateSelf(h.x + side * 40, h.y).scaleSelf(0.56, 0.56));
-        c.fillStyle = pat;
-        c.fillRect(-200, h.y - 400, W + 400, 1600);
-        c.globalAlpha *= 0.3;
-        c.fillStyle = aged(U.mix(C.ai, C.gofun, 0.5));
-        c.fill(fold);
-        c.restore();
-      });
-      PRINT.with(ctx, 'K', T, (c) => {
-        c.fillStyle = U.mix(C.koiai, C.sumi, 0.55); c.fill(cuff);
-        c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 1.6; c.lineJoin = 'round'; c.stroke(sl);
-        // folds down the hanging sleeve
-        c.lineWidth = 1.1;
-        c.beginPath();
-        for (const [a0, a1, b0, b1] of [[G[0] - 30, G[1] + 90, G[0] - 70, G[1] + 470], [A[0] - 80, A[1] + 200, A[0] - 120, A[1] + 520]]) {
-          const f1 = L([a0, a1]), f2 = L([b0, b1]);
-          c.moveTo(f1[0], f1[1]); c.quadraticCurveTo(f1[0] - side * 14, (f1[1] + f2[1]) / 2, f2[0], f2[1]);
-        }
-        c.stroke();
-      });
-    }
+    const sg = -side;                                 // the canonical (left-hand) space → this side
+    const L = (p) => [h.x + sg * p[0] * h.s, h.y + p[1] * h.s];
+    const A = FWG.UV(-0.86 * FWG.D, 146), G = FWG.UV(-0.74 * FWG.D, -40);
+    // the forearm runs down and out, below the frame; the sleeve's upper edge
+    // follows it with the elbow's fullness, its 袂 hangs from the cuff's lower side
+    const top = [A, [A[0] - 118, A[1] + 120], [A[0] - 196, A[1] + 360], [A[0] - 232, A[1] + 620]];
+    const hang = [[G[0] - 30, G[1] + 560], [G[0] - 6, G[1] + 300], [G[0] + 4, G[1] + 150], G];
+    const pts = top.concat(hang).map(L);
+    // the sleeve's upper corner at the cuff is rounded, not a point
+    const a1 = L([U.lerp(A[0], G[0], 0.16), U.lerp(A[1], G[1], 0.16)]), a2 = L([A[0] - 26, A[1] + 30]);
+    const sl = new Path2D();
+    sl.moveTo(a1[0], a1[1]);
+    sl.quadraticCurveTo(pts[0][0], pts[0][1], a2[0], a2[1]);
+    sl.bezierCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1], pts[3][0], pts[3][1]);
+    sl.lineTo(pts[4][0], pts[4][1]);
+    sl.bezierCurveTo(pts[5][0], pts[5][1], pts[6][0], pts[6][1], pts[7][0], pts[7][1]);
+    sl.closePath();
+    // the lit fold along the forearm: a second, paler 藍 block
+    const fold = new Path2D();
+    const q = [A, [A[0] - 118, A[1] + 120], [A[0] - 196, A[1] + 360], [A[0] - 232, A[1] + 620], [A[0] - 184, A[1] + 620], [A[0] - 146, A[1] + 360], [A[0] - 76, A[1] + 134], [A[0] + 26, A[1] + 30]].map(L);
+    fold.moveTo(q[0][0], q[0][1]);
+    fold.bezierCurveTo(q[1][0], q[1][1], q[2][0], q[2][1], q[3][0], q[3][1]);
+    fold.lineTo(q[4][0], q[4][1]);
+    fold.bezierCurveTo(q[5][0], q[5][1], q[6][0], q[6][1], q[7][0], q[7][1]);
+    fold.closePath();
+    // the cuff opening round the wrist: the dark lining, seen end-on
+    const cuffPts = [A, FWG.UV(-0.95 * FWG.D, 118), FWG.UV(-0.97 * FWG.D, 50), FWG.UV(-0.88 * FWG.D, -22), G, FWG.UV(-0.8 * FWG.D, 60)].map(L);
+    const cuff = new Path2D();
+    cuff.moveTo(cuffPts[0][0], cuffPts[0][1]);
+    for (let i = 1; i < cuffPts.length; i++) cuff.lineTo(cuffPts[i][0], cuffPts[i][1]);
+    cuff.closePath();
+    // (a direction in canonical units, carried to this side)
+    const dirL = (d) => { const v = [sg * d[0], d[1]], l = Math.hypot(v[0], v[1]); return [v[0] / l, v[1] / l]; };
+    const shade = aged(U.mix(C.koiai, C.sumi, 0.5));
+    PRINT.with(ctx, 'P5', T, (c) => {
+      c.fillStyle = aged(C.ai); c.fill(sl);
+      c.save();
+      c.clip(sl);
+      if (pat.setTransform) pat.setTransform(new DOMMatrix().translateSelf(h.x + sg * 40, h.y).scaleSelf(0.56, 0.56));
+      c.fillStyle = pat;
+      c.fillRect(-200, h.y - 400, W + 400, 1600);
+      c.save();
+      c.globalAlpha *= 0.3;
+      c.fillStyle = aged(U.mix(C.ai, C.gofun, 0.5));
+      c.fill(fold);
+      c.restore();
+      // 薄墨 bokashi: wiped in from the hanging edge (the cloth turning away under the arm) …
+      const g0 = L([G[0] + 4, G[1] + 150]), g1 = L([G[0] - 30, G[1] + 560]);
+      bokashiBand(c, g0, g1, dirL([-1, -0.06]), 118 * h.s, shade, 0.38);
+      // … and under the cuff: a soft, edgeless one where the wrist's shadow falls into the sleeve
+      const cu = L([G[0] - 34, G[1] + 4]), cr = 118 * h.s;
+      const cg = c.createRadialGradient(cu[0], cu[1], 0, cu[0], cu[1], cr);
+      cg.addColorStop(0, U.rgba(shade, 0.24)); cg.addColorStop(0.45, U.rgba(shade, 0.15)); cg.addColorStop(1, U.rgba(shade, 0));
+      c.fillStyle = cg;
+      c.fillRect(cu[0] - cr, cu[1] - cr, 2 * cr, 2 * cr);
+      c.restore();
+    });
+    PRINT.with(ctx, 'K', T, (c) => {
+      c.fillStyle = U.mix(C.koiai, C.sumi, 0.55); c.fill(cuff);
+      // the carved key line: the path and a copy 1.6 px toward the lower right, stroked once
+      // (so the two never double their ink) — ≈2 px on the lit side, ≈3.5 on the shadow side
+      const kl = new Path2D();
+      kl.addPath(sl);
+      kl.addPath(sl, new DOMMatrix().translateSelf(0.7, 1.44));
+      c.strokeStyle = U.rgba(C.sumi, 0.85); c.lineWidth = 2.0; c.lineJoin = 'round'; c.lineCap = 'round';
+      c.stroke(kl);
+      // three carved folds, tapering (2.6 → 1 px): down the hanging 袂 from under the cuff,
+      // along the forearm inside the lit fold, and the crease where the sleeve gathers at the elbow
+      c.save();
+      c.clip(sl);
+      const ink = U.rgba(C.sumi, 0.78);
+      const crease = (p0, pc, p1, w0, w1) => {
+        const a = L(p0), m = L(pc), b = L(p1);
+        B.taper(c, B.qpts(a[0], a[1], m[0], m[1], b[0], b[1], 16), w0, w1, ink, 0.12);
+      };
+      crease([G[0] - 30, G[1] + 90], [G[0] - 58, G[1] + 270], [G[0] - 70, G[1] + 470], 2.6, 1.0);
+      crease([A[0] - 80, A[1] + 200], [A[0] - 108, A[1] + 340], [A[0] - 120, A[1] + 520], 2.4, 1.0);
+      crease([A[0] - 178, A[1] + 242], [A[0] - 112, A[1] + 252], [A[0] - 98, A[1] + 356], 2.3, 0.9);
+      c.restore();
+    });
   }
   let emptyA = null;
   function emptyAprime(ctx, T) {
@@ -1828,8 +1910,12 @@
     const u = E.inOutSine(U.seg(T, 184.2, 186.0));
     return { scale: U.lerp(2.2, 2.6, u), about: [U.lerp(1035, 1040, u), U.lerp(676, 675, u)] };
   };
+  // CAST's weave clip (foxHand 'over'): the left little finger from 30 px before the foot
+  // crossing to past its tip, ±70 across (canonical units → stage, at rest)
+  const OVER_CLIP = [[18.8, 41.2], [-66.4, 152.4], [40.3, 233.9], [125.5, 122.7]].map(([x, y]) => [FW.x + x * FW.s, FW.y + y * FW.s]);
+  /** the window's first impression fades as the fingers unhook (it is only there while the window is) */
+  const insideAt = (T) => 1 - E.inOutSine(U.seg(T, 189.08, 189.4));
   function drawFoxWindow(ctx, T) {
-    const CAST = TSUKI.CAST;
     const A = shotA();
     // the late night outside the window: A′, empty (these are her own hands) —
     // the print table is still from 160.62, so the aged engawa is printed once
@@ -1838,55 +1924,99 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(bg, 0, 0);
     ctx.restore();
-    const h = handsAt(T);
-    if (h.y > H + 420) return;
-    const hopts = { pose: 'fox-window', age: 1, interlace: 1, t: T, tremble: h.tremble, sleeve: false };
-    const win = CAST.foxWindowRect(h.x, h.y, h.s, hopts);
+    const h = handsAt(T), dy0 = h.y - FW.y;
     const tw = h.tremble ? (Math.sin(T * 56.5) * 0.7 + Math.sin(T * 37 + 1) * 0.3) * 2 * h.tremble : 0;
-    // inside: the first impression, still playing at T − 150
-    const Tp = T - 150;
-    ctx.save();
-    ctx.beginPath();
-    win.path(ctx);
-    ctx.clip();
-    ctx.fillStyle = C.kinari;
-    ctx.fillRect(win.cx - win.w, win.cy - win.h, win.w * 2, win.h * 2);
-    A.cropTransform(ctx, Object.assign(innerCrop(T), { to: [win.cx, win.cy] }));
-    // she turns on the 186.0 beat: back view to 185.75, profile to 186.0, then the
-    // three-quarter look straight out, held through the andon going out (187.0)
-    A.drawGarden(ctx, Tp, { camera: false, gazeOut: U.seg(Tp, 35.56, 36.28) });
-    ctx.restore();
-    // her forearms in the 波兎 sleeves rising from below the frame, and the old
-    // hands — carved once at rest, then printed where the arms are (the rise,
-    // the tremble: the left hand and the right tremble against each other)
-    const R = restSprites(ctx);
-    const dy = h.y - FW.y;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const k = ctx.canvas.width / W;
-    // the left arm and the right tremble against each other (CAST's +tw / −0.8·tw). The sleeves
-    // part at the centre; the hands' woven fingers cross on the centre line at the diamond's top
-    // and foot, so their offset is eased across a band there in 1:1 columns (steps of ≤ 1 px),
-    // never one sheared seam through the crossings
-    const yAt = (oy) => Math.round((R.y0 + dy + oy) * k), mid = Math.round(FW.x * k);
-    const part = (cv, x0, x1, oy) => { if (x1 > x0) ctx.drawImage(cv, x0, 0, x1 - x0, cv.height, x0, yAt(oy), x1 - x0, cv.height); };
-    const oyL = tw * h.s, oyR = -tw * 0.8 * h.s;
-    part(R.sleeves, 0, mid, oyL); part(R.sleeves, mid, R.sleeves.width, oyR);
-    if (Math.abs(yAt(oyL) - yAt(oyR)) < 0.5) part(R.hands, 0, R.hands.width, oyL);
-    else {
-      const b0 = Math.round((FW.x - 130) * k), b1 = Math.round((FW.x + 130) * k), n = 20;
-      part(R.hands, 0, b0, oyL);
-      for (let i = 0; i < n; i++) part(R.hands, Math.round(b0 + ((b1 - b0) * i) / n), Math.round(b0 + ((b1 - b0) * (i + 1)) / n), U.lerp(oyL, oyR, (i + 0.5) / n));
-      part(R.hands, b1, R.hands.width, oyR);
+    const aL = armAt(T, -1, tw), aR = armAt(T, 1, tw);
+    if (dy0 + Math.min(aL.dy, aR.dy) > H + 420 - FW.y) return;
+    // the window's diamond: each side corner goes with its own hand, the crossings between the two
+    const s = FW.s, P = (a, p) => armPt(a, dy0, p, true);
+    const mid = (p) => { const l = P(aL, p), r = P(aR, p); return [(l[0] + r[0]) / 2, (l[1] + r[1]) / 2]; };
+    const corners = [P(aL, [FW.x - FWG.Wd * s, FW.y]), mid([FW.x, FW.y - FWG.Hd * s]), P(aR, [FW.x + FWG.Wd * s, FW.y]), mid([FW.x, FW.y + FWG.Hd * s])];
+    const cen = mid([FW.x, FW.y]);
+    const ins = insideAt(T);
+    if (ins > 0.002) {
+      // inside: the first impression, still playing at T − 150
+      const Tp = T - 150;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(corners[0][0], corners[0][1]);
+      for (let i = 1; i < 4; i++) ctx.lineTo(corners[i][0], corners[i][1]);
+      ctx.closePath();
+      ctx.clip();
+      const bx = [Math.min(...corners.map((p) => p[0])), Math.min(...corners.map((p) => p[1])), Math.max(...corners.map((p) => p[0])), Math.max(...corners.map((p) => p[1]))];
+      ctx.save();
+      ctx.fillStyle = C.kinari;
+      ctx.fillRect(bx[0] - 2, bx[1] - 2, bx[2] - bx[0] + 4, bx[3] - bx[1] + 4);
+      A.cropTransform(ctx, Object.assign(innerCrop(T), { to: cen }));
+      // she turns on the 186.0 beat: back view to 185.75, profile to 186.0, then the
+      // three-quarter look straight out, held through the andon going out (187.0)
+      A.drawGarden(ctx, Tp, { camera: false, gazeOut: U.seg(Tp, 35.56, 36.28) });
+      ctx.restore();
+      if (ins < 0.998) {
+        // … dissolving into the empty late engawa behind it as the window comes apart
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1 - ins;
+        ctx.drawImage(bg, 0, 0);
+      }
+      ctx.restore();
     }
+    // her forearms in the 波兎 sleeves and the old hands — carved once at rest, each
+    // arm printed where it is now: the rise, the tremble (the left hand and the right
+    // against each other, each whole), the letting go
+    const R = restSprites(ctx);
+    const k = ctx.canvas.width / W;
+    ctx.save();
+    const put = (spr, a, hand, clip) => {
+      ctx.save();
+      if (Math.abs(a.a) < 1e-6 && (!hand || Math.abs(a.b) < 1e-6)) {
+        // at rest: copied 1:1 on whole device px
+        ctx.setTransform(1, 0, 0, 1, Math.round(a.dx * k), Math.round((a.dy + dy0) * k + spr.y) - spr.y);
+        ctx.imageSmoothingEnabled = false;
+      } else {
+        ctx.setTransform(1, 0, 0, 1, (a.ex + a.dx) * k, (a.ey + a.dy + dy0) * k);
+        ctx.rotate(a.a);
+        ctx.translate(-a.ex * k, -a.ey * k);
+        if (hand) { ctx.translate(a.wx * k, a.wy * k); ctx.rotate(a.b); ctx.translate(-a.wx * k, -a.wy * k); }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'low';
+      }
+      if (clip) { ctx.beginPath(); clip.forEach((p, i) => (i ? ctx.lineTo(p[0] * k, p[1] * k) : ctx.moveTo(p[0] * k, p[1] * k))); ctx.closePath(); ctx.clip(); }
+      ctx.drawImage(spr.cv, spr.x, spr.y);
+      ctx.restore();
+    };
+    put(R.sleeveL, aL); put(R.sleeveR, aR);
+    // the fingers' weave: the left hand, the right over it (its little finger over the left
+    // index at the top), then the left little finger's far half again, over the right index
+    // at the foot — CAST's own 'over' clip, carried with the left hand
+    put(R.handL, aL, true); put(R.handR, aR, true); put(R.handL, aL, true, OVER_CLIP);
     ctx.restore();
   }
-  // the sleeves and the hands at rest (h.y = FW.y, no tremble), carved at the stage's resolution
+  // the sleeves and the hands at rest (h.y = FW.y, no tremble), each arm on its own,
+  // carved at the stage's resolution and cut to their ink ({cv, x, y}: device px)
   let rest = null;
+  function trimDev(cv, oy) {
+    // (read through a fresh copy: one readback per canvas)
+    const w = cv.width, hh = cv.height, rd = B.canvas(w, hh), rc = rd.getContext('2d');
+    rc.drawImage(cv, 0, 0);
+    const d = rc.getImageData(0, 0, w, hh).data;
+    rd.width = rd.height = 0;
+    let x0 = w, y0 = hh, x1 = -1, y1 = -1;
+    for (let y = 0; y < hh; y++) {
+      const row = y * w * 4;
+      for (let x = 0; x < w; x++) if (d[row + x * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; y1 = y; }
+    }
+    if (x1 < 0) return { cv: B.canvas(1, 1), x: 0, y: oy };
+    x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(w - 1, x1 + 2); y1 = Math.min(hh - 1, y1 + 2);
+    const out = B.canvas(x1 - x0 + 1, y1 - y0 + 1);
+    out.getContext('2d').drawImage(cv, -x0, -y0);
+    cv.width = cv.height = 0;
+    return { cv: out, x: x0, y: oy + y0 };
+  }
   function restSprites(ctx) {
-    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    const cw = ctx.canvas.width;
     if (rest && rest.cw === cw) return rest;
-    const k = cw / W, y0 = FW.y - 272, y1 = H + 20;
+    const k = cw / W, y0 = FW.y - 272, y1 = H + 80;
+    // (y0·k is kept as it falls: the sprites print at round(y0·k + dy·k), as they always have)
     const mk = (paint) => {
       const cv = B.canvas(cw, Math.ceil((y1 - y0) * k)), c = cv.getContext('2d');
       c.setTransform(k, 0, 0, k, 0, -y0 * k);
@@ -1897,18 +2027,33 @@
     const CAST = TSUKI.CAST;
     const hopts = { pose: 'fox-window', age: 1, interlace: 1, t: 0, tremble: 0, sleeve: false };
     const T = 185;
-    rest = {
-      cw, y0,
-      sleeves: mk((c) => sleeves(c, T, h, 0)),
-      // the same authored window as in 三, old: moonlit skin in one flat pale
-      // block, carved 墨 key lines, knuckles, creases, a few age spots; where the
-      // moon (upper right) catches them, a narrow 胡粉 bokashi printed INSIDE the
-      // contour (no light rim outside the key line)
-      hands: mk((c) => PRINT.with(c, 'K', T, (cc) => {
-        CAST.hands(cc, h.x, h.y, h.s, Object.assign({}, hopts, { palette: winPal(), ink: C.sumi, outline: 0.9 }));
-      })),
+    // one hand alone, at rest: the pair drawn apart (interlace 0 — each hand 130 out and
+    // 30 down), shifted so this hand lands home, and the other cut away
+    const oneHand = (side, extra) => (c) => {
+      c.save();
+      c.beginPath();
+      if (side < 0) c.rect(-50, y0 - 50, FW.x + 130 * FW.s + 50, y1 - y0 + 100);
+      else c.rect(FW.x - 130 * FW.s, y0 - 50, W, y1 - y0 + 100);
+      c.clip();
+      CAST.hands(c, h.x - side * 130 * h.s, h.y - 30 * h.s, h.s, Object.assign({}, hopts, { interlace: 0 }, extra));
+      c.restore();
     };
-    moonlitEdge(rest.hands, k, y0, (c) => TSUKI.CAST.hands(c, h.x, h.y, h.s, Object.assign({}, hopts, { silhouette: '#fff' })));
+    // the same authored window as in 三, old: moonlit skin in one flat pale
+    // block, carved 墨 key lines, knuckles, creases, a few age spots; where the
+    // moon (upper right) catches them, a narrow 胡粉 bokashi printed INSIDE the
+    // contour (no light rim outside the key line) — read off the pair's own silhouette
+    const hand = (side) => {
+      const cv = mk((c) => PRINT.with(c, 'K', T, (cc) => oneHand(side, { palette: winPal(), ink: C.sumi, outline: 0.9 })(cc)));
+      moonlitEdge(cv, k, y0, (c) => CAST.hands(c, h.x, h.y, h.s, Object.assign({}, hopts, { silhouette: '#fff' })));
+      return trimDev(cv, y0 * k);
+    };
+    rest = {
+      cw,
+      sleeveL: trimDev(mk((c) => sleeve(c, T, h, -1)), y0 * k),
+      sleeveR: trimDev(mk((c) => sleeve(c, T, h, 1)), y0 * k),
+      handL: hand(-1),
+      handR: hand(1),
+    };
     return rest;
   }
   /**
